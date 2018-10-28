@@ -8,22 +8,24 @@ import cPickle
 class BPpotentialTest(unittest.TestCase):
 
     def test_gold_dataset(self):
-        with open("Au_testdata.pickle", "rb") as fin:
-            (Gs_train, types_train, E_train, 
+        with open("Au_BP_testdata.pickle", "rb") as fin:
+            (Gs_train, types_train, E_train,
             Gs_test, types_test, E_test) = cPickle.load(fin)
 
         pot = BPpotential(["Au"], [len(Gs_train[0][0])], layers = [[64,64]])
 
         [Au_atoms], [Au_maps] = calculate_bp_maps(1, Gs_test, types_test)
-        test_dict = {pot.ANNs["Au"].input: Au_atoms, 
-            pot.atom_maps["Au"]: Au_maps, 
+        test_dict = {pot.ANNs["Au"].input: Au_atoms,
+            pot.atom_maps["Au"]: Au_maps,
             pot.target:E_test, pot.rmse_weights: 1.0/np.array(map(len, Gs_test))**2}
-        
+
         with tf.Session() as sess:
+            # Not relying on tf.set_seed() as graph level seed depends on
+            # the order the graph is build
             np.random.seed(1234)
             for v in pot.variables:
                 sess.run(v.assign(np.random.randn(*v.shape)))
-             
+
             np.testing.assert_array_almost_equal(sess.run(pot.E_predict, test_dict),
                 np.array([-13.735861,   -9.856385,   -8.934873,  -13.68518,
                           -13.685591,  -12.313506,  -12.989344,  -13.678535,
