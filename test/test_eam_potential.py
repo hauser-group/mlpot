@@ -11,8 +11,12 @@ class BPpotentialTest(unittest.TestCase):
     def test_gold_dataset(self):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(dir_path, "Au_EAM_testdata.pickle"), "rb") as fin:
-            (Gs_train, types_train, E_train,
-            Gs_test, types_test, E_test) = pickle.load(fin)
+            try:
+                (Gs_train, types_train, E_train,
+                Gs_test, types_test, E_test) = pickle.load(fin)
+            except UnicodeDecodeError as e: # For Python3.6
+                (Gs_train, types_train, E_train,
+                Gs_test, types_test, E_test) = pickle.load(fin, encoding='latin1')
 
         initial_params = {}
         initial_params[("A", "Au", "Au")] = 0.2061
@@ -29,7 +33,7 @@ class BPpotentialTest(unittest.TestCase):
              pot.ANNs["Au"].b_maps["Au"]: b_map_Au_Au,
              pot.atom_maps["Au"]: Au_map,
              pot.target: E_test,
-             pot.rmse_weights: 1.0/np.array(map(len, Gs_test))**2}
+             pot.rmse_weights: 1.0/np.array(list(map(len, Gs_test)))**2}
 
         with tf.Session() as sess:
             sess.run(tf.variables_initializer(pot.variables))
