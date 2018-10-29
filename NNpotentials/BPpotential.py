@@ -1,5 +1,5 @@
-from core import AtomicEnergyPotential, nn_layer, precision
-from utils import calculate_bp_maps
+from .core import AtomicEnergyPotential, nn_layer, precision
+from .utils import calculate_bp_maps
 import tensorflow as _tf
 
 class BPAtomicNN():

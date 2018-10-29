@@ -1,2 +1,2 @@
-from BPpotential import *
-from EAMpotentials import *
+from .BPpotential import BPpotential
+from .EAMpotentials import *

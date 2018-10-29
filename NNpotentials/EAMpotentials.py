@@ -1,5 +1,5 @@
 import tensorflow as _tf
-from core import nn_layer
+from .core import nn_layer
 import numpy as _np
 from itertools import combinations_with_replacement
 
