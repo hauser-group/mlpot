@@ -1,4 +1,5 @@
 import unittest
+import os
 from NNpotentials import SMATBpotential
 from NNpotentials.utils import calculate_eam_maps
 import numpy as np
@@ -8,7 +9,8 @@ import cPickle
 class BPpotentialTest(unittest.TestCase):
 
     def test_gold_dataset(self):
-        with open("Au_EAM_testdata.pickle", "rb") as fin:
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(dir_path, "Au_EAM_testdata.pickle"), "rb") as fin:
             (Gs_train, types_train, E_train,
             Gs_test, types_test, E_test) = cPickle.load(fin)
 
@@ -33,14 +35,15 @@ class BPpotentialTest(unittest.TestCase):
             sess.run(tf.variables_initializer(pot.variables))
 
             np.testing.assert_array_almost_equal(sess.run(pot.E_predict, test_dict),
-                np.array([-4.94568,    -2.6547625,  -0.6748188,  -0.01376346,
-                          -0.01227736, -0.16663098, -4.6700187,  -0.01906677,
-                          -0.13481946, -0.09345694, -3.4406862,  -1.5484986,
-                          -0.06844438, -0.8315902,  -1.349937,   -0.22047868,
-                          -0.35986638, -6.9231143, -0.03438757, -0.03768436,
-                          -0.15533087, -0.04122702, -1.6580167,  -4.4032536,
-                          -0.05813579, -7.503875,   -0.01538422, -0.191679,
-                          -0.23645946, -0.77570075, -0.95553195]))
+                np.array([-4.94568,     -2.6547625,   -0.6748188,   -0.013763459,
+                          -0.012277357, -0.16663098,  -4.6700187,   -0.019066766,
+                          -0.13481946,  -0.09345694,  -3.4406862,   -1.5484986,
+                          -0.06844438,  -0.8315902,   -1.349937,    -0.22047868,
+                          -0.35986638,  -6.9231143,   -0.034387566, -0.037684362,
+                          -0.15533087,  -0.04122702,  -1.6580167,   -4.4032536,
+                          -0.058135785, -7.503875,    -0.015384224, -0.191679,
+                          -0.23645946,  -0.77570075,  -0.95553195 ]
+))
 
 
 if __name__ == '__main__':

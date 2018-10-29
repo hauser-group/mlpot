@@ -1,14 +1,16 @@
 import unittest
+import os
 from NNpotentials import BPpotential
 from NNpotentials.utils import calculate_bp_maps
 import numpy as np
 import tensorflow as tf
 import cPickle
 
-class BPpotentialTest(unittest.TestCase):
+class BPpotentialTest(unittest.TestCase):       
 
     def test_gold_dataset(self):
-        with open("Au_BP_testdata.pickle", "rb") as fin:
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(dir_path, "Au_BP_testdata.pickle"), "rb") as fin:
             (Gs_train, types_train, E_train,
             Gs_test, types_test, E_test) = cPickle.load(fin)
 
@@ -27,14 +29,14 @@ class BPpotentialTest(unittest.TestCase):
                 sess.run(v.assign(np.random.randn(*v.shape)))
 
             np.testing.assert_array_almost_equal(sess.run(pot.E_predict, test_dict),
-                np.array([-13.735861,   -9.856385,   -8.934873,  -13.68518,
-                          -13.685591,  -12.313506,  -12.989344,  -13.678535,
-                          -12.663107,  -13.094959,  -10.074065,   -7.7194138,
-                          -13.338874,   -8.050451,   -7.3590865, -11.712188,
-                          -10.556735,  -17.370564,   -13.613236,  -13.592398,
-                          -12.439171,  -13.568089,   -7.9591637, -12.175658,
-                          -13.432264,  -19.11342,   -13.68409,   -12.032118,
-                          -11.541304,   -8.347028,   -7.5450773]))
+                np.array([-13.735861,   -9.856386,   -8.934874,  -13.685179,
+                          -13.685591,  -12.313505,  -12.989342,  -13.678537,
+                          -12.663105,  -13.094957,  -10.074066,   -7.7194157,
+                          -13.338873,   -8.050451,   -7.3590875, -11.71219,
+                          -10.556736,  -17.370564,  -13.613234,  -13.5924,
+                          -12.43917,   -13.568087,   -7.9591656, -12.175657,
+                          -13.432264,  -19.11342,   -13.68409,   -12.032116,
+                          -11.541302,   -8.347027,  -7.5450783]))
 
 
 if __name__ == '__main__':
