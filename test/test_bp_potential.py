@@ -4,15 +4,15 @@ from NNpotentials import BPpotential
 from NNpotentials.utils import calculate_bp_maps
 import numpy as np
 import tensorflow as tf
-import cPickle
+import pickle
 
-class BPpotentialTest(unittest.TestCase):       
+class BPpotentialTest(unittest.TestCase):
 
     def test_gold_dataset(self):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(dir_path, "Au_BP_testdata.pickle"), "rb") as fin:
             (Gs_train, types_train, E_train,
-            Gs_test, types_test, E_test) = cPickle.load(fin)
+            Gs_test, types_test, E_test) = pickle.load(fin)
 
         pot = BPpotential(["Au"], [len(Gs_train[0][0])], layers = [[64,64]])
 
@@ -36,7 +36,7 @@ class BPpotentialTest(unittest.TestCase):
                           -10.556736,  -17.370564,  -13.613234,  -13.5924,
                           -12.43917,   -13.568087,   -7.9591656, -12.175657,
                           -13.432264,  -19.11342,   -13.68409,   -12.032116,
-                          -11.541302,   -8.347027,  -7.5450783]))
+                          -11.541302,   -8.347027,  -7.5450783]), decimal=5)
 
 
 if __name__ == '__main__':

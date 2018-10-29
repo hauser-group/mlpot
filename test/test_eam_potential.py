@@ -4,7 +4,7 @@ from NNpotentials import SMATBpotential
 from NNpotentials.utils import calculate_eam_maps
 import numpy as np
 import tensorflow as tf
-import cPickle
+import pickle
 
 class BPpotentialTest(unittest.TestCase):
 
@@ -12,7 +12,7 @@ class BPpotentialTest(unittest.TestCase):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(dir_path, "Au_EAM_testdata.pickle"), "rb") as fin:
             (Gs_train, types_train, E_train,
-            Gs_test, types_test, E_test) = cPickle.load(fin)
+            Gs_test, types_test, E_test) = pickle.load(fin)
 
         initial_params = {}
         initial_params[("A", "Au", "Au")] = 0.2061
@@ -42,8 +42,7 @@ class BPpotentialTest(unittest.TestCase):
                           -0.35986638,  -6.9231143,   -0.034387566, -0.037684362,
                           -0.15533087,  -0.04122702,  -1.6580167,   -4.4032536,
                           -0.058135785, -7.503875,    -0.015384224, -0.191679,
-                          -0.23645946,  -0.77570075,  -0.95553195 ]
-))
+                          -0.23645946,  -0.77570075,  -0.95553195 ]), decimal=5)
 
 
 if __name__ == '__main__':
