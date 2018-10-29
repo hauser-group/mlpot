@@ -58,7 +58,7 @@ class AtomicEnergyPotential(object):
             name = "E_prediction")
 
         self.num_atoms =  _tf.reduce_sum(
-            [_tf.sparse_reduce_sum(m, axis = 1) for m in self.atom_maps.itervalues()],
+            [_tf.sparse_reduce_sum(self.atom_maps[t], axis = 1) for t in self.atom_types],
             axis = 0, name = "NumberOfAtoms")
         # Tensorflow operation that calculates the sum squared error per atom.
         # Note that the whole error per atom is squared.
