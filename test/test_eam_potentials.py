@@ -12,11 +12,12 @@ class EAMpotentialTest(unittest.TestCase):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(dir_path, "Au_EAM_testdata.pickle"), "rb") as fin:
             try:
-                (Gs_train, types_train, E_train,
-                Gs_test, types_test, E_test) = pickle.load(fin)
+                (self.Gs_train, self.types_train, self.E_train,
+                self.Gs_test, self.types_test, self.E_test) = pickle.load(fin)
             except UnicodeDecodeError as e: # For Python3.6
-                (Gs_train, types_train, E_train,
-                Gs_test, types_test, E_test) = pickle.load(fin, encoding='latin1')
+                (self.Gs_train, self.types_train, self.E_train,
+                self.Gs_test, self.types_test, self.E_test) = pickle.load(
+                    fin, encoding='latin1')
 
         ([[self.r_Au_Au]], [[self.b_map_Au_Au]],
             [self.Au_map]) = calculate_eam_maps(
