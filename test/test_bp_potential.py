@@ -31,7 +31,7 @@ class BPpotentialTest(unittest.TestCase):
             for v in pot.variables:
                 sess.run(v.assign(np.random.randn(*v.shape)))
 
-            np.testing.assert_array_almost_equal(sess.run(pot.E_predict, test_dict),
+            np.testing.assert_allclose(sess.run(pot.E_predict, test_dict),
                 np.array([-13.735861,   -9.856386,   -8.934874,  -13.685179,
                           -13.685591,  -12.313505,  -12.989342,  -13.678537,
                           -12.663105,  -13.094957,  -10.074066,   -7.7194157,
@@ -39,7 +39,7 @@ class BPpotentialTest(unittest.TestCase):
                           -10.556736,  -17.370564,  -13.613234,  -13.5924,
                           -12.43917,   -13.568087,   -7.9591656, -12.175657,
                           -13.432264,  -19.11342,   -13.68409,   -12.032116,
-                          -11.541302,   -8.347027,  -7.5450783]), decimal=5)
+                          -11.541302,   -8.347027,  -7.5450783]), rtol=1e-5)
 
 
 if __name__ == '__main__':

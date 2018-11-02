@@ -48,7 +48,7 @@ class SMATBpotentialTest(EAMpotentialTest):
         with tf.Session() as sess:
             sess.run(tf.variables_initializer(pot.variables))
 
-            np.testing.assert_array_almost_equal(
+            np.testing.assert_allclose(
                 sess.run(pot.E_predict, test_dict),
                 np.array([-4.94568,     -2.6547625,  -0.6748188,   -0.013763459,
                           -0.012277357, -0.16663098, -4.6700187,   -0.019066766,
@@ -57,7 +57,7 @@ class SMATBpotentialTest(EAMpotentialTest):
                           -0.35986638,  -6.9231143,  -0.034387566, -0.037684362,
                           -0.15533087,  -0.04122702, -1.6580167,   -4.4032536,
                           -0.058135785, -7.503875,   -0.015384224, -0.191679,
-                          -0.23645946,  -0.77570075, -0.95553195 ]), decimal=5)
+                          -0.23645946,  -0.77570075, -0.95553195 ]), rtol=1e-5)
 
 class NNEpotentialTest(EAMpotentialTest):
 
@@ -78,7 +78,7 @@ class NNEpotentialTest(EAMpotentialTest):
             for v in pot.variables:
                 sess.run(v.assign(np.random.randn(*v.shape)))
 
-            np.testing.assert_array_almost_equal(
+            np.testing.assert_allclose(
                 sess.run(pot.E_predict, test_dict),
                 np.array([ 23.52703,   50.121662, 117.75035,  132.14636,
                           127.72339,   99.749146,  25.486397, 142.7019,
@@ -87,7 +87,7 @@ class NNEpotentialTest(EAMpotentialTest):
                           124.003815,  12.756134, 151.26387,  151.13742,
                           103.28669,  150.60617,   71.71126,   27.66743,
                           144.85855,    8.327611, 136.125,     92.89981,
-                           83.19737,  112.22593, 102.01085 ]), decimal=5)
+                           83.19737,  112.22593, 102.01085 ]), rtol=1e-5)
 
 class NNRHOpotentialTest(EAMpotentialTest):
 
@@ -108,7 +108,7 @@ class NNRHOpotentialTest(EAMpotentialTest):
             for v in pot.variables:
                 sess.run(v.assign(np.random.randn(*v.shape)))
 
-            np.testing.assert_array_almost_equal(
+            np.testing.assert_allclose(
                 sess.run(pot.E_predict, test_dict),
                 np.array([10.852601,  22.81675,    63.20938,  68.71097,
                           65.520744,  51.087536,  11.810835,  76.55871,
@@ -117,7 +117,7 @@ class NNRHOpotentialTest(EAMpotentialTest):
                           65.675865,   5.2400026, 83.7398,    83.84186,
                           53.32183,   83.65372,   35.30896,   12.815254,
                           80.292946,   3.3003106, 71.62463,   46.846622,
-                          41.102154,  59.93209,   53.77338  ]), decimal=5)
+                          41.102154,  59.93209,   53.77338  ]), rtol=1e-5)
 
 class NNERHOpotentialTest(EAMpotentialTest):
 
@@ -138,7 +138,7 @@ class NNERHOpotentialTest(EAMpotentialTest):
             for v in pot.variables:
                 sess.run(v.assign(np.random.randn(*v.shape)))
 
-            np.testing.assert_array_almost_equal(
+            np.testing.assert_allclose(
                 sess.run(pot.E_predict, test_dict),
                 np.array([ 76.809944,  78.04877,  101.2234,   93.335205,
                            89.42229,   82.6702,    76.97342,  103.12275,
@@ -147,7 +147,7 @@ class NNERHOpotentialTest(EAMpotentialTest):
                            99.88108,   75.17703,  113.24658,  113.72391,
                            84.98351,  113.878525,  82.23049,   77.11247,
                           111.56587,   74.350746,  96.93275,   78.28093,
-                           72.37287,   98.932724,  94.420425]), decimal=5)
+                           72.37287,   98.932724,  94.420425]), rtol=1e-5)
 
 class NNVERHOpotentialTest(EAMpotentialTest):
 
@@ -168,7 +168,7 @@ class NNVERHOpotentialTest(EAMpotentialTest):
             for v in pot.variables:
                 sess.run(v.assign(np.random.randn(*v.shape)))
 
-            np.testing.assert_array_almost_equal(
+            np.testing.assert_allclose(
                 sess.run(pot.E_predict, test_dict),
                 np.array([15.349937,  16.332008,  16.819798,   5.3563538,
                            5.138779,  12.319517,  15.48003,    6.4758625,
@@ -177,7 +177,7 @@ class NNVERHOpotentialTest(EAMpotentialTest):
                           15.409866,  14.116678,   9.069218,   9.457203,
                           12.351418,   9.826996,  16.745457,  15.601319,
                           11.0845785, 13.35572,    5.669809,  12.245018,
-                          12.128244,  16.918398,  16.973438 ]), decimal=5)
+                          12.128244,  16.918398,  16.973438 ]), rtol=1e-5)
 
 class NNfreeERHOpotentialTest(EAMpotentialTest):
 
@@ -198,7 +198,7 @@ class NNfreeERHOpotentialTest(EAMpotentialTest):
             for v in pot.variables:
                 sess.run(v.assign(np.random.randn(*v.shape)))
 
-            np.testing.assert_array_almost_equal(
+            np.testing.assert_allclose(
                 sess.run(pot.E_predict, test_dict),
                 np.array([ 8.550756, 19.277721, 58.195335, 63.86586,
                           60.793076, 45.632095,  9.384782, 71.4253,
@@ -207,7 +207,7 @@ class NNfreeERHOpotentialTest(EAMpotentialTest):
                           60.323048,  3.799034, 78.32719,  78.41045,
                           47.8654,   78.208466, 31.05736,  10.264334,
                           74.825134,  2.238496, 66.6718,   41.39421,
-                          35.65802,  55.008442, 48.99653 ]), decimal=5)
+                          35.65802,  55.008442, 48.99653 ]), rtol=1e-5)
 
 
 if __name__ == '__main__':
