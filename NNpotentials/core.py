@@ -43,8 +43,11 @@ class AtomicEnergyPotential(object):
 
         self.atomic_contributions = {}
         self.atom_maps = {}
+        self.atom_indices = {}
 
         for t in self.atom_types:
+            self.atom_indices[t] = _tf.placeholder(shape = (None,1),
+                dtype = _tf.int32, name = "{}_indices".format(t))
             self.atom_maps[t] = _tf.sparse_placeholder(shape = (None, None),
                 dtype = precision, name = "{}_map".format(t))
 
@@ -52,14 +55,21 @@ class AtomicEnergyPotential(object):
         # Convenience handle
         self.ANNs = self.atomic_contributions
 
-        self.E_predict = _tf.reduce_sum([
-            _tf.sparse_tensor_dense_matmul(self.atom_maps[t],
-            self.atomic_contributions[t].output) for t in self.atom_types], axis = [0, 2],
+        self.E_predict = _tf.scatter_nd(
+            _tf.concat([self.atom_indices[t] for t in self.atom_types], 0),
+            _tf.concat([_tf.reshape(self.atomic_contributions[t].output, [-1])
+            for t in self.atom_types], 0), _tf.shape(self.target),
             name = "E_prediction")
+        #self.E_predict = _tf.reduce_sum([
+        #    _tf.sparse_tensor_dense_matmul(self.atom_maps[t],
+        #    self.atomic_contributions[t].output) for t in self.atom_types],
+        #    axis = [0, 2], name = "E_prediction")
 
-        self.num_atoms =  _tf.reduce_sum(
-            [_tf.sparse_reduce_sum(self.atom_maps[t], axis = 1) for t in self.atom_types],
-            axis = 0, name = "NumberOfAtoms")
+        #self.num_atoms =  _tf.reduce_sum(
+        #    [_tf.sparse_reduce_sum(self.atom_maps[t], axis = 1) for t in self.atom_types],
+        #    axis = 0, name = "NumberOfAtoms")
+        self.num_atoms = _tf.reduce_sum([_tf.bincount(self.atom_indices[t])
+            for t in self.atom_types], axis = 0, name = "E_prediction")
         # Tensorflow operation that calculates the sum squared error per atom.
         # Note that the whole error per atom is squared.
         with _tf.name_scope("RMSE"):

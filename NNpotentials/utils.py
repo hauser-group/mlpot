@@ -28,7 +28,8 @@ def calculate_eam_maps(num_atom_types, _Gs, _types):
                 r[ti][tj].extend(Gi[tj])
             Ns[ti] += 1
 
-    # Cast into numpy arrays, also takes care of wrong dimensionality of empty lists
+    # Cast into numpy arrays, also takes care of wrong dimensionality of empty
+    # lists
     maps = []
     b_maps = [[[] for _ in range(num_atom_types)] for _ in range(num_atom_types)]
     for i in range(num_atom_types):
@@ -52,10 +53,27 @@ def calculate_bp_maps(num_atom_types, _Gs, _types):
         for ti in t_vec:
             indices[ti].append([i, Ns[ti]])
             Ns[ti] += 1
-    # Cast into numpy arrays, also takes care of wrong dimensionality of empty lists
+    # Cast into numpy arrays, also takes care of wrong dimensionality of empty
+    # lists
     maps = []
     for a in range(num_atom_types):
          indices[a] = _np.array(indices[a], dtype = _np.int64).reshape((-1,2))
          maps.append(_tf.SparseTensorValue(indices[a], [1.0]*Ns[a], [batchsize, Ns[a]]))
          atoms[a] = _np.concatenate(atoms[a])
     return atoms, maps
+
+def calculate_bp_indices(num_atom_types, _Gs, _types):
+    indices = [[]]*num_atom_types
+    atoms = [[]]*num_atom_types
+
+    for i, (G_vec, t_vec) in enumerate(zip(_Gs, _types)):
+        for a in range(num_atom_types):
+             atoms[a].append(_np.array(G_vec)[t_vec == a])
+        for ti in t_vec:
+            indices[ti].append(i)
+    # Cast into numpy arrays, also takes care of wrong dimensionality of empty
+    # lists
+    for a in range(num_atom_types):
+         indices[a] = _np.array(indices[a], dtype = _np.int32).reshape((-1,1))
+         atoms[a] = _np.concatenate(atoms[a])
+    return atoms, indices
