@@ -1,7 +1,7 @@
 import unittest
 import os
 from NNpotentials import BPpotential
-from NNpotentials.utils import calculate_bp_maps
+from NNpotentials.utils import calculate_bp_maps, calculate_bp_indices
 import numpy as np
 import tensorflow as tf
 import pickle
@@ -19,9 +19,13 @@ class BPpotentialTest(unittest.TestCase):
                 Gs_test, types_test, E_test) = pickle.load(fin, encoding='latin1')
         pot = BPpotential(["Au"], [len(Gs_train[0][0])], layers = [[64,64]])
 
-        [Au_atoms], [Au_maps] = calculate_bp_maps(1, Gs_test, types_test)
+        #[Au_atoms], [Au_maps] = calculate_bp_maps(1, Gs_test, types_test)
+        #test_dict = {pot.ANNs["Au"].input: Au_atoms,
+        #    pot.atom_maps["Au"]: Au_maps,
+        #    pot.target:E_test, pot.rmse_weights: 1.0/np.array(list(map(len, Gs_test)))**2}
+        [Au_atoms], [Au_indices] = calculate_bp_indices(1, Gs_test, types_test)
         test_dict = {pot.ANNs["Au"].input: Au_atoms,
-            pot.atom_maps["Au"]: Au_maps,
+            pot.atom_indices["Au"]: Au_indices,
             pot.target:E_test, pot.rmse_weights: 1.0/np.array(list(map(len, Gs_test)))**2}
 
         with tf.Session() as sess:
@@ -40,6 +44,9 @@ class BPpotentialTest(unittest.TestCase):
                           -12.43917,   -13.568087,   -7.9591656, -12.175657,
                           -13.432264,  -19.11342,   -13.68409,   -12.032116,
                           -11.541302,   -8.347027,  -7.5450783]), rtol=1e-5)
+
+            np.testing.assert_array_equal(sess.run(pot.num_atoms, test_dict),
+                np.array([2]*31))
 
 
 if __name__ == '__main__':
