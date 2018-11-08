@@ -7,8 +7,6 @@ class BPAtomicNN():
         act_funs = [_tf.nn.tanh]):
         self.input = _tf.placeholder(shape = (None, input_dim),
             dtype = precision, name = "ANN_input")
-        self.input = _tf.placeholder(shape = (None, input_dim),
-            dtype = precision, name = "ANN_input")
 
         # Start of with input layer as previous layer
         previous = self.input
@@ -47,3 +45,69 @@ class BPpotential(AtomicEnergyPotential):
             layers, offsets, act_funs):
             with _tf.variable_scope("{}_ANN".format(t), reuse = _tf.AUTO_REUSE):
                 self.atomic_contributions[t] = BPAtomicNN(dims, lays, offs, acts)
+
+def build_BPestimator(atom_types, input_dims, layers = None, offsets = None,
+    act_funs = None):
+    if layers == None:
+        layers = [[20]]*len(atom_types)
+    if offsets == None:
+        offsets = [0.0]*len(atom_types)
+    if act_funs == None:
+        act_funs = []
+        for lays in layers:
+            act_funs.append([_tf.nn.tanh]*len(lays))
+
+    feature_columns = []
+    for i, a in enumerate(atom_types):
+        feature_columns.append(
+            _tf.feature_column.numeric_column(key='%s_input'%a, shape=(input_dims[i])))
+        feature_columns.append(
+            _tf.feature_column.numeric_column(key='%s_indices'%a, dtype=_tf.int32))
+    def model_fun(features, labels, mode, params):
+        atomic_contributions = {}
+        atom_types = params['atom_types']
+        for (t, layers, offs, act_funs) in zip(atom_types,
+            params['layers'], params['offsets'], params['act_funs']):
+            with _tf.variable_scope("{}_ANN".format(t), reuse = _tf.AUTO_REUSE):
+                previous = features['%s_input'%t]
+                for i, (n, act) in enumerate(zip(layers, act_funs)):
+                    previous = _tf.layers.dense(previous, n,
+                        name = "hiddenLayer_%d"%(i+1), activation=act)
+                atomic_contributions[t] = _tf.layers.dense(previous, 1,
+                    activation = None, name = "outputLayer")
+
+        predicted_energies = _tf.scatter_nd(
+            _tf.concat([features['%s_indices'%t] for t in atom_types], 0),
+            _tf.concat([_tf.reshape(atomic_contributions[t], [-1])
+            for t in atom_types], 0), _tf.shape(labels),
+            name = "E_prediction")
+
+        if mode == _tf.estimator.ModeKeys.PREDICT:
+            predictions = {'energies': predicted_energies}
+            return _tf.estimator.EstimatorSpec(mode, predictions=predictions)
+
+        # Compute loss.
+        loss = _tf.losses.mean_squared_error(
+            labels=labels, predictions=predicted_energies)
+
+        rmse = _tf.metrics.root_mean_squared_error(labels, predicted_energies)
+        metrics = {'rmse': rmse}
+        _tf.summary.scalar('rmse', rmse[1])
+
+        if mode == _tf.estimator.ModeKeys.EVAL:
+            return _tf.estimator.EstimatorSpec(
+                mode, loss=loss, eval_metric_ops=metrics)
+
+        assert mode == _tf.estimator.ModeKeys.TRAIN
+        optimizer = _tf.train.AdagradOptimizer(learning_rate=0.1)
+        train_op = optimizer.minimize(loss, global_step=_tf.train.get_global_step())
+        return _tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
+
+    estimator = _tf.estimator.Estimator(model_fn = model_fun,
+        params={'feature_columns':feature_columns,
+                'atom_types':atom_types,
+                'layers':layers,
+                'offsets':offsets,
+                'act_funs':act_funs})
+
+    return estimator
