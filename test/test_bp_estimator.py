@@ -34,17 +34,14 @@ class BPpotentialTest(unittest.TestCase):
 
         [Au_atoms], [Au_indices] = calculate_bp_indices(1, Gs_test, types_test)
 
-        print(type(Au_indices))
         def test_input_fn():
             test_data= tf.data.Dataset.from_tensor_slices(
                 ({'Au_input': np.expand_dims(Au_atoms, axis=0).astype(np.float32),
                   'Au_indices': np.expand_dims(Au_indices, axis=0)},
                   np.array(E_test).reshape((1,-1)).astype(np.float32)))
             return test_data
-        pot.train(train_input_fn, steps=3000)
+        pot.train(train_input_fn, steps=100)
         print(pot.evaluate(test_input_fn))
-        print(pot.get_variable_names())
-        print(pot.params)
         #with tf.Session() as sess:
             # Not relying on tf.set_seed() as graph level seed depends on
             # the order the graph is build
