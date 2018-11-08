@@ -69,7 +69,7 @@ class AtomicEnergyPotential(object):
         #    [_tf.sparse_reduce_sum(self.atom_maps[t], axis = 1) for t in self.atom_types],
         #    axis = 0, name = "NumberOfAtoms")
         self.num_atoms = _tf.reduce_sum([_tf.bincount(self.atom_indices[t])
-            for t in self.atom_types], axis = 0, name = "E_prediction")
+            for t in self.atom_types], axis = 0, name = "NumberOfAtoms")
         # Tensorflow operation that calculates the sum squared error per atom.
         # Note that the whole error per atom is squared.
         with _tf.name_scope("RMSE"):

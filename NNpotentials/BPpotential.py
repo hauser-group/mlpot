@@ -86,6 +86,8 @@ def build_BPestimator(atom_types, input_dims, layers = None, offsets = None,
             predictions = {'energies': predicted_energies}
             return _tf.estimator.EstimatorSpec(mode, predictions=predictions)
 
+        num_atoms = _tf.reduce_sum([_tf.bincount(features['%s_indices'%t])
+            for t in atom_types], axis = 0, name = "NumberOfAtoms")
         # Compute loss.
         loss = _tf.losses.mean_squared_error(
             labels=labels, predictions=predicted_energies)
