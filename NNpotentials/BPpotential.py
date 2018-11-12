@@ -3,10 +3,9 @@ from .utils import calculate_bp_maps
 import tensorflow as _tf
 
 class BPAtomicNN():
-    def __init__(self, input_dim, layers = [20], offset = 0,
+    def __init__(self, input_tensor, layers = [20], offset = 0,
         act_funs = [_tf.nn.tanh]):
-        self.input = _tf.placeholder(shape = (None, input_dim),
-            dtype = precision, name = "ANN_input")
+        self.input = input_tensor
 
         # Start of with input layer as previous layer
         previous = self.input
@@ -41,10 +40,13 @@ class BPpotential(AtomicEnergyPotential):
         layers = kwargs.get('layers')
         offsets = kwargs.get('offsets')
         act_funs = kwargs.get('act_funs')
-        for (t, dims, lays, offs, acts) in zip(self.atom_types, input_dims,
+        for (t, in_dim, lays, offs, acts) in zip(self.atom_types, input_dims,
             layers, offsets, act_funs):
             with _tf.variable_scope("{}_ANN".format(t), reuse = _tf.AUTO_REUSE):
-                self.atomic_contributions[t] = BPAtomicNN(dims, lays, offs, acts)
+                input_tensor = _tf.placeholder(shape = (None, in_dim),
+                    dtype = precision, name = "ANN_input")
+                self.atomic_contributions[t] = BPAtomicNN(
+                    input_tensor, lays, offs, acts)
 
 def build_BPestimator(atom_types, input_dims, layers = None, offsets = None,
     act_funs = None):
@@ -66,19 +68,16 @@ def build_BPestimator(atom_types, input_dims, layers = None, offsets = None,
     def model_fun(features, labels, mode, params):
         atomic_contributions = {}
         atom_types = params['atom_types']
-        for (t, layers, offs, act_funs) in zip(atom_types,
+        for (t, lays, offs, acts) in zip(atom_types,
             params['layers'], params['offsets'], params['act_funs']):
             with _tf.variable_scope("{}_ANN".format(t), reuse = _tf.AUTO_REUSE):
-                previous = features['%s_input'%t]
-                for i, (n, act) in enumerate(zip(layers, act_funs)):
-                    previous = _tf.layers.dense(previous, n,
-                        name = "hiddenLayer_%d"%(i+1), activation=act)
-                atomic_contributions[t] = _tf.layers.dense(previous, 1,
-                    activation = None, name = "outputLayer")
+                input_tensor = features['%s_input'%t]
+                atomic_contributions[t] = BPAtomicNN(
+                    input_tensor, lays, offs, acts)
 
         predicted_energies = _tf.scatter_nd(
             _tf.concat([features['%s_indices'%t] for t in atom_types], 0),
-            _tf.concat([_tf.reshape(atomic_contributions[t], [-1])
+            _tf.concat([_tf.reshape(atomic_contributions[t].output, [-1])
             for t in atom_types], 0), _tf.shape(labels),
             name = "E_prediction")
 
