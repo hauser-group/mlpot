@@ -23,7 +23,6 @@ class LibraryTest(unittest.TestCase):
                 # Derivatives
                 dGa = sfs_cpp.eval_derivatives(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
                 np.testing.assert_array_equal(dGa[0], dGa[1])
-                print(dGa[0])
 
                 Gi_drp = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri+dr]]))
                 Gi_drm = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri-dr]]))
@@ -31,6 +30,37 @@ class LibraryTest(unittest.TestCase):
                 np.testing.assert_array_equal(dGn[0], dGn[1])
 
                 np.testing.assert_array_almost_equal(dGa[0][:,-1], dGn[0])
+
+    def test_acetone(self):
+        from scipy.optimize import approx_fprime
+        x0 = np.array([0.00000,        0.00000,        0.00000, #C
+                       1.40704,        0.00902,       -0.67203, #C
+                       1.67062,       -0.92069,       -1.22124, #H
+                       2.20762,        0.06960,        0.11291, #H
+                       1.61784,        0.88539,       -1.32030, #H
+                      -1.40732,       -0.00378,       -0.67926, #C
+                      -1.65709,        0.91221,       -1.25741, #H
+                      -2.20522,       -0.03081,        0.10912, #H
+                      -1.64457,       -0.88332,       -1.31507, #H
+                       0.00000,       -0.00000,        1.20367]) #O
+        types = ["C", "C", "H", "H", "H", "C", "H", "H", "H", "O"]
+        with SymFunSet_cpp(["C", "H", "O"]) as sfs:
+            radial_etas = [0.0009, 0.01, 0.02, 0.035, 0.06, 0.1, 0.2]
+            rss = [0.0]*len(radial_etas)
+
+            angular_etas = [0.0001, 0.003, 0.008]
+            lambs = [1.0, -1.0]
+            zetas = [1.0, 4.0]
+
+            sfs.add_radial_functions(rss, radial_etas)
+            sfs.add_angular_functions(angular_etas, zetas, lambs)
+            def f(x):
+                return np.sum(np.array(sfs.eval(types, x.reshape((-1,3)))))
+
+            eps = np.sqrt(np.finfo(float).eps)
+            np.testing.assert_allclose(approx_fprime(x0, f, epsilon = eps),
+                np.sum(np.array(sfs.eval_derivatives(types, x0.reshape((-1,3)))), axis=(0,1)), rtol=1e-4, atol=1)
+             
 
     def test_derivaties(self):
         with SymFunSet_cpp(["Ni", "Au"], cutoff = 10.) as sfs_cpp:
@@ -45,7 +75,7 @@ class LibraryTest(unittest.TestCase):
             etas = [1.0, 0.01, 0.0001]
 
             sfs_cpp.add_radial_functions(rss, etas)
-            sfs_cpp.add_angular_functions([1.0], [1.0], etas)
+            sfs_cpp.add_angular_functions(etas, [1.0], [1.0])
 
             out_cpp = sfs_cpp.eval(types, pos)
             analytical_derivatives = sfs_cpp.eval_derivatives(types, pos)
