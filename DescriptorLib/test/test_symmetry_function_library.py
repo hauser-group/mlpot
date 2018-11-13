@@ -44,6 +44,7 @@ class LibraryTest(unittest.TestCase):
                       -1.64457,       -0.88332,       -1.31507, #H
                        0.00000,       -0.00000,        1.20367]) #O
         types = ["C", "C", "H", "H", "H", "C", "H", "H", "H", "O"]
+        
         with SymFunSet_cpp(["C", "H", "O"]) as sfs:
             radial_etas = [0.0009, 0.01, 0.02, 0.035, 0.06, 0.1, 0.2]
             rss = [0.0]*len(radial_etas)
@@ -54,12 +55,17 @@ class LibraryTest(unittest.TestCase):
 
             sfs.add_radial_functions(rss, radial_etas)
             sfs.add_angular_functions(angular_etas, zetas, lambs)
-            def f(x):
-                return np.sum(np.array(sfs.eval(types, x.reshape((-1,3)))))
-
+            f0 = sfs.eval(types, x0.reshape((-1,3)))
             eps = np.sqrt(np.finfo(float).eps)
-            np.testing.assert_allclose(approx_fprime(x0, f, epsilon = eps),
-                np.sum(np.array(sfs.eval_derivatives(types, x0.reshape((-1,3)))), axis=(0,1)), rtol=1e-4, atol=1)
+
+            for i in range(len(f0)):
+                for j in range(len(f0[i])):
+                    def f(x):
+                        return np.array(sfs.eval(types, x.reshape((-1,3))))[i][j]
+                
+                    np.testing.assert_allclose(approx_fprime(x0, f, epsilon = eps),
+                        sfs.eval_derivatives(types, x0.reshape((-1,3)))[i][j], 
+                        rtol=1e-4, atol=1)
              
 
     def test_derivaties(self):
