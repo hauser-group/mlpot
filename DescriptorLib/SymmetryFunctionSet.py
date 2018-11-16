@@ -1,7 +1,7 @@
 from os.path import dirname, abspath, join, normpath
 from inspect import getsourcefile
 from itertools import product, combinations_with_replacement
-from NeuralNetworks.descriptors import SymmetryFunctions as SFs
+from DescriptorLib import SymmetryFunctions as SFs
 import numpy as _np
 import ctypes as _ct
 from scipy.spatial.distance import pdist, squareform
