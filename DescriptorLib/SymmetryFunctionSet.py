@@ -50,6 +50,7 @@ try:
         _ct.c_char_p,)
     lib.SymmetryFunctionSet_get_G_vector_size.argtypes = (
         _ct.c_void_p, _ct.c_int, _ct.POINTER(_ct.c_int))
+    lib.SymmetryFunctionSet_print_symFuns.argtypes = (_ct.c_void_p,)
 except OSError as e:
     # Possibly switch to a python based implementation if loading the dll fails
     raise OSError(e.message)

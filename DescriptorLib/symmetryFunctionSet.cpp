@@ -4,11 +4,11 @@
 #include <math.h>
 #include <algorithm>
 
-SymmetryFunctionSet::SymmetryFunctionSet(int num_atomtypes_i):
-twoBodySymFuns(num_atomtypes_i*num_atomtypes_i),
-threeBodySymFuns(num_atomtypes_i*num_atomtypes_i*num_atomtypes_i)
+SymmetryFunctionSet::SymmetryFunctionSet(int num_atomtypes):
+twoBodySymFuns(num_atomtypes*num_atomtypes),
+threeBodySymFuns(num_atomtypes*num_atomtypes*num_atomtypes)
 {
-  num_atomtypes = num_atomtypes_i;
+  this->num_atomtypes = num_atomtypes;
   num_atomtypes_sq = num_atomtypes*num_atomtypes;
   num_symFuns = new int[2*num_atomtypes]();
   pos_twoBody = new int[num_atomtypes_sq]();
@@ -86,20 +86,15 @@ void SymmetryFunctionSet::add_ThreeBodySymmetryFunction(
   }
 }
 
-void SymmetryFunctionSet::print_symFuns()
+void SymmetryFunctionSet::print_symFuns() const
 {
   printf("Number of atom types: %d\n", num_atomtypes);
-  //printf("TwoBodySymmetryFunctions:\n");
   for (int ti = 0; ti < num_atomtypes; ti++)
   {
     printf("--- Atom type %d: ----\n", ti);
-    printf("Number of TwoBodySymmetryFunction for atom type %d is %d\n",
+    printf("Number of TwoBodySymmetryFunction(s) for atom type %d is %d\n",
       ti, num_symFuns[2*ti]);
-    /*for (int bi = 0; bi < num_symFuns[2*ti]; bi++)
-    {
-      printf("   #%d function with #%d cutoff\n", TwoBodySymFuns)
-    }*/
-    printf("Number of ThreeBodySymmetryFunction for atom type %d is %d\n",
+    printf("Number of ThreeBodySymmetryFunction(s) for atom type %d is %d\n",
       ti, num_symFuns[2*ti+1]);
   }
 }

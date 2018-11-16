@@ -25,7 +25,7 @@ class SymmetryFunctionSet
       int num_atoms, int* types, double* xyzs, double* dG_tensor);
     void eval_with_derivatives(int num_atoms, int* types, double* xyzs,
       double* G_vector, double* dG_tensor);
-    void print_symFuns();
+    void print_symFuns() const;
 
   private:
     int num_atomtypes, num_atomtypes_sq;

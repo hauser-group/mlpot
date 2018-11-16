@@ -25,9 +25,10 @@ class LibraryTest(unittest.TestCase):
                 # Assert Symmetry
                 np.testing.assert_array_equal(dGa[0], dGa[1])
                 # Assert Values
-                np.testing.assert_allclose(dGa[0][:,-1], np.exp(-etas*(ri-rss)**2)*(
+                np.testing.assert_allclose(np.exp(-etas*(ri-rss)**2)*(
                     0.5*(1.0+np.cos(np.pi*ri/sfs_cpp.cutoff))*2.0*(-etas)*(ri-rss)+
-                    0.5*(-np.sin(np.pi*ri/sfs_cpp.cutoff)*np.pi/sfs_cpp.cutoff)))
+                    0.5*(-np.sin(np.pi*ri/sfs_cpp.cutoff)*np.pi/sfs_cpp.cutoff)),
+                    dGa[0][:,-1], rtol=1e-7)
 
                 Gi_drp = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri+dr]]))
                 Gi_drm = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri-dr]]))
@@ -61,7 +62,7 @@ class LibraryTest(unittest.TestCase):
             sfs.add_radial_functions(rss, radial_etas)
             sfs.add_angular_functions(angular_etas, zetas, lambs)
             f0 = sfs.eval(types, x0.reshape((-1,3)))
-            print(f0)
+            #print(f0)
             sfs.print_symFuns()
             eps = np.sqrt(np.finfo(float).eps)
 
@@ -70,8 +71,9 @@ class LibraryTest(unittest.TestCase):
                     def f(x):
                         return np.array(sfs.eval(types, x.reshape((-1,3))))[i][j]
 
-                    np.testing.assert_allclose(approx_fprime(x0, f, epsilon = eps),
-                        sfs.eval_derivatives(types, x0.reshape((-1,3)))[i][j], 
+                    np.testing.assert_allclose(
+                        sfs.eval_derivatives(types, x0.reshape((-1,3)))[i][j],
+                        approx_fprime(x0, f, epsilon = eps),
                         rtol=1e-5, atol=0)
 
 
