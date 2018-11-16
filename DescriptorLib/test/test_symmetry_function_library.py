@@ -13,7 +13,7 @@ class LibraryTest(unittest.TestCase):
             sfs_cpp.add_radial_functions(rss, etas)
 
             dr = 0.00001
-            for ri in np.linspace(2,7,10):
+            for ri in np.linspace(0.1,7,101):
                 Gi = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
                 # Assert Symmmetry
                 np.testing.assert_array_equal(Gi[0], Gi[1])
@@ -22,7 +22,12 @@ class LibraryTest(unittest.TestCase):
                     Gi[0], np.exp(-etas*(ri-rss)**2)*0.5*(1.0+np.cos(np.pi*ri/sfs_cpp.cutoff)))
                 # Derivatives
                 dGa = sfs_cpp.eval_derivatives(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
+                # Assert Symmetry
                 np.testing.assert_array_equal(dGa[0], dGa[1])
+                # Assert Values
+                np.testing.assert_allclose(dGa[0][:,-1], np.exp(-etas*(ri-rss)**2)*(
+                    0.5*(1.0+np.cos(np.pi*ri/sfs_cpp.cutoff))*2.0*(-etas)*(ri-rss)+
+                    0.5*(-np.sin(np.pi*ri/sfs_cpp.cutoff)*np.pi/sfs_cpp.cutoff)))
 
                 Gi_drp = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri+dr]]))
                 Gi_drm = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri-dr]]))
@@ -44,9 +49,9 @@ class LibraryTest(unittest.TestCase):
                       -1.64457,       -0.88332,       -1.31507, #H
                        0.00000,       -0.00000,        1.20367]) #O
         types = ["C", "C", "H", "H", "H", "C", "H", "H", "H", "O"]
-        
-        with SymFunSet_cpp(["C", "H", "O"]) as sfs:
-            radial_etas = [0.0009, 0.01, 0.02, 0.035, 0.06, 0.1, 0.2]
+
+        with SymFunSet_cpp(["C", "H", "O"], cutoff = 7.0) as sfs:
+            radial_etas = [0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0]
             rss = [0.0]*len(radial_etas)
 
             angular_etas = [0.0001, 0.003, 0.008]
@@ -56,17 +61,19 @@ class LibraryTest(unittest.TestCase):
             sfs.add_radial_functions(rss, radial_etas)
             sfs.add_angular_functions(angular_etas, zetas, lambs)
             f0 = sfs.eval(types, x0.reshape((-1,3)))
+            print(f0)
+            sfs.print_symFuns()
             eps = np.sqrt(np.finfo(float).eps)
 
             for i in range(len(f0)):
                 for j in range(len(f0[i])):
                     def f(x):
                         return np.array(sfs.eval(types, x.reshape((-1,3))))[i][j]
-                
+
                     np.testing.assert_allclose(approx_fprime(x0, f, epsilon = eps),
                         sfs.eval_derivatives(types, x0.reshape((-1,3)))[i][j], 
-                        rtol=1e-4, atol=1)
-             
+                        rtol=1e-5, atol=0)
+
 
     def test_derivaties(self):
         with SymFunSet_cpp(["Ni", "Au"], cutoff = 10.) as sfs_cpp:
