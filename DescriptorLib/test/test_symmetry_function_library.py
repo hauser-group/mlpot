@@ -133,7 +133,7 @@ class LibraryTest(unittest.TestCase):
             analytical_derivatives = sfs_cpp.eval_derivatives(types, pos)
             numerical_derivatives = np.zeros((len(out_cpp), out_cpp[0].size, pos.size))
             dx = 0.00001
-            for i in xrange(pos.size):
+            for i in range(pos.size):
                 dpos = np.zeros(pos.shape)
                 dpos[np.unravel_index(i,dpos.shape)] += dx
                 numerical_derivatives[:,:,i] = (np.array(sfs_cpp.eval(types, pos+dpos))
