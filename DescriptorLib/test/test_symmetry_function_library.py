@@ -4,7 +4,7 @@ import numpy as np
 
 class LibraryTest(unittest.TestCase):
 
-    def test_dimer(self):
+    def test_dimer_cos(self):
         with SymFunSet_cpp(["Au"], cutoff = 7.) as sfs_cpp:
             types = ["Au", "Au"]
             rss = [0.0, 0.0, 0.0]
@@ -12,30 +12,70 @@ class LibraryTest(unittest.TestCase):
 
             sfs_cpp.add_radial_functions(rss, etas)
 
-            dr = 0.00001
+            dr = np.sqrt(np.finfo(float).eps)
             for ri in np.linspace(0.1,7,101):
                 Gi = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
                 # Assert Symmmetry
                 np.testing.assert_array_equal(Gi[0], Gi[1])
                 # Assert Values
-                np.testing.assert_array_equal(
+                np.testing.assert_allclose(
                     Gi[0], np.exp(-etas*(ri-rss)**2)*0.5*(1.0+np.cos(np.pi*ri/sfs_cpp.cutoff)))
                 # Derivatives
                 dGa = sfs_cpp.eval_derivatives(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
                 # Assert Symmetry
                 np.testing.assert_array_equal(dGa[0], dGa[1])
                 # Assert Values
-                np.testing.assert_allclose(np.exp(-etas*(ri-rss)**2)*(
+                np.testing.assert_allclose(dGa[0][:,-1], np.exp(-etas*(ri-rss)**2)*(
                     0.5*(1.0+np.cos(np.pi*ri/sfs_cpp.cutoff))*2.0*(-etas)*(ri-rss)+
-                    0.5*(-np.sin(np.pi*ri/sfs_cpp.cutoff)*np.pi/sfs_cpp.cutoff)),
-                    dGa[0][:,-1], rtol=1e-7)
+                    0.5*(-np.sin(np.pi*ri/sfs_cpp.cutoff)*np.pi/sfs_cpp.cutoff)))
 
                 Gi_drp = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri+dr]]))
                 Gi_drm = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri-dr]]))
                 dGn = [(Gi_drp[i] - Gi_drm[i])/(2*dr) for i in [0,1]]
+                # Assert Symmetry
                 np.testing.assert_array_equal(dGn[0], dGn[1])
+                # Assert Values
+                np.testing.assert_allclose(dGa[0][:,-1], dGn[0],
+                    rtol = 1E-7, atol = 1E-7)
 
-                np.testing.assert_array_almost_equal(dGa[0][:,-1], dGn[0])
+    def test_dimer_polynomial(self):
+        with SymFunSet_cpp(["Au"], cutoff = 7.) as sfs_cpp:
+            types = ["Au", "Au"]
+            rss = [0.0, 0.0, 0.0]
+            bohr2ang = 0.529177249
+            etas = np.array([0.01, 0.1, 1.0])/bohr2ang**2
+
+            sfs_cpp.add_radial_functions(rss, etas, cuttype = "polynomial")
+
+            dr = np.sqrt(np.finfo(float).eps)
+            for ri in np.linspace(2,7,10):
+                Gi = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
+                # Assert Symmmetry
+                np.testing.assert_array_equal(Gi[0], Gi[1])
+                # Assert Values
+                np.testing.assert_allclose(
+                    Gi[0], np.exp(-etas*(ri-rss)**2)*(1 - 10.0 * (ri/sfs_cpp.cutoff)**3 +
+                    15.0 * (ri/sfs_cpp.cutoff)**4 - 6.0 * (ri/sfs_cpp.cutoff)**5))
+                # Derivatives
+                dGa = sfs_cpp.eval_derivatives(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
+                # Assert Symmmetry
+                np.testing.assert_array_equal(dGa[0], dGa[1])
+                # Assert Values
+                np.testing.assert_allclose(np.exp(-etas*(ri-rss)**2)*(
+                    (1 - 10.0 * (ri/sfs_cpp.cutoff)**3 + 15.0 * (ri/sfs_cpp.cutoff)**4
+                    - 6.0 * (ri/sfs_cpp.cutoff)**5)*2.0*(-etas)*(ri-rss)
+                    +(-30.0 * (ri**2/sfs_cpp.cutoff**3) + 60.0 * (ri**3/sfs_cpp.cutoff**4)
+                    - 30.0 * (ri**4/sfs_cpp.cutoff**5))),
+                    dGa[0][:,-1])
+
+                Gi_drp = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri+dr]]))
+                Gi_drm = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri-dr]]))
+                dGn = [(Gi_drp[i] - Gi_drm[i])/(2*dr) for i in [0,1]]
+                # Assert Symmetry
+                np.testing.assert_array_equal(dGn[0], dGn[1])
+                # Assert Values
+                np.testing.assert_allclose(dGa[0][:,-1], dGn[0],
+                    rtol = 1E-7, atol = 1E-7)
 
     def test_acetone(self):
         from scipy.optimize import approx_fprime
@@ -62,8 +102,6 @@ class LibraryTest(unittest.TestCase):
             sfs.add_radial_functions(rss, radial_etas)
             sfs.add_angular_functions(angular_etas, zetas, lambs)
             f0 = sfs.eval(types, x0.reshape((-1,3)))
-            #print(f0)
-            sfs.print_symFuns()
             eps = np.sqrt(np.finfo(float).eps)
 
             for i in range(len(f0)):
@@ -71,10 +109,9 @@ class LibraryTest(unittest.TestCase):
                     def f(x):
                         return np.array(sfs.eval(types, x.reshape((-1,3))))[i][j]
 
-                    np.testing.assert_allclose(
+                    np.testing.assert_array_almost_equal(
                         sfs.eval_derivatives(types, x0.reshape((-1,3)))[i][j],
-                        approx_fprime(x0, f, epsilon = eps),
-                        rtol=1e-5, atol=0)
+                        approx_fprime(x0, f, epsilon = eps))
 
 
     def test_derivaties(self):
