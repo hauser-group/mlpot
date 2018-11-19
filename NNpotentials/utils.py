@@ -44,8 +44,8 @@ def calculate_eam_maps(num_atom_types, _Gs, _types):
 def calculate_bp_maps(num_atom_types, _Gs, _types):
     batchsize = len(_Gs)
     Ns = [0]*num_atom_types
-    indices = [[]]*num_atom_types
-    atoms = [[]]*num_atom_types
+    indices = [[] for _ in range(num_atom_types)]
+    atoms = [[] for _ in range(num_atom_types)]
 
     for i, (G_vec, t_vec) in enumerate(zip(_Gs, _types)):
         for a in range(num_atom_types):
@@ -62,18 +62,35 @@ def calculate_bp_maps(num_atom_types, _Gs, _types):
          atoms[a] = _np.concatenate(atoms[a])
     return atoms, maps
 
-def calculate_bp_indices(num_atom_types, _Gs, _types):
-    indices = [[]]*num_atom_types
-    atoms = [[]]*num_atom_types
+def calculate_bp_indices(num_atom_types, Gs, types, dGs = None):
+    indices = [[] for _ in range(num_atom_types)]
+    atoms = [[] for _ in range(num_atom_types)]
 
-    for i, (G_vec, t_vec) in enumerate(zip(_Gs, _types)):
+    if dGs is None:
+        for i, (G_vec, t_vec) in enumerate(zip(Gs, types)):
+            for a in range(num_atom_types):
+                atoms[a].append(_np.array(G_vec)[t_vec == a])
+            for ti in t_vec:
+                indices[ti].append(i)
+
+        # Cast into numpy arrays, also takes care of wrong dimensionality of
+        # empty lists
         for a in range(num_atom_types):
-             atoms[a].append(_np.array(G_vec)[t_vec == a])
-        for ti in t_vec:
-            indices[ti].append(i)
-    # Cast into numpy arrays, also takes care of wrong dimensionality of empty
-    # lists
-    for a in range(num_atom_types):
-         indices[a] = _np.array(indices[a], dtype = _np.int32).reshape((-1,1))
-         atoms[a] = _np.concatenate(atoms[a])
-    return atoms, indices
+            indices[a] = _np.array(indices[a], dtype = _np.int32).reshape((-1,1))
+            atoms[a] = _np.concatenate(atoms[a])
+        return atoms, indices
+    else:
+        atom_derivs = [[] for _ in range(num_atom_types)]
+        for i, (G_vec, t_vec, dG_vec) in enumerate(zip(Gs, types, dGs)):
+            for a in range(num_atom_types):
+                atoms[a].append(_np.array(G_vec)[t_vec == a])
+                atom_derivs[a].append(_np.array(dG_vec)[t_vec == a])
+            for ti in t_vec:
+                indices[ti].append(i)
+        # Cast into numpy arrays, also takes care of wrong dimensionality of
+        # empty lists
+        for a in range(num_atom_types):
+            indices[a] = _np.array(indices[a], dtype = _np.int32).reshape((-1,1))
+            atoms[a] = _np.concatenate(atoms[a])
+            atom_derivs[a] = _np.concatenate(atom_derivs[a])
+        return atoms, indices, atom_derivs
