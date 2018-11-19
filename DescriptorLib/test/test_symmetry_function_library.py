@@ -1,8 +1,91 @@
 import unittest
 from DescriptorLib.SymmetryFunctionSet import SymmetryFunctionSet as SymFunSet_cpp
 import numpy as np
+from itertools import product
 
 class LibraryTest(unittest.TestCase):
+
+    def test_cos_cutoff_functions(self):
+        r_vec = np.linspace(0.1,7,101)
+        geos = [[("F", np.array([0.0, 0.0, 0.0])),
+                ("H", np.array([0.0, 0.0, ri]))] for ri in r_vec]
+        with SymFunSet_cpp(["H", "F"], cutoff = 6.5) as sfs:
+            for (t1, t2) in product(sfs.atomtypes, repeat = 2):
+                sfs.add_TwoBodySymmetryFunction(
+                    t1, t2, "BehlerG0", [], cuttype = "cos")
+
+            Gs = []
+            dGs = []
+            for geo in geos:
+                Gs.append(sfs.eval_geometry(geo))
+                dGs.append(sfs.eval_geometry_derivatives(geo))
+            np.testing.assert_allclose(np.array(Gs)[:,0,0],
+                0.5*(1.0+np.cos(r_vec*np.pi/sfs.cutoff))*(r_vec < sfs.cutoff))
+            np.testing.assert_allclose(np.array(dGs)[:,0,0,-1],
+                0.5*(-np.sin(r_vec*np.pi/sfs.cutoff)*np.pi/sfs.cutoff)*(
+                r_vec < sfs.cutoff))
+
+    def test_poly_cutoff_functions(self):
+        r_vec = np.linspace(0.1,7,101)
+        geos = [[("F", np.array([0.0, 0.0, 0.0])),
+                ("H", np.array([0.0, 0.0, ri]))] for ri in r_vec]
+        with SymFunSet_cpp(["H", "F"], cutoff = 6.5) as sfs:
+            for (t1, t2) in product(sfs.atomtypes, repeat = 2):
+                sfs.add_TwoBodySymmetryFunction(
+                    t1, t2, "BehlerG0", [], cuttype = "polynomial")
+
+            Gs = []
+            dGs = []
+            for geo in geos:
+                Gs.append(sfs.eval_geometry(geo))
+                dGs.append(sfs.eval_geometry_derivatives(geo))
+            np.testing.assert_allclose(np.array(Gs)[:,0,0],
+                (1 - 10.0 * (r_vec/sfs.cutoff)**3
+                 + 15.0 * (r_vec/sfs.cutoff)**4
+                - 6.0 * (r_vec/sfs.cutoff)**5)*(r_vec < sfs.cutoff))
+            np.testing.assert_allclose(np.array(dGs)[:,0,0,-1],
+                (- 30.0 * (r_vec/sfs.cutoff)**2/sfs.cutoff
+                 + 60.0 * (r_vec/sfs.cutoff)**3/sfs.cutoff
+                - 30.0 * (r_vec/sfs.cutoff)**4/sfs.cutoff)*(r_vec < sfs.cutoff))
+
+    def test_tanh_cutoff_functions(self):
+        r_vec = np.linspace(0.1,7,101)
+        geos = [[("F", np.array([0.0, 0.0, 0.0])),
+                ("H", np.array([0.0, 0.0, ri]))] for ri in r_vec]
+        with SymFunSet_cpp(["H", "F"], cutoff = 6.5) as sfs:
+            for (t1, t2) in product(sfs.atomtypes, repeat = 2):
+                sfs.add_TwoBodySymmetryFunction(
+                    t1, t2, "BehlerG0", [], cuttype = "tanh")
+
+            Gs = []
+            dGs = []
+            for geo in geos:
+                Gs.append(sfs.eval_geometry(geo))
+                dGs.append(sfs.eval_geometry_derivatives(geo))
+            np.testing.assert_allclose(np.array(Gs)[:,0,0],
+                (np.tanh(1.0-r_vec/sfs.cutoff)**3)*(r_vec < sfs.cutoff))
+            np.testing.assert_allclose(np.array(dGs)[:,0,0,-1],
+                -(3*np.sinh(1.0-r_vec/sfs.cutoff)**2)/
+                (sfs.cutoff*np.cosh(1.0-r_vec/sfs.cutoff)**4)*(
+                r_vec < sfs.cutoff))
+
+    def test_const_cutoff_functions(self):
+        r_vec = np.linspace(0.1,7,101)
+        geos = [[("F", np.array([0.0, 0.0, 0.0])),
+                ("H", np.array([0.0, 0.0, ri]))] for ri in r_vec]
+        with SymFunSet_cpp(["H", "F"], cutoff = 6.5) as sfs:
+            for (t1, t2) in product(sfs.atomtypes, repeat = 2):
+                sfs.add_TwoBodySymmetryFunction(
+                    t1, t2, "BehlerG0", [], cuttype = "const")
+
+            Gs = []
+            dGs = []
+            for geo in geos:
+                Gs.append(sfs.eval_geometry(geo))
+                dGs.append(sfs.eval_geometry_derivatives(geo))
+            np.testing.assert_allclose(np.array(Gs)[:,0,0],
+                (1.0)*(r_vec < sfs.cutoff))
+            np.testing.assert_allclose(np.array(dGs)[:,0,0,-1], 0.0)
 
     def test_dimer_cos(self):
         with SymFunSet_cpp(["Au"], cutoff = 7.) as sfs_cpp:
