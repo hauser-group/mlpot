@@ -36,6 +36,17 @@ class TwoBodySymmetryFunction: public SymmetryFunction
 
 // AUTOMATIC Start of custom TwoBodySymFuns
 
+class BehlerG0: public TwoBodySymmetryFunction
+{
+    public:
+        BehlerG0(int num_prms, double* prms_i,
+          std::shared_ptr<CutoffFunction> cutfun_i):
+          TwoBodySymmetryFunction(num_prms, prms_i, cutfun_i){};
+        double eval(double rij);
+        double drij(double rij);
+        void eval_with_derivatives(double rij, double &G, double &dGdrij);
+};
+
 class BehlerG1: public TwoBodySymmetryFunction
 {
     public:
@@ -111,10 +122,10 @@ class ThreeBodySymmetryFunction: public SymmetryFunction
 
 // AUTOMATIC Start of custom ThreeBodySymFuns
 
-class BehlerG4: public ThreeBodySymmetryFunction
+class BehlerG3: public ThreeBodySymmetryFunction
 {
   public:
-    BehlerG4(int num_prms, double* prms,
+    BehlerG3(int num_prms, double* prms,
       std::shared_ptr<CutoffFunction> cutfun_i):
       ThreeBodySymmetryFunction(num_prms, prms, cutfun_i){};
     double eval(double rij, double rik, double costheta);
@@ -127,10 +138,10 @@ class BehlerG4: public ThreeBodySymmetryFunction
       double &G, double &dGdrij, double &dGdrik, double &dGdcostheta);
 };
 
-class BehlerG3: public ThreeBodySymmetryFunction
+class BehlerG4: public ThreeBodySymmetryFunction
 {
   public:
-    BehlerG3(int num_prms, double* prms,
+    BehlerG4(int num_prms, double* prms,
       std::shared_ptr<CutoffFunction> cutfun_i):
       ThreeBodySymmetryFunction(num_prms, prms, cutfun_i){};
     double eval(double rij, double rik, double costheta);

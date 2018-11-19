@@ -2,6 +2,7 @@
 ! TwoBodySymmetryFunctions
 !
 
+TwoBodySymFun BehlerG0 0 fcut(rij)
 TwoBodySymFun BehlerG1 1 exp(-prm0*(rij)**2)*fcut(rij)
 TwoBodySymFun BehlerG2 2 exp(-prm0*(rij-prm1)**2)*fcut(rij)
 TwoBodySymFun OneOverR6 0 1/rij**6*fcut(rij)
@@ -12,6 +13,6 @@ TwoBodySymFun OneOverR10 0 1/rij**10*fcut(rij)
 ! ThreeBodySymmetryFunctions
 !
 
-ThreeBodySymFun BehlerG4 3 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*(rij**2+rik**2))*fcut(rij)*fcut(rik)
 ThreeBodySymFun BehlerG3 3 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*(2*rij**2+2*rik**2-2*rij*rik*costheta))*fcut(rij)*fcut(rik)*fcut(sqrt(rij**2+rik**2-2*rij*rik*costheta))
+ThreeBodySymFun BehlerG4 3 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*(rij**2+rik**2))*fcut(rij)*fcut(rik)
 ThreeBodySymFun MeyerG1 4 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*(rij**2+rik**2))*exp(-prm2*((rij-prm3)**2+(rik-prm3)**2))*fcut(rij)*fcut(rik)
