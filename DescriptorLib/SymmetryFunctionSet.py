@@ -169,19 +169,16 @@ class SymmetryFunctionSet(object):
         return [out[cum_num_Gs[i]:cum_num_Gs[i+1]] for i in range(len(types))]
 
     def eval_geometry(self, geo):
-        geo.sort(key = lambda g: self.type_dict[g[0]])
         types = [a[0] for a in geo]
         xyzs = _np.array([a[1] for a in geo])
         return self.eval(types, xyzs)
 
     def eval_geometry_derivatives(self, geo):
-        geo.sort(key = lambda g: self.type_dict[g[0]])
         types = [a[0] for a in geo]
         xyzs = _np.array([a[1] for a in geo])
         return self.eval_derivatives(types, xyzs)
 
     def eval_geometry_old(self, geo):
-        geo.sort(key = lambda g: self.type_dict[g[0]])
         types = [a[0] for a in geo]
         xyzs = _np.array([a[1] for a in geo])
         return self.eval_old(types, xyzs)
