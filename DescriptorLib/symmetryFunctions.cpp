@@ -154,6 +154,22 @@ void OneOverR10::eval_with_derivatives(double rij, double &G, double &dGdrij)
   G = x0/pow(rij, 10);
   dGdrij = (rij*cutfun->derivative(rij) - 10*x0)/pow(rij, 11);
 };
+
+double radialTest::eval(double rij)
+{
+  return rij;
+};
+
+double radialTest::drij(double rij)
+{
+  return 1;
+};
+
+void radialTest::eval_with_derivatives(double rij, double &G, double &dGdrij)
+{
+  G = rij;
+  dGdrij = 1;
+};
 // AUTOMATIC End of custom TwoBodySymFuns
 
 // AUTOMATIC Start of custom ThreeBodySymFuns
@@ -397,6 +413,9 @@ std::shared_ptr<TwoBodySymmetryFunction> switch_TwoBodySymFun(int funtype,
     case 5:
       symFun = std::make_shared<OneOverR10>(num_prms, prms, cutfun);
       break;
+    case 6:
+      symFun = std::make_shared<radialTest>(num_prms, prms, cutfun);
+      break;
 // AUTOMATIC TwoBodySymmetryFunction switch end
     default:
       printf("No function type %d\n", funtype);
@@ -479,6 +498,10 @@ int get_TwoBodySymFun_by_name(const char* name)
   {
     id = 5;
   }
+  if (strcmp(name, "radialTest") == 0)
+  {
+    id = 6;
+  }
 // AUTOMATIC get_TwoBodySymFuns end
   return id;
 }
@@ -513,6 +536,7 @@ void available_symFuns()
   printf("3: OneOverR6, 0\n");
   printf("4: OneOverR8, 0\n");
   printf("5: OneOverR10, 0\n");
+  printf("6: radialTest, 0\n");
   printf("ThreeBodySymmetryFunctions: (key: name, # of parameters)\n");
   printf("0: BehlerG3, 3\n");
   printf("1: BehlerG4, 3\n");

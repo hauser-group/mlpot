@@ -101,6 +101,17 @@ class OneOverR10: public TwoBodySymmetryFunction
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
 };
+
+class radialTest: public TwoBodySymmetryFunction
+{
+    public:
+        radialTest(int num_prms, double* prms_i,
+          std::shared_ptr<CutoffFunction> cutfun_i):
+          TwoBodySymmetryFunction(num_prms, prms_i, cutfun_i){};
+        double eval(double rij);
+        double drij(double rij);
+        void eval_with_derivatives(double rij, double &G, double &dGdrij);
+};
 // AUTOMATIC End of custom TwoBodySymFuns
 
 class ThreeBodySymmetryFunction: public SymmetryFunction

@@ -8,6 +8,7 @@ TwoBodySymFun BehlerG2 2 exp(-prm0*(rij-prm1)**2)*fcut(rij)
 TwoBodySymFun OneOverR6 0 1/rij**6*fcut(rij)
 TwoBodySymFun OneOverR8 0 1/rij**8*fcut(rij)
 TwoBodySymFun OneOverR10 0 1/rij**10*fcut(rij)
+TwoBodySymFun radialTest 0 rij
 
 !
 ! ThreeBodySymmetryFunctions
