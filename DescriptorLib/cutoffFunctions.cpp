@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <math.h>
 
-CutoffFunction::CutoffFunction(double cutoff_i)
+CutoffFunction::CutoffFunction(double cutoff)
 {
-    cutoff = cutoff_i;
+    this->cutoff = cutoff;
 };
 
 CutoffFunction::CutoffFunction(){};
@@ -55,7 +55,7 @@ double PolynomialCutoffFunction::eval(double r)
 {
     if (r <= cutoff)
     {
-      return 1 - 10.0 * pow(r/cutoff, 3) + 15.0 * pow(r/cutoff, 4) -
+      return 1.0 - 10.0 * pow(r/cutoff, 3) + 15.0 * pow(r/cutoff, 4) -
         6.0 * pow(r/cutoff, 5);
     }
     else return 0.0;
@@ -70,6 +70,30 @@ double PolynomialCutoffFunction::derivative(double r)
   }
   else return 0.0;
 };
+
+// From https://en.wikipedia.org/wiki/Non-analytic_smooth_function
+double SmoothCutoffFunction::eval(double r)
+{
+    if (r <= cutoff)
+    {
+      auto x0 = exp(-cutoff/r);
+      return 1.0 - x0/(x0+exp(-cutoff/(cutoff-r)));
+    }
+    else return 0.0;
+};
+
+double SmoothCutoffFunction::derivative(double r)
+{
+    if (r <= cutoff)
+    {
+      auto x0 = exp(-cutoff/r);
+      auto x1 = exp(-cutoff/(cutoff-r));
+      return (cutoff*x0)/(pow(r,2)*(x0+x1))-(x0*((cutoff*x0)/(r*r)-
+        (cutoff*x1)/pow(cutoff-r,2)))/pow(x0+x1,2);
+    }
+    else return 0.0;
+};
+
 
 double ShortRangeCutoffFunction::eval(double r)
 {

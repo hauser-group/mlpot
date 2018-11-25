@@ -380,9 +380,12 @@ std::shared_ptr<CutoffFunction> switch_CutFun(
       cutfun = std::make_shared<PolynomialCutoffFunction>(cutoff);
       break;
     case 4:
-      cutfun = std::make_shared<ShortRangeCutoffFunction>(cutoff);
+      cutfun = std::make_shared<SmoothCutoffFunction>(cutoff);
       break;
     case 5:
+      cutfun = std::make_shared<ShortRangeCutoffFunction>(cutoff);
+      break;
+    case 6:
       cutfun = std::make_shared<LongRangeCutoffFunction>(cutoff);
       break;
   }
@@ -460,12 +463,15 @@ int get_CutFun_by_name(const char* name)
   } else if (strcmp(name, "polynomial") == 0)
   {
     id = 3;
-  } else if (strcmp(name, "shortRange") == 0)
+  } else if (strcmp(name, "smooth") == 0)
   {
     id = 4;
-  } else if (strcmp(name, "longRange") == 0)
+  } else if (strcmp(name, "shortRange") == 0)
   {
     id = 5;
+  } else if (strcmp(name, "longRange") == 0)
+  {
+    id = 6;
   }
   return id;
 }

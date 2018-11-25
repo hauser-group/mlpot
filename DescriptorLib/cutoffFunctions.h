@@ -1,7 +1,7 @@
 class CutoffFunction
 {
     public:
-      CutoffFunction(double cutoff_i);
+      CutoffFunction(double cutoff);
       CutoffFunction();
       virtual ~CutoffFunction();
       virtual double eval(double r) = 0;
@@ -13,7 +13,7 @@ class CutoffFunction
 class ConstCutoffFunction: public CutoffFunction
 {
     public:
-        ConstCutoffFunction(double cutoff_i):CutoffFunction(cutoff_i){};
+        ConstCutoffFunction(double cutoff):CutoffFunction(cutoff){};
         double eval(double r);
         double derivative(double r);
 };
@@ -21,7 +21,7 @@ class ConstCutoffFunction: public CutoffFunction
 class CosCutoffFunction: public CutoffFunction
 {
     public:
-        CosCutoffFunction(double cutoff_i):CutoffFunction(cutoff_i){};
+        CosCutoffFunction(double cutoff):CutoffFunction(cutoff){};
         double eval(double r);
         double derivative(double r);
 };
@@ -29,7 +29,7 @@ class CosCutoffFunction: public CutoffFunction
 class TanhCutoffFunction: public CutoffFunction
 {
 public:
-  TanhCutoffFunction(double cutoff_i):CutoffFunction(cutoff_i){};
+  TanhCutoffFunction(double cutoff):CutoffFunction(cutoff){};
   double eval(double r);
   double derivative(double r);
 };
@@ -37,7 +37,15 @@ public:
 class PolynomialCutoffFunction: public CutoffFunction
 {
 public:
-  PolynomialCutoffFunction(double cutoff_i):CutoffFunction(cutoff_i){};
+  PolynomialCutoffFunction(double cutoff):CutoffFunction(cutoff){};
+  double eval(double r);
+  double derivative(double r);
+};
+
+class SmoothCutoffFunction: public CutoffFunction
+{
+public:
+  SmoothCutoffFunction(double cutoff):CutoffFunction(cutoff){};
   double eval(double r);
   double derivative(double r);
 };
@@ -45,7 +53,7 @@ public:
 class ShortRangeCutoffFunction: public CutoffFunction
 {
 public:
-  ShortRangeCutoffFunction(double cutoff_i):CutoffFunction(cutoff_i){};
+  ShortRangeCutoffFunction(double cutoff):CutoffFunction(cutoff){};
   double eval(double r);
   double derivative(double r);
 };
@@ -53,7 +61,7 @@ public:
 class LongRangeCutoffFunction: public CutoffFunction
 {
 public:
-  LongRangeCutoffFunction(double cutoff_i):CutoffFunction(cutoff_i){};
+  LongRangeCutoffFunction(double cutoff):CutoffFunction(cutoff){};
   double eval(double r);
   double derivative(double r);
 };
