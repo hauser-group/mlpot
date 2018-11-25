@@ -94,6 +94,24 @@ double SmoothCutoffFunction::derivative(double r)
     else return 0.0;
 };
 
+double Smooth2CutoffFunction::eval(double r)
+{
+    if (r <= cutoff)
+    {
+      return exp(1.0 - 1.0/(1.0-pow(r/cutoff,2)));
+    }
+    else return 0.0;
+};
+
+double Smooth2CutoffFunction::derivative(double r)
+{
+    if (r <= cutoff)
+    {
+      auto x0 = pow(r,2)-pow(cutoff,2);
+      return -(2.0*pow(cutoff,2)*r*exp(pow(r,2)/x0))/pow(x0,2);
+    }
+    else return 0.0;
+};
 
 double ShortRangeCutoffFunction::eval(double r)
 {

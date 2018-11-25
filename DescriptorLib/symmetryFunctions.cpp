@@ -383,9 +383,12 @@ std::shared_ptr<CutoffFunction> switch_CutFun(
       cutfun = std::make_shared<SmoothCutoffFunction>(cutoff);
       break;
     case 5:
-      cutfun = std::make_shared<ShortRangeCutoffFunction>(cutoff);
+      cutfun = std::make_shared<Smooth2CutoffFunction>(cutoff);
       break;
     case 6:
+      cutfun = std::make_shared<ShortRangeCutoffFunction>(cutoff);
+      break;
+    case 7:
       cutfun = std::make_shared<LongRangeCutoffFunction>(cutoff);
       break;
   }
@@ -466,12 +469,15 @@ int get_CutFun_by_name(const char* name)
   } else if (strcmp(name, "smooth") == 0)
   {
     id = 4;
-  } else if (strcmp(name, "shortRange") == 0)
+  } else if (strcmp(name, "smooth2") == 0)
   {
     id = 5;
-  } else if (strcmp(name, "longRange") == 0)
+  } else if (strcmp(name, "shortRange") == 0)
   {
     id = 6;
+  } else if (strcmp(name, "longRange") == 0)
+  {
+    id = 7;
   }
   return id;
 }

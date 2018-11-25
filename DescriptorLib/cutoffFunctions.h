@@ -50,6 +50,14 @@ public:
   double derivative(double r);
 };
 
+class Smooth2CutoffFunction: public CutoffFunction
+{
+public:
+  Smooth2CutoffFunction(double cutoff):CutoffFunction(cutoff){};
+  double eval(double r);
+  double derivative(double r);
+};
+
 class ShortRangeCutoffFunction: public CutoffFunction
 {
 public:
