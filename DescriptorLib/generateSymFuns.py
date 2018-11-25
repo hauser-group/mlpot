@@ -7,9 +7,9 @@ header_twoBody = """
 class {0}: public TwoBodySymmetryFunction
 {{
     public:
-        {0}(int num_prms, double* prms_i,
-          std::shared_ptr<CutoffFunction> cutfun_i):
-          TwoBodySymmetryFunction(num_prms, prms_i, cutfun_i){{}};
+        {0}(int num_prms, double* prms,
+          std::shared_ptr<CutoffFunction> cutfun):
+          TwoBodySymmetryFunction(num_prms, prms, cutfun){{}};
         double eval(double rij);
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
@@ -21,8 +21,8 @@ class {0}: public ThreeBodySymmetryFunction
 {{
   public:
     {0}(int num_prms, double* prms,
-      std::shared_ptr<CutoffFunction> cutfun_i):
-      ThreeBodySymmetryFunction(num_prms, prms, cutfun_i){{}};
+      std::shared_ptr<CutoffFunction> cutfun):
+      ThreeBodySymmetryFunction(num_prms, prms, cutfun){{}};
     double eval(double rij, double rik, double costheta);
     double drij(double rij, double rik, double costheta);
     double drik(double rij, double rik, double costheta);

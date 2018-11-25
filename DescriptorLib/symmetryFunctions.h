@@ -11,8 +11,8 @@ anything between these tags.
 class SymmetryFunction
 {
     public:
-        SymmetryFunction(int num_prms, double* pmrs_i,
-          std::shared_ptr<CutoffFunction> cutfun_i);
+        SymmetryFunction(int num_prms, double* pmrs,
+          std::shared_ptr<CutoffFunction> cutfun);
         ~SymmetryFunction();
         SymmetryFunction(const SymmetryFunction& other);
         SymmetryFunction& operator=(const SymmetryFunction& other);
@@ -25,9 +25,9 @@ class SymmetryFunction
 class TwoBodySymmetryFunction: public SymmetryFunction
 {
     public:
-        TwoBodySymmetryFunction(int num_prms, double* prms_i,
-          std::shared_ptr<CutoffFunction> cutfun_i):
-          SymmetryFunction(num_prms, prms_i, cutfun_i){};
+        TwoBodySymmetryFunction(int num_prms, double* prms,
+          std::shared_ptr<CutoffFunction> cutfun):
+          SymmetryFunction(num_prms, prms, cutfun){};
         virtual double eval(double rij) = 0;
         virtual double drij(double rij) = 0;
         virtual void eval_with_derivatives(
@@ -39,9 +39,9 @@ class TwoBodySymmetryFunction: public SymmetryFunction
 class BehlerG0: public TwoBodySymmetryFunction
 {
     public:
-        BehlerG0(int num_prms, double* prms_i,
-          std::shared_ptr<CutoffFunction> cutfun_i):
-          TwoBodySymmetryFunction(num_prms, prms_i, cutfun_i){};
+        BehlerG0(int num_prms, double* prms,
+          std::shared_ptr<CutoffFunction> cutfun):
+          TwoBodySymmetryFunction(num_prms, prms, cutfun){};
         double eval(double rij);
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
@@ -50,9 +50,9 @@ class BehlerG0: public TwoBodySymmetryFunction
 class BehlerG1: public TwoBodySymmetryFunction
 {
     public:
-        BehlerG1(int num_prms, double* prms_i,
-          std::shared_ptr<CutoffFunction> cutfun_i):
-          TwoBodySymmetryFunction(num_prms, prms_i, cutfun_i){};
+        BehlerG1(int num_prms, double* prms,
+          std::shared_ptr<CutoffFunction> cutfun):
+          TwoBodySymmetryFunction(num_prms, prms, cutfun){};
         double eval(double rij);
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
@@ -61,9 +61,9 @@ class BehlerG1: public TwoBodySymmetryFunction
 class BehlerG2: public TwoBodySymmetryFunction
 {
     public:
-        BehlerG2(int num_prms, double* prms_i,
-          std::shared_ptr<CutoffFunction> cutfun_i):
-          TwoBodySymmetryFunction(num_prms, prms_i, cutfun_i){};
+        BehlerG2(int num_prms, double* prms,
+          std::shared_ptr<CutoffFunction> cutfun):
+          TwoBodySymmetryFunction(num_prms, prms, cutfun){};
         double eval(double rij);
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
@@ -72,9 +72,9 @@ class BehlerG2: public TwoBodySymmetryFunction
 class OneOverR6: public TwoBodySymmetryFunction
 {
     public:
-        OneOverR6(int num_prms, double* prms_i,
-          std::shared_ptr<CutoffFunction> cutfun_i):
-          TwoBodySymmetryFunction(num_prms, prms_i, cutfun_i){};
+        OneOverR6(int num_prms, double* prms,
+          std::shared_ptr<CutoffFunction> cutfun):
+          TwoBodySymmetryFunction(num_prms, prms, cutfun){};
         double eval(double rij);
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
@@ -83,9 +83,9 @@ class OneOverR6: public TwoBodySymmetryFunction
 class OneOverR8: public TwoBodySymmetryFunction
 {
     public:
-        OneOverR8(int num_prms, double* prms_i,
-          std::shared_ptr<CutoffFunction> cutfun_i):
-          TwoBodySymmetryFunction(num_prms, prms_i, cutfun_i){};
+        OneOverR8(int num_prms, double* prms,
+          std::shared_ptr<CutoffFunction> cutfun):
+          TwoBodySymmetryFunction(num_prms, prms, cutfun){};
         double eval(double rij);
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
@@ -94,9 +94,9 @@ class OneOverR8: public TwoBodySymmetryFunction
 class OneOverR10: public TwoBodySymmetryFunction
 {
     public:
-        OneOverR10(int num_prms, double* prms_i,
-          std::shared_ptr<CutoffFunction> cutfun_i):
-          TwoBodySymmetryFunction(num_prms, prms_i, cutfun_i){};
+        OneOverR10(int num_prms, double* prms,
+          std::shared_ptr<CutoffFunction> cutfun):
+          TwoBodySymmetryFunction(num_prms, prms, cutfun){};
         double eval(double rij);
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
@@ -105,9 +105,9 @@ class OneOverR10: public TwoBodySymmetryFunction
 class radialTest: public TwoBodySymmetryFunction
 {
     public:
-        radialTest(int num_prms, double* prms_i,
-          std::shared_ptr<CutoffFunction> cutfun_i):
-          TwoBodySymmetryFunction(num_prms, prms_i, cutfun_i){};
+        radialTest(int num_prms, double* prms,
+          std::shared_ptr<CutoffFunction> cutfun):
+          TwoBodySymmetryFunction(num_prms, prms, cutfun){};
         double eval(double rij);
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
@@ -118,8 +118,8 @@ class ThreeBodySymmetryFunction: public SymmetryFunction
 {
     public:
       ThreeBodySymmetryFunction(int num_prms, double* prms,
-        std::shared_ptr<CutoffFunction> cutfun_i):
-        SymmetryFunction(num_prms, prms, cutfun_i){};
+        std::shared_ptr<CutoffFunction> cutfun):
+        SymmetryFunction(num_prms, prms, cutfun){};
       virtual double eval(double rij, double rik, double costheta) = 0;
       virtual double drij(double rij, double rik, double costheta) = 0;
       virtual double drik(double rij, double rik, double costheta) = 0;
@@ -137,8 +137,8 @@ class BehlerG3: public ThreeBodySymmetryFunction
 {
   public:
     BehlerG3(int num_prms, double* prms,
-      std::shared_ptr<CutoffFunction> cutfun_i):
-      ThreeBodySymmetryFunction(num_prms, prms, cutfun_i){};
+      std::shared_ptr<CutoffFunction> cutfun):
+      ThreeBodySymmetryFunction(num_prms, prms, cutfun){};
     double eval(double rij, double rik, double costheta);
     double drij(double rij, double rik, double costheta);
     double drik(double rij, double rik, double costheta);
@@ -153,8 +153,8 @@ class BehlerG4: public ThreeBodySymmetryFunction
 {
   public:
     BehlerG4(int num_prms, double* prms,
-      std::shared_ptr<CutoffFunction> cutfun_i):
-      ThreeBodySymmetryFunction(num_prms, prms, cutfun_i){};
+      std::shared_ptr<CutoffFunction> cutfun):
+      ThreeBodySymmetryFunction(num_prms, prms, cutfun){};
     double eval(double rij, double rik, double costheta);
     double drij(double rij, double rik, double costheta);
     double drik(double rij, double rik, double costheta);
@@ -169,8 +169,8 @@ class MeyerG1: public ThreeBodySymmetryFunction
 {
   public:
     MeyerG1(int num_prms, double* prms,
-      std::shared_ptr<CutoffFunction> cutfun_i):
-      ThreeBodySymmetryFunction(num_prms, prms, cutfun_i){};
+      std::shared_ptr<CutoffFunction> cutfun):
+      ThreeBodySymmetryFunction(num_prms, prms, cutfun){};
     double eval(double rij, double rik, double costheta);
     double drij(double rij, double rik, double costheta);
     double drik(double rij, double rik, double costheta);

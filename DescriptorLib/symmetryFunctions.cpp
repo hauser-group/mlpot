@@ -11,14 +11,14 @@ anything between these tags.
 #include <limits>
 #include <string.h>
 
-SymmetryFunction::SymmetryFunction(int num_prms_i, double* prms_i,
-  std::shared_ptr<CutoffFunction> cutfun_i):cutfun(cutfun_i)
+SymmetryFunction::SymmetryFunction(int num_prms, double* prms,
+  std::shared_ptr<CutoffFunction> cutfun):cutfun(cutfun)
 {
-  num_prms = num_prms_i;
-  prms = new double[num_prms];
+  this->num_prms = num_prms;
+  this->prms = new double[num_prms];
   for (int i = 0; i < num_prms; i++)
   {
-    prms[i] = prms_i[i];
+    this->prms[i] = prms[i];
   }
 };
 
