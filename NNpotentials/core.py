@@ -36,8 +36,8 @@ def nn_layer(input_tensor, input_dim, output_dim, act = _tf.nn.tanh,
 class AtomicEnergyPotential(object):
 
     def __init__(self, atom_types, **kwargs):
-        self.target = _tf.placeholder(shape = (None,), dtype = precision,
-            name = "target")
+        #self.target = _tf.placeholder(shape = (None,), dtype = precision,
+        #    name = "target")
         self.atom_types = atom_types
         self.error_scaling = kwargs.get("error_scaling", 1000)
 
@@ -45,15 +45,18 @@ class AtomicEnergyPotential(object):
         self.atom_maps = {}
         self.atom_indices = {}
 
-        for t in self.atom_types:
-            self.atom_indices[t] = _tf.placeholder(shape = (None,1),
-                dtype = _tf.int32, name = "{}_indices".format(t))
-            self.atom_maps[t] = _tf.sparse_placeholder(shape = (None, None),
-                dtype = precision, name = "{}_map".format(t))
+        #for t in self.atom_types:
+        #    self.atom_indices[t] = _tf.placeholder(shape = (None,1),
+        #        dtype = _tf.int32, name = "{}_indices".format(t))
+        #    self.atom_maps[t] = _tf.sparse_placeholder(shape = (None, None),
+        #        dtype = precision, name = "{}_map".format(t))
 
         self.configureAtomicContributions(**kwargs)
         # Convenience handle
         self.ANNs = self.atomic_contributions
+        self.target = self.labels['energy']
+        for t in self.atom_types:
+            self.atom_indices[t] = self.features['%s_indices'%t]
 
         self.E_predict = _tf.scatter_nd(
             _tf.concat([self.atom_indices[t] for t in self.atom_types], 0),

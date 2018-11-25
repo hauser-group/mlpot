@@ -40,13 +40,24 @@ class BPpotential(AtomicEnergyPotential):
         layers = kwargs.get('layers')
         offsets = kwargs.get('offsets')
         act_funs = kwargs.get('act_funs')
+        data_types = {}
+        data_shapes = {}
+        for t, in_dim in zip(self.atom_types, input_dims):
+            data_types['%s_input'%t] = _tf.float32
+            data_types['%s_indices'%t] = _tf.int32
+            data_shapes['%s_input'%t] = _tf.TensorShape([None, in_dim])
+            data_shapes['%s_indices'%t] = _tf.TensorShape([None, 1])
+        self.iterator = _tf.data.Iterator.from_structure(
+            (data_types, {'energy':_tf.float32}),
+            (data_shapes, {'energy':_tf.TensorShape([None,])}))
+        self.features, self.labels = self.iterator.get_next()
         for (t, in_dim, lays, offs, acts) in zip(self.atom_types, input_dims,
             layers, offsets, act_funs):
-            with _tf.variable_scope("{}_ANN".format(t), reuse = _tf.AUTO_REUSE):
-                input_tensor = _tf.placeholder(shape = (None, in_dim),
-                    dtype = precision, name = "ANN_input")
-                self.atomic_contributions[t] = BPAtomicNN(
-                    input_tensor, lays, offs, acts)
+            with _tf.variable_scope("%s_ANN"%t, reuse = _tf.AUTO_REUSE):
+                #input_tensor = _tf.placeholder(shape = (None, in_dim),
+                #    dtype = precision, name = "ANN_input")
+                self.atomic_contributions[t] = BPAtomicNN(#input_tensor,
+                    self.features['%s_input'%t], lays, offs, acts)
 
 def build_BPestimator(atom_types, input_dims, layers = None, offsets = None,
     act_funs = None):
