@@ -48,11 +48,11 @@ def calculate_bp_maps(num_atom_types, _Gs, _types):
     atoms = [[] for _ in range(num_atom_types)]
 
     for i, (G_vec, t_vec) in enumerate(zip(_Gs, _types)):
-        for a in range(num_atom_types):
-             atoms[a].append(_np.array(G_vec)[t_vec == a])
-        for ti in t_vec:
+        for Gi, ti in zip(G_vec, t_vec):
             indices[ti].append([i, Ns[ti]])
+            atoms[a].append(_np.array(G_vec)[t_vec == a])
             Ns[ti] += 1
+            
     # Cast into numpy arrays, also takes care of wrong dimensionality of empty
     # lists
     maps = []
@@ -68,9 +68,8 @@ def calculate_bp_indices(num_atom_types, Gs, types, dGs = None):
 
     if dGs is None:
         for i, (G_vec, t_vec) in enumerate(zip(Gs, types)):
-            for a in range(num_atom_types):
-                atoms[a].append(_np.array(G_vec)[t_vec == a])
-            for ti in t_vec:
+            for Gi, ti in zip(G_vec, t_vec):
+                atoms[ti].append(Gi)
                 indices[ti].append(i)
 
         # Cast into numpy arrays, also takes care of wrong dimensionality of
@@ -82,11 +81,11 @@ def calculate_bp_indices(num_atom_types, Gs, types, dGs = None):
     else:
         atom_derivs = [[] for _ in range(num_atom_types)]
         for i, (G_vec, t_vec, dG_vec) in enumerate(zip(Gs, types, dGs)):
-            for a in range(num_atom_types):
-                atoms[a].append(_np.array(G_vec)[t_vec == a])
-                atom_derivs[a].append(_np.array(dG_vec)[t_vec == a])
-            for ti in t_vec:
+            for Gi, ti, dGi in zip(G_vec, t_vec, dG_vec):
+                atoms[ti].append(Gi)
+                atom_derivs[ti].append(dGi)
                 indices[ti].append(i)
+
         # Cast into numpy arrays, also takes care of wrong dimensionality of
         # empty lists
         for a in range(num_atom_types):
