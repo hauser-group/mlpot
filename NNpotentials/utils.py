@@ -50,16 +50,16 @@ def calculate_bp_maps(num_atom_types, _Gs, _types):
     for i, (G_vec, t_vec) in enumerate(zip(_Gs, _types)):
         for Gi, ti in zip(G_vec, t_vec):
             indices[ti].append([i, Ns[ti]])
-            atoms[a].append(_np.array(G_vec)[t_vec == a])
+            atoms[ti].append(Gi)
             Ns[ti] += 1
-            
+
     # Cast into numpy arrays, also takes care of wrong dimensionality of empty
     # lists
     maps = []
     for a in range(num_atom_types):
          indices[a] = _np.array(indices[a], dtype = _np.int64).reshape((-1,2))
          maps.append(_tf.SparseTensorValue(indices[a], [1.0]*Ns[a], [batchsize, Ns[a]]))
-         atoms[a] = _np.concatenate(atoms[a])
+         atoms[a] = _np.array(atoms[a])
     return atoms, maps
 
 def calculate_bp_indices(num_atom_types, Gs, types, dGs = None):
@@ -76,7 +76,7 @@ def calculate_bp_indices(num_atom_types, Gs, types, dGs = None):
         # empty lists
         for a in range(num_atom_types):
             indices[a] = _np.array(indices[a], dtype = _np.int32).reshape((-1,1))
-            atoms[a] = _np.concatenate(atoms[a])
+            atoms[a] = _np.array(atoms[a])
         return atoms, indices
     else:
         atom_derivs = [[] for _ in range(num_atom_types)]
@@ -90,6 +90,6 @@ def calculate_bp_indices(num_atom_types, Gs, types, dGs = None):
         # empty lists
         for a in range(num_atom_types):
             indices[a] = _np.array(indices[a], dtype = _np.int32).reshape((-1,1))
-            atoms[a] = _np.concatenate(atoms[a])
-            atom_derivs[a] = _np.concatenate(atom_derivs[a])
+            atoms[a] = _np.array(atoms[a])
+            atom_derivs[a] = _np.array(atom_derivs[a])
         return atoms, indices, atom_derivs
