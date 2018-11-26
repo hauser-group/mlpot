@@ -21,7 +21,7 @@ class LibraryTest(unittest.TestCase):
                 dGs.append(sfs.eval_geometry_derivatives(geo))
             np.testing.assert_allclose(np.array(Gs)[:,0,0],
                 0.5*(1.0+np.cos(r_vec*np.pi/sfs.cutoff))*(r_vec < sfs.cutoff))
-            np.testing.assert_allclose(np.array(dGs)[:,0,0,-1],
+            np.testing.assert_allclose(np.array(dGs)[:,0,0,1,-1],
                 0.5*(-np.sin(r_vec*np.pi/sfs.cutoff)*np.pi/sfs.cutoff)*(
                 r_vec < sfs.cutoff))
 
@@ -43,7 +43,7 @@ class LibraryTest(unittest.TestCase):
                 (1 - 10.0 * (r_vec/sfs.cutoff)**3
                  + 15.0 * (r_vec/sfs.cutoff)**4
                 - 6.0 * (r_vec/sfs.cutoff)**5)*(r_vec < sfs.cutoff))
-            np.testing.assert_allclose(np.array(dGs)[:,0,0,-1],
+            np.testing.assert_allclose(np.array(dGs)[:,0,0,1,-1],
                 (- 30.0 * (r_vec/sfs.cutoff)**2/sfs.cutoff
                  + 60.0 * (r_vec/sfs.cutoff)**3/sfs.cutoff
                 - 30.0 * (r_vec/sfs.cutoff)**4/sfs.cutoff)*(r_vec < sfs.cutoff))
@@ -64,10 +64,11 @@ class LibraryTest(unittest.TestCase):
                 dGs.append(sfs.eval_geometry_derivatives(geo))
             np.testing.assert_allclose(np.array(Gs)[:,0,0],
                 (np.tanh(1.0-r_vec/sfs.cutoff)**3)*(r_vec < sfs.cutoff))
-            np.testing.assert_allclose(np.array(dGs)[:,0,0,-1],
+            np.testing.assert_allclose(np.array(dGs)[:,0,0,1,-1],
                 -(3*np.sinh(1.0-r_vec/sfs.cutoff)**2)/
                 (sfs.cutoff*np.cosh(1.0-r_vec/sfs.cutoff)**4)*(
                 r_vec < sfs.cutoff))
+
 
     def test_const_cutoff_functions(self):
         r_vec = np.linspace(0.1,7,101)
@@ -105,7 +106,7 @@ class LibraryTest(unittest.TestCase):
             np.testing.assert_allclose(np.array(Gs)[:,0,0],
                 (1.0-np.exp(-cut/r_vec)/(np.exp(-cut/r_vec)+
                 np.exp(-cut/(cut-r_vec))))*(r_vec < cut))
-            np.testing.assert_allclose(np.array(dGs)[:,0,0,-1],
+            np.testing.assert_allclose(np.array(dGs)[:,0,0,1,-1],
                 (cut*np.exp(cut/(cut-r_vec)+cut/r_vec)*
                 (cut**2-2.*cut*r_vec+2.*r_vec**2)/
                 (r_vec**2*(np.exp(cut/(cut-r_vec))+np.exp(cut/r_vec))**2*
@@ -128,7 +129,7 @@ class LibraryTest(unittest.TestCase):
                 dGs.append(sfs.eval_geometry_derivatives(geo))
             np.testing.assert_allclose(np.array(Gs)[:,0,0],
                 (np.exp(1.0 - 1.0/(1.0-(r_vec/cut)**2)))*(r_vec < cut))
-            np.testing.assert_allclose(np.array(dGs)[:,0,0,-1],
+            np.testing.assert_allclose(np.array(dGs)[:,0,0,1,-1],
                 (-2.0*cut**2*r_vec*np.exp(r_vec**2/(r_vec**2-cut**2)))/
                 (cut**2-r_vec**2)**2*(r_vec < cut))
 
@@ -153,7 +154,7 @@ class LibraryTest(unittest.TestCase):
                 # Assert Symmetry
                 np.testing.assert_array_equal(dGa[0], dGa[1])
                 # Assert Values
-                np.testing.assert_allclose(dGa[0][:,-1], np.exp(-etas*(ri-rss)**2)*(
+                np.testing.assert_allclose(dGa[0][:,1,-1], np.exp(-etas*(ri-rss)**2)*(
                     0.5*(1.0+np.cos(np.pi*ri/sfs_cpp.cutoff))*2.0*(-etas)*(ri-rss)+
                     0.5*(-np.sin(np.pi*ri/sfs_cpp.cutoff)*np.pi/sfs_cpp.cutoff)))
 
@@ -163,7 +164,7 @@ class LibraryTest(unittest.TestCase):
                 # Assert Symmetry
                 np.testing.assert_array_equal(dGn[0], dGn[1])
                 # Assert Values
-                np.testing.assert_allclose(dGa[0][:,-1], dGn[0],
+                np.testing.assert_allclose(dGa[0][:,1,-1], dGn[0],
                     rtol = 1E-7, atol = 1E-7)
 
     def test_dimer_polynomial(self):
@@ -194,7 +195,7 @@ class LibraryTest(unittest.TestCase):
                     - 6.0 * (ri/sfs_cpp.cutoff)**5)*2.0*(-etas)*(ri-rss)
                     +(-30.0 * (ri**2/sfs_cpp.cutoff**3) + 60.0 * (ri**3/sfs_cpp.cutoff**4)
                     - 30.0 * (ri**4/sfs_cpp.cutoff**5))),
-                    dGa[0][:,-1])
+                    dGa[0][:,1,-1])
 
                 Gi_drp = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri+dr]]))
                 Gi_drm = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri-dr]]))
@@ -202,7 +203,7 @@ class LibraryTest(unittest.TestCase):
                 # Assert Symmetry
                 np.testing.assert_array_equal(dGn[0], dGn[1])
                 # Assert Values
-                np.testing.assert_allclose(dGa[0][:,-1], dGn[0],
+                np.testing.assert_allclose(dGa[0][:,1,-1], dGn[0],
                     rtol = 1E-7, atol = 1E-7)
 
     def test_acetone(self):
@@ -239,7 +240,7 @@ class LibraryTest(unittest.TestCase):
 
                     np.testing.assert_array_almost_equal(
                         sfs.eval_derivatives(types, x0.reshape((-1,3)))[i][j],
-                        approx_fprime(x0, f, epsilon = eps))
+                        approx_fprime(x0, f, epsilon = eps).reshape((-1,3)))
 
 
     def test_derivaties(self):

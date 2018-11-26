@@ -39,7 +39,7 @@ try:
     lib.SymmetryFunctionSet_eval_derivatives.argtypes = (
         _ct.c_void_p, _ct.c_int, _ct.POINTER(_ct.c_int),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim = 2, flags = "C_CONTIGUOUS"),
-        _np.ctypeslib.ndpointer(dtype=_np.float64, ndim = 2, flags = "C_CONTIGUOUS"))
+        _np.ctypeslib.ndpointer(dtype=_np.float64, ndim = 3, flags = "C_CONTIGUOUS"))
     lib.SymmetryFunctionSet_eval_derivatives_old.argtypes = (
         _ct.c_void_p, _ct.c_int, _ct.POINTER(_ct.c_int),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim = 2, flags = "C_CONTIGUOUS"),
@@ -156,6 +156,28 @@ class SymmetryFunctionSet(object):
         cum_num_Gs = _np.cumsum([0]+num_Gs_per_atom)
         return [out[cum_num_Gs[i]:cum_num_Gs[i+1]] for i in range(len(types))]
 
+    def eval_derivatives(self, types, xyzs):
+        int_types = [self.type_dict[ti] for ti in types]
+        types_ptr = (_ct.c_int*len(types))(*int_types)
+        #len_G_vector = lib.SymmetryFunctionSet_get_G_vector_size(
+        #    self.obj, len(types), types_ptr)
+        num_Gs_per_atom = [self.num_Gs[ti] for ti in int_types]
+        out = _np.zeros((sum(num_Gs_per_atom), len(types), 3))
+        lib.SymmetryFunctionSet_eval_derivatives(
+            self.obj, len(types), types_ptr, xyzs, out)
+        cum_num_Gs = _np.cumsum([0]+num_Gs_per_atom)
+        return [out[cum_num_Gs[i]:cum_num_Gs[i+1],:] for i in range(len(types))]
+
+    def eval_geometry(self, geo):
+        types = [a[0] for a in geo]
+        xyzs = _np.array([a[1] for a in geo])
+        return self.eval(types, xyzs)
+
+    def eval_geometry_derivatives(self, geo):
+        types = [a[0] for a in geo]
+        xyzs = _np.array([a[1] for a in geo])
+        return self.eval_derivatives(types, xyzs)
+
     def eval_old(self, types, xyzs):
         int_types = [self.type_dict[ti] for ti in types]
         types_ptr = (_ct.c_int*len(types))(*int_types)
@@ -168,33 +190,6 @@ class SymmetryFunctionSet(object):
         cum_num_Gs = _np.cumsum([0]+num_Gs_per_atom)
         return [out[cum_num_Gs[i]:cum_num_Gs[i+1]] for i in range(len(types))]
 
-    def eval_geometry(self, geo):
-        types = [a[0] for a in geo]
-        xyzs = _np.array([a[1] for a in geo])
-        return self.eval(types, xyzs)
-
-    def eval_geometry_derivatives(self, geo):
-        types = [a[0] for a in geo]
-        xyzs = _np.array([a[1] for a in geo])
-        return self.eval_derivatives(types, xyzs)
-
-    def eval_geometry_old(self, geo):
-        types = [a[0] for a in geo]
-        xyzs = _np.array([a[1] for a in geo])
-        return self.eval_old(types, xyzs)
-
-    def eval_derivatives(self, types, xyzs):
-        int_types = [self.type_dict[ti] for ti in types]
-        types_ptr = (_ct.c_int*len(types))(*int_types)
-        #len_G_vector = lib.SymmetryFunctionSet_get_G_vector_size(
-        #    self.obj, len(types), types_ptr)
-        num_Gs_per_atom = [self.num_Gs[ti] for ti in int_types]
-        out = _np.zeros((sum(num_Gs_per_atom), 3*len(types)))
-        lib.SymmetryFunctionSet_eval_derivatives(
-            self.obj, len(types), types_ptr, xyzs, out)
-        cum_num_Gs = _np.cumsum([0]+num_Gs_per_atom)
-        return [out[cum_num_Gs[i]:cum_num_Gs[i+1],:] for i in range(len(types))]
-
     def eval_derivatives_old(self, types, xyzs):
         int_types = [self.type_dict[ti] for ti in types]
         types_ptr = (_ct.c_int*len(types))(*int_types)
@@ -206,6 +201,11 @@ class SymmetryFunctionSet(object):
             self.obj, len(types), types_ptr, xyzs, out)
         cum_num_Gs = _np.cumsum([0]+num_Gs_per_atom)
         return [out[cum_num_Gs[i]:cum_num_Gs[i+1],:] for i in range(len(types))]
+
+    def eval_geometry_old(self, geo):
+        types = [a[0] for a in geo]
+        xyzs = _np.array([a[1] for a in geo])
+        return self.eval_old(types, xyzs)
 
 class SymmetryFunctionSet_py(object):
 
