@@ -18,7 +18,8 @@ class BPpotentialTest(unittest.TestCase):
             except UnicodeDecodeError as e: # For Python3.6
                 (Gs_train, types_train, E_train,
                 Gs_test, types_test, E_test) = pickle.load(fin, encoding='latin1')
-        pot = BPpotential(["Au"], [len(Gs_train[0][0])], layers = [[64,64]])
+        pot = BPpotential(["Au"], [len(Gs_train[0][0])],
+            input_mode = 'placeholder', layers = [[64,64]])
 
         #[Au_atoms], [Au_maps] = calculate_bp_maps(1, Gs_test, types_test)
         #test_dict = {pot.ANNs["Au"].input: Au_atoms,
@@ -89,6 +90,7 @@ class BPpotentialTest(unittest.TestCase):
             for v in pot.variables:
                 sess.run(v.assign(np.random.randn(*v.shape)))
 
+            # Test feeding the inputs as usual
             np.testing.assert_allclose(sess.run(pot.E_predict, test_dict),
                 np.array([-13.735861,   -9.856386,   -8.934874,  -13.685179,
                           -13.685591,  -12.313505,  -12.989342,  -13.678537,
@@ -102,6 +104,7 @@ class BPpotentialTest(unittest.TestCase):
             np.testing.assert_array_equal(sess.run(pot.num_atoms, test_dict),
                 np.array([2]*31))
 
+            # Test using the reinitializable iterator
             sess.run(init_op)
             np.testing.assert_allclose(sess.run(pot.E_predict),
                 np.array([-13.735861,   -9.856386,   -8.934874,  -13.685179,
