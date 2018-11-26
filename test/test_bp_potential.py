@@ -71,7 +71,8 @@ class BPpotentialTest(unittest.TestCase):
             ({'Au_input': np.expand_dims(Au_atoms, axis=0).astype(np.float32),
             'Au_indices': np.expand_dims(Au_indices, axis=0),
             'error_weights': np.expand_dims(
-                1.0/np.array(map(len, Gs_test)).astype(np.float32)**2, axis=0)},
+                1.0/np.array(
+                    list(map(len, Gs_test)), dtype=np.float32)**2, axis=0)},
             {'energy':np.array(E_test).reshape((1,-1)).astype(np.float32)}))
 
         test_dict = {pot.ANNs["Au"].input: Au_atoms,
