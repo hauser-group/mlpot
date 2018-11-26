@@ -36,24 +36,26 @@ def nn_layer(input_tensor, input_dim, output_dim, act = _tf.nn.tanh,
 class AtomicEnergyPotential(object):
 
     def __init__(self, atom_types, **kwargs):
-        #self.target = _tf.placeholder(shape = (None,), dtype = precision,
-        #    name = "target")
         self.atom_types = atom_types
         self.error_scaling = kwargs.get("error_scaling", 1000)
 
         self.atomic_contributions = {}
-        self.atom_maps = {}
         self.atom_indices = {}
 
-        #for t in self.atom_types:
-        #    self.atom_indices[t] = _tf.placeholder(shape = (None,1),
-        #        dtype = _tf.int32, name = "{}_indices".format(t))
-        #    self.atom_maps[t] = _tf.sparse_placeholder(shape = (None, None),
-        #        dtype = precision, name = "{}_map".format(t))
+        self.feature_types = {'error_weights':precision}
+        self.feature_shapes = {'error_weights':_tf.TensorShape([None,])}
+
+        for t in self.atom_types:
+            self.feature_types['%s_indices'%t] = _tf.int32
+            self.feature_shapes['%s_indices'%t] = _tf.TensorShape([None, 1])
+
+        self.label_types = {'energy':precision}
+        self.label_shapes = {'energy':_tf.TensorShape([None,])}
 
         self.configureAtomicContributions(**kwargs)
-        # Convenience handle
+        # Convenience handle for backwards compatibility
         self.ANNs = self.atomic_contributions
+
         self.target = self.labels['energy']
         for t in self.atom_types:
             self.atom_indices[t] = self.features['%s_indices'%t]
@@ -63,14 +65,7 @@ class AtomicEnergyPotential(object):
             _tf.concat([_tf.reshape(self.atomic_contributions[t].output, [-1])
             for t in self.atom_types], 0), _tf.shape(self.target),
             name = "E_prediction")
-        #self.E_predict = _tf.reduce_sum([
-        #    _tf.sparse_tensor_dense_matmul(self.atom_maps[t],
-        #    self.atomic_contributions[t].output) for t in self.atom_types],
-        #    axis = [0, 2], name = "E_prediction")
-
-        #self.num_atoms =  _tf.reduce_sum(
-        #    [_tf.sparse_reduce_sum(self.atom_maps[t], axis = 1) for t in self.atom_types],
-        #    axis = 0, name = "NumberOfAtoms")
+            
         self.num_atoms = _tf.reduce_sum([_tf.bincount(self.atom_indices[t])
             for t in self.atom_types], axis = 0, name = "NumberOfAtoms")
         # Tensorflow operation that calculates the sum squared error per atom.
@@ -79,9 +74,6 @@ class AtomicEnergyPotential(object):
             self.rmse_weights = self.features['error_weights']
             self.rmse = self.error_scaling*_tf.sqrt(_tf.reduce_mean(
                 (self.target-self.E_predict)**2*self.rmse_weights))
-            #self.rmse = self.error_scaling*_tf.sqrt(
-            #    _tf.losses.mean_squared_error(self.target,
-            #    self.E_predict, weights = 1.0/self.num_atoms**2))
             self.rmse_summ = _tf.summary.scalar("RMSE", self.rmse, family = "performance")
 
         self.variables = _tf.get_collection(_tf.GraphKeys.MODEL_VARIABLES,
