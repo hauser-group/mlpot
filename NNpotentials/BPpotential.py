@@ -21,7 +21,7 @@ class BPAtomicNN():
 
 class BPpotential(AtomicEnergyPotential):
     def __init__(self, atom_types, input_dims, layers = None, offsets = None,
-        act_funs = None):
+        act_funs = None, **kwargs):
         with _tf.variable_scope("BPpot"):
             if layers == None:
                 layers = [[20]]*len(atom_types)
@@ -33,25 +33,33 @@ class BPpotential(AtomicEnergyPotential):
                     act_funs.append([_tf.nn.tanh]*len(lays))
             AtomicEnergyPotential.__init__(self, atom_types,
                 input_dims = input_dims, layers = layers, offsets = offsets,
-                act_funs = act_funs)
+                act_funs = act_funs, **kwargs)
 
     def configureAtomicContributions(self, **kwargs):
         input_dims = kwargs.get('input_dims')
         layers = kwargs.get('layers')
         offsets = kwargs.get('offsets')
         act_funs = kwargs.get('act_funs')
-        for t, in_dim in zip(self.atom_types, input_dims):
-            self.feature_types['%s_input'%t] = precision
-            self.feature_shapes['%s_input'%t] = _tf.TensorShape([None, in_dim])
-        self.iterator = _tf.data.Iterator.from_structure(
-            (self.feature_types, self.label_types),
-            (self.feature_shapes, self.label_shapes))
-        self.features, self.labels = self.iterator.get_next()
+        if self.input_mode == 'iterator':
+            for t, in_dim in zip(self.atom_types, input_dims):
+                self.feature_types['%s_input'%t] = precision
+                self.feature_shapes['%s_input'%t] = _tf.TensorShape(
+                    [None, in_dim])
+            self.iterator = _tf.data.Iterator.from_structure(
+                (self.feature_types, self.label_types),
+                (self.feature_shapes, self.label_shapes))
+            self.features, self.labels = self.iterator.get_next()
         for (t, in_dim, lays, offs, acts) in zip(self.atom_types, input_dims,
             layers, offsets, act_funs):
             with _tf.variable_scope("%s_ANN"%t, reuse = _tf.AUTO_REUSE):
-                self.atomic_contributions[t] = BPAtomicNN(
-                    self.features['%s_input'%t], lays, offs, acts)
+                if self.input_mode == 'placeholder':
+                    input_tensor = _tf.placeholder(shape = (None, in_dim),
+                        dtype = precision, name = "ANN_input")
+                    self.atomic_contributions[t] = BPAtomicNN(
+                        input_tensor, lays, offs, acts)
+                elif self.input_mode == 'iterator':
+                    self.atomic_contributions[t] = BPAtomicNN(
+                        self.features['%s_input'%t], lays, offs, acts)
 
 def build_BPestimator(atom_types, input_dims, layers = None, offsets = None,
     act_funs = None):
