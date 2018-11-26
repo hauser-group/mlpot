@@ -52,7 +52,11 @@ class AtomicEnergyPotential(object):
         self.label_types = {'energy':precision}
         self.label_shapes = {'energy':_tf.TensorShape([None,])}
 
+        # The individual atomic contributions and the data iterator is set up
+        # in this abstact method that has to be implemented for each potential
+        # type
         self.configureAtomicContributions(**kwargs)
+        
         # Convenience handle for backwards compatibility
         self.ANNs = self.atomic_contributions
 
@@ -65,7 +69,7 @@ class AtomicEnergyPotential(object):
             _tf.concat([_tf.reshape(self.atomic_contributions[t].output, [-1])
             for t in self.atom_types], 0), _tf.shape(self.target),
             name = "E_prediction")
-            
+
         self.num_atoms = _tf.reduce_sum([_tf.bincount(self.atom_indices[t])
             for t in self.atom_types], axis = 0, name = "NumberOfAtoms")
         # Tensorflow operation that calculates the sum squared error per atom.
