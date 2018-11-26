@@ -42,7 +42,7 @@ class AtomicEnergyPotential(object):
     def __init__(self, atom_types, **kwargs):
         self.atom_types = atom_types
         self.error_scaling = kwargs.get('error_scaling', 1000)
-        self.input_mode = kwargs.get('input_mode', 'placeholder')
+        self.input_mode = kwargs.get('input_mode', 'iterator')
         if not (self.input_mode == 'placeholder' or
                 self.input_mode == 'iterator'):
             raise('Unknown input mode!')
