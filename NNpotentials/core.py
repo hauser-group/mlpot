@@ -42,24 +42,19 @@ class AtomicEnergyPotential(object):
     def __init__(self, atom_types, **kwargs):
         self.atom_types = atom_types
         self.error_scaling = kwargs.get('error_scaling', 1000)
-        self.input_mode = kwargs.get('input_mode', 'iterator')
-        if not (self.input_mode == 'placeholder' or
-                self.input_mode == 'iterator'):
-            raise('Unknown input mode!')
 
         self.atomic_contributions = {}
         self.atom_indices = {}
 
-        if self.input_mode == 'iterator':
-            self.feature_types = {'error_weights':precision}
-            self.feature_shapes = {'error_weights':_tf.TensorShape([None,])}
+        self.feature_types = {'error_weights':precision}
+        self.feature_shapes = {'error_weights':_tf.TensorShape([None,])}
 
-            for t in self.atom_types:
-                self.feature_types['%s_indices'%t] = _tf.int32
-                self.feature_shapes['%s_indices'%t] = _tf.TensorShape([None, 1])
+        for t in self.atom_types:
+            self.feature_types['%s_indices'%t] = _tf.int32
+            self.feature_shapes['%s_indices'%t] = _tf.TensorShape([None, 1])
 
-            self.label_types = {'energy':precision}
-            self.label_shapes = {'energy':_tf.TensorShape([None,])}
+        self.label_types = {'energy':precision}
+        self.label_shapes = {'energy':_tf.TensorShape([None,])}
 
         # The individual atomic contributions and the data iterator is set up
         # in this abstact method that has to be implemented for each potential
@@ -69,16 +64,9 @@ class AtomicEnergyPotential(object):
         # Convenience handle for backwards compatibility
         self.ANNs = self.atomic_contributions
 
-        if self.input_mode == 'placeholder':
-            self.target = _tf.placeholder(shape = (None,), dtype = precision,
-                name = "target")
-            for t in self.atom_types:
-                self.atom_indices[t] = _tf.placeholder(shape = (None,1),
-                    dtype = _tf.int32, name = "%s_indices"%t)
-        elif self.input_mode == 'iterator':
-            self.target = self.labels['energy']
-            for t in self.atom_types:
-                self.atom_indices[t] = self.features['%s_indices'%t]
+        self.target = self.labels['energy']
+        for t in self.atom_types:
+            self.atom_indices[t] = self.features['%s_indices'%t]
 
         self.E_predict = _tf.scatter_nd(
             _tf.concat([self.atom_indices[t] for t in self.atom_types], 0),
@@ -91,11 +79,7 @@ class AtomicEnergyPotential(object):
         # Tensorflow operation that calculates the sum squared error per atom.
         # Note that the whole error per atom is squared.
         with _tf.name_scope("RMSE"):
-            if self.input_mode == 'placeholder':
-                self.rmse_weights = _tf.placeholder(shape = (None,),
-                    dtype = precision, name = "weights")
-            elif self.input_mode == 'iterator':
-                self.rmse_weights = self.features['error_weights']
+            self.rmse_weights = self.features['error_weights']
             self.rmse = self.error_scaling*_tf.sqrt(_tf.reduce_mean(
                 (self.target-self.E_predict)**2*self.rmse_weights))
             self.rmse_summ = _tf.summary.scalar(

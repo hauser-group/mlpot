@@ -40,26 +40,20 @@ class BPpotential(AtomicEnergyPotential):
         layers = kwargs.get('layers')
         offsets = kwargs.get('offsets')
         act_funs = kwargs.get('act_funs')
-        if self.input_mode == 'iterator':
-            for t, in_dim in zip(self.atom_types, input_dims):
-                self.feature_types['%s_input'%t] = precision
-                self.feature_shapes['%s_input'%t] = _tf.TensorShape(
-                    [None, in_dim])
-            self.iterator = _tf.data.Iterator.from_structure(
-                (self.feature_types, self.label_types),
-                (self.feature_shapes, self.label_shapes))
-            self.features, self.labels = self.iterator.get_next()
+
+        for t, in_dim in zip(self.atom_types, input_dims):
+            self.feature_types['%s_input'%t] = precision
+            self.feature_shapes['%s_input'%t] = _tf.TensorShape(
+                [None, in_dim])
+        self.iterator = _tf.data.Iterator.from_structure(
+            (self.feature_types, self.label_types),
+            (self.feature_shapes, self.label_shapes))
+        self.features, self.labels = self.iterator.get_next()
         for (t, in_dim, lays, offs, acts) in zip(self.atom_types, input_dims,
             layers, offsets, act_funs):
             with _tf.variable_scope("%s_ANN"%t, reuse = _tf.AUTO_REUSE):
-                if self.input_mode == 'placeholder':
-                    input_tensor = _tf.placeholder(shape = (None, in_dim),
-                        dtype = precision, name = "ANN_input")
-                    self.atomic_contributions[t] = BPAtomicNN(
-                        input_tensor, lays, offs, acts)
-                elif self.input_mode == 'iterator':
-                    self.atomic_contributions[t] = BPAtomicNN(
-                        self.features['%s_input'%t], lays, offs, acts)
+                self.atomic_contributions[t] = BPAtomicNN(
+                    self.features['%s_input'%t], lays, offs, acts)
 
 def build_BPestimator(atom_types, input_dims, layers = None, offsets = None,
     act_funs = None):
