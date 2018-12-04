@@ -43,8 +43,11 @@ class BPpotential(AtomicEnergyPotential):
 
         for t, in_dim in zip(self.atom_types, input_dims):
             self.feature_types['%s_input'%t] = precision
-            self.feature_shapes['%s_input'%t] = _tf.TensorShape(
-                [None, in_dim])
+            self.feature_shapes['%s_input'%t] = _tf.TensorShape([None, in_dim])
+            if self.build_forces:
+                self.feature_types['%s_derivatives_input'%t] = precision
+                self.feature_shapes['%s_derivatives_input'%t] = _tf.TensorShape(
+                    [None, in_dim, None, 3])
         self.iterator = _tf.data.Iterator.from_structure(
             (self.feature_types, self.label_types),
             (self.feature_shapes, self.label_shapes))
@@ -54,6 +57,9 @@ class BPpotential(AtomicEnergyPotential):
             with _tf.variable_scope("%s_ANN"%t, reuse = _tf.AUTO_REUSE):
                 self.atomic_contributions[t] = BPAtomicNN(
                     self.features['%s_input'%t], lays, offs, acts)
+                if self.build_forces:
+                    self.atomic_contributions[t].derivatives_input = \
+                        self.features['%s_derivatives_input'%t]
 
 def build_BPestimator(atom_types, input_dims, layers = None, offsets = None,
     act_funs = None):
