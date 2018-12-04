@@ -159,7 +159,7 @@ class BPpotentialTest(unittest.TestCase):
                 np.array([2]*23))
 
             np.testing.assert_allclose(sess.run(pot.F_predict, test_dict),
-                F_control, rtol=1e-5)
+                F_control, rtol=1e-4)
 
             # Test using the reinitializable iterator
             sess.run(init_op)
@@ -172,7 +172,7 @@ class BPpotentialTest(unittest.TestCase):
 
             sess.run(init_op)
             np.testing.assert_allclose(sess.run(pot.F_predict), F_control,
-                rtol=1e-5)
+                rtol=1e-4)
 
 
 if __name__ == '__main__':
