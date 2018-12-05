@@ -41,7 +41,6 @@ class AtomicEnergyPotential(object):
 
     def __init__(self, atom_types, **kwargs):
         self.atom_types = atom_types
-        self.error_scaling = kwargs.get('error_scaling', 1000)
         self.build_forces = kwargs.get('build_forces', False)
 
         self.atomic_contributions = {}
@@ -70,7 +69,7 @@ class AtomicEnergyPotential(object):
 
         self.target = self.labels['energy']
         if self.build_forces:
-            self.target_force = self.labels['forces']
+            self.target_forces = self.labels['forces']
         for t in self.atom_types:
             self.atom_indices[t] = self.features['%s_indices'%t]
 
@@ -86,7 +85,7 @@ class AtomicEnergyPotential(object):
         # Note that the whole error per atom is squared.
         with _tf.name_scope("RMSE"):
             self.rmse_weights = self.features['error_weights']
-            self.rmse = self.error_scaling*_tf.sqrt(_tf.reduce_mean(
+            self.rmse = _tf.sqrt(_tf.reduce_mean(
                 (self.target-self.E_predict)**2*self.rmse_weights))
             self.rmse_summ = _tf.summary.scalar(
                 "RMSE", self.rmse, family = "performance")
@@ -102,11 +101,11 @@ class AtomicEnergyPotential(object):
                 _tf.concat([-1.0*_tf.einsum('ijkl,ij->ikl',
                     self.atomic_contributions[t].derivatives_input,
                     self.gradients[t]) for t in self.atom_types], 0),
-                _tf.shape(self.target_force), name = "F_prediction")
+                _tf.shape(self.target_forces), name = "F_prediction")
 
             with _tf.name_scope("RMSE"):
-                self.rmse_forces = self.error_scaling*_tf.sqrt(_tf.reduce_mean(
-                    _tf.reduce_sum((self.target_force-self.F_predict)**2, [1, 2])*self.rmse_weights))
+                self.rmse_forces = _tf.sqrt(_tf.reduce_mean(
+                    _tf.reduce_sum((self.target_forces-self.F_predict)**2, [1, 2])*self.rmse_weights))
                 self.rmse_forces_summ = _tf.summary.scalar(
                     "RMSE_Forces", self.rmse_forces, family = "performance")
 
