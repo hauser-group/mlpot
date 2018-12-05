@@ -108,7 +108,7 @@ class BPpotentialTest(unittest.TestCase):
             pot.atom_indices['F']: F_indices,
             pot.ANNs['F'].derivatives_input: F_derivs,
             pot.target:E_test,
-            pot.target_force:F_test,
+            pot.target_forces:F_test,
             pot.rmse_weights: 1.0/np.array(list(map(len, Gs_test)))**2}
 
         init_op = pot.iterator.make_initializer(test_data)
