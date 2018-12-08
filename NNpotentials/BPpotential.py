@@ -12,10 +12,12 @@ class BPAtomicNN():
         self.layers = []
         for i, (n, act) in enumerate(zip(layers, act_funs)):
             previous, _, _ = nn_layer(previous, previous.shape[-1].value,
-                n, name = "hiddenLayer_%d"%(i+1), act = act)
+                n, name = "hiddenLayer_%d"%(i+1), act = act,
+                precision = precision)
             self.layers.append(previous)
         self.output, _, _ = nn_layer(previous, previous.shape[-1].value,
-            1, act = None, initial_bias = [offset], name = "outputLayer")
+            1, act = None, initial_bias = [offset], name = "outputLayer", 
+            precision = precision)
         self.layers.append(self.output)
 
 
