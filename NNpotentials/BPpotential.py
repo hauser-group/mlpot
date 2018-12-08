@@ -1,10 +1,10 @@
-from .core import AtomicEnergyPotential, nn_layer, precision
+from .core import AtomicEnergyPotential, nn_layer
 from .utils import calculate_bp_maps
 import tensorflow as _tf
 
 class BPAtomicNN():
     def __init__(self, input_tensor, layers = [20], offset = 0,
-        act_funs = [_tf.nn.tanh]):
+        act_funs = [_tf.nn.tanh], precision = _tf.float32):
         self.input = input_tensor
 
         # Start of with input layer as previous layer
@@ -42,10 +42,10 @@ class BPpotential(AtomicEnergyPotential):
         act_funs = kwargs.get('act_funs')
 
         for t, in_dim in zip(self.atom_types, input_dims):
-            self.feature_types['%s_input'%t] = precision
+            self.feature_types['%s_input'%t] = self.precision
             self.feature_shapes['%s_input'%t] = _tf.TensorShape([None, in_dim])
             if self.build_forces:
-                self.feature_types['%s_derivatives_input'%t] = precision
+                self.feature_types['%s_derivatives_input'%t] = self.precision
                 self.feature_shapes['%s_derivatives_input'%t] = _tf.TensorShape(
                     [None, in_dim, None, 3])
         self.iterator = _tf.data.Iterator.from_structure(
@@ -56,7 +56,8 @@ class BPpotential(AtomicEnergyPotential):
             layers, offsets, act_funs):
             with _tf.variable_scope("%s_ANN"%t, reuse = _tf.AUTO_REUSE):
                 self.atomic_contributions[t] = BPAtomicNN(
-                    self.features['%s_input'%t], lays, offs, acts)
+                    self.features['%s_input'%t], lays, offs, acts,
+                    self.precision)
                 if self.build_forces:
                     self.atomic_contributions[t].derivatives_input = \
                         self.features['%s_derivatives_input'%t]

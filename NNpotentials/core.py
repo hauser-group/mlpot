@@ -2,10 +2,8 @@ import tensorflow as _tf
 import numpy as _np
 import abc
 
-precision = _tf.float32
-
 def nn_layer(input_tensor, input_dim, output_dim, act = _tf.nn.tanh,
-  initial_bias = None, name = "layer"):
+  initial_bias = None, name = "layer", precision = _tf.float32):
     with _tf.variable_scope(name):
         weights = _tf.get_variable(
             "w", dtype = precision, shape = [input_dim, output_dim],
@@ -42,21 +40,22 @@ class AtomicEnergyPotential(object):
     def __init__(self, atom_types, **kwargs):
         self.atom_types = atom_types
         self.build_forces = kwargs.get('build_forces', False)
+        self.precision = kwargs.get('precision', _tf.float32)
 
         self.atomic_contributions = {}
         self.atom_indices = {}
 
-        self.feature_types = {'error_weights':precision}
+        self.feature_types = {'error_weights':self.precision}
         self.feature_shapes = {'error_weights':_tf.TensorShape([None,])}
 
         for t in self.atom_types:
             self.feature_types['%s_indices'%t] = _tf.int32
             self.feature_shapes['%s_indices'%t] = _tf.TensorShape([None, 1])
 
-        self.label_types = {'energy':precision}
+        self.label_types = {'energy':self.precision}
         self.label_shapes = {'energy':_tf.TensorShape([None,])}
         if self.build_forces:
-            self.label_types['forces'] = precision
+            self.label_types['forces'] = self.precision
             self.label_shapes['forces'] = _tf.TensorShape([None, None, 3])
 
         # The individual atomic contributions and the data iterator is set up
