@@ -1,7 +1,7 @@
 import unittest
 from DescriptorLib.SymmetryFunctionSet import SymmetryFunctionSet as SymFunSet_cpp
 import numpy as np
-from itertools import product
+from itertools import product, combinations_with_replacement
 
 class LibraryTest(unittest.TestCase):
 
@@ -242,6 +242,47 @@ class LibraryTest(unittest.TestCase):
                         sfs.eval_derivatives(types, x0.reshape((-1,3)))[i][j],
                         approx_fprime(x0, f, epsilon = eps).reshape((-1,3)))
 
+    def test_eval_with_derivatives(self):
+        xyzs = np.array([1.19856,        0.00000,        0.71051, # C
+                         2.39807,        0.00000,        0.00000, # C
+                         2.35589,        0.00000,       -1.39475, # C
+                         1.19865,        0.00000,       -2.09564, # N
+                         0.04130,        0.00000,       -1.39453, # C
+                         0.00000,        0.00000,        0.00000, # C
+                        -0.95363,        0.00000,        0.52249, # H
+                         3.35376,        0.00000,        0.51820, # H
+                         3.26989,        0.00000,       -1.98534, # H
+                        -0.87337,        0.00000,       -1.98400, # H
+                         1.19077,        0.00000,        2.07481, # O
+                         2.10344,        0.00000,        2.41504]).reshape((-1,3)) # H
+        types = ['C', 'C', 'C', 'N', 'C', 'C', 'H', 'H', 'H', 'H', 'O', 'H']
+
+        with SymFunSet_cpp(['C', 'N', 'H', 'O'], cutoff = 7.0) as sfs:
+            # Parameters from Artrith and Kolpak Nano Lett. 2014, 14, 2670
+            etas = [0.0009, 0.01, 0.02, 0.035, 0.06, 0.1, 0.2]
+            for t1 in sfs.atomtypes:
+                for t2 in sfs.atomtypes:
+                    for eta in etas:
+                        sfs.add_TwoBodySymmetryFunction(t1, t2, 'BehlerG1',
+                            [eta], cuttype='cos')
+
+            ang_etas = [0.0001, 0.003, 0.008]
+            zetas = [1.0, 4.0]
+            for ti in sfs.atomtypes:
+                for (tj, tk) in combinations_with_replacement(
+                    sfs.atomtypes, 2):
+                    for etas in ang_etas:
+                        for lamb in [-1.0, 1.0]:
+                            for zeta in zetas:
+                                sfs.add_ThreeBodySymmetryFunction(
+                                    ti, tj, tk, "BehlerG3", [lamb, zeta, eta],
+                                    cuttype = 'cos')
+
+            Gs_ref = sfs.eval(types, xyzs)
+            dGs_ref = sfs.eval_derivatives(types, xyzs)
+            Gs, dGs = sfs.eval_with_derivatives(types, xyzs)
+            np.testing.assert_allclose(Gs, Gs_ref)
+            np.testing.assert_allclose(dGs, dGs_ref)
 
     def test_derivaties(self):
         with SymFunSet_cpp(["Ni", "Au"], cutoff = 10.) as sfs_cpp:

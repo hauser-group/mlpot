@@ -91,20 +91,10 @@ extern "C" {
   {
     symFunSet->eval(num_atoms, types, xyzs, G_vector);
   }
-  void SymmetryFunctionSet_eval_old(SymmetryFunctionSet* symFunSet,
-    int num_atoms, int* types, double* xyzs, double* G_vector)
-  {
-    symFunSet->eval_old(num_atoms, types, xyzs, G_vector);
-  }
   void SymmetryFunctionSet_eval_derivatives(SymmetryFunctionSet* symFunSet,
     int num_atoms, int* types, double* xyzs, double* dG_tensor)
   {
     symFunSet->eval_derivatives(num_atoms, types, xyzs, dG_tensor);
-  }
-  void SymmetryFunctionSet_eval_derivatives_old(SymmetryFunctionSet* symFunSet,
-    int num_atoms, int* types, double* xyzs, double* dG_tensor)
-  {
-    symFunSet->eval_derivatives_old(num_atoms, types, xyzs, dG_tensor);
   }
   void SymmetryFunctionSet_eval_with_derivatives(
     SymmetryFunctionSet* symFunSet, int num_atoms, int* types, double* xyzs,
@@ -112,5 +102,15 @@ extern "C" {
   {
     symFunSet->eval_with_derivatives(
       num_atoms, types, xyzs, G_vector, dG_tensor);
+  }
+  void SymmetryFunctionSet_eval_old(SymmetryFunctionSet* symFunSet,
+    int num_atoms, int* types, double* xyzs, double* G_vector)
+  {
+    symFunSet->eval_old(num_atoms, types, xyzs, G_vector);
+  }
+  void SymmetryFunctionSet_eval_derivatives_old(SymmetryFunctionSet* symFunSet,
+    int num_atoms, int* types, double* xyzs, double* dG_tensor)
+  {
+    symFunSet->eval_derivatives_old(num_atoms, types, xyzs, dG_tensor);
   }
 };
