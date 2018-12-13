@@ -80,9 +80,9 @@ class AtomicEnergyPotential(object):
                 for t in self.atom_types], 0), _tf.shape(self.target),
                 name = 'E_prediction')
 
-        with _tf.name_scope('')
-        self.num_atoms = _tf.reduce_sum([_tf.bincount(self.atom_indices[t])
-            for t in self.atom_types], axis = 0, name = 'NumberOfAtoms')
+        with _tf.name_scope('Atom_Counting'):
+            self.num_atoms = _tf.reduce_sum([_tf.bincount(self.atom_indices[t])
+                for t in self.atom_types], axis = 0, name = 'NumberOfAtoms')
 
         with _tf.name_scope('RMSE'):
             self.rmse_weights = self.features['error_weights']
@@ -109,7 +109,7 @@ class AtomicEnergyPotential(object):
                         for t in self.atom_types], 0),
                     _tf.shape(self.target_forces), name = 'F_prediction'))
 
-            with _tf.name_scope('RMSE_forces'):
+            with _tf.name_scope('RMSE_Forces'):
                 self.rmse_forces = _tf.sqrt(_tf.reduce_mean(
                     _tf.reduce_sum((
                     self.target_forces-self.F_predict)**2, [1, 2]
