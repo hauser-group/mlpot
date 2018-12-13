@@ -72,11 +72,13 @@ class AtomicEnergyPotential(object):
         for t in self.atom_types:
             self.atom_indices[t] = self.features['%s_indices'%t]
 
-        self.E_predict = _tf.scatter_nd(
-            _tf.concat([self.atom_indices[t] for t in self.atom_types], 0),
-            _tf.concat([_tf.reshape(self.atomic_contributions[t].output, [-1])
-            for t in self.atom_types], 0), _tf.shape(self.target),
-            name = "E_prediction")
+        with _tf.name_scope("Energy_Calculation"):
+            self.E_predict = _tf.scatter_nd(
+                _tf.concat([self.atom_indices[t] for t in self.atom_types], 0),
+                _tf.concat([
+                    _tf.reshape(self.atomic_contributions[t].output, [-1])
+                for t in self.atom_types], 0), _tf.shape(self.target),
+                name = "E_prediction")
 
         self.num_atoms = _tf.reduce_sum([_tf.bincount(self.atom_indices[t])
             for t in self.atom_types], axis = 0, name = "NumberOfAtoms")
@@ -90,21 +92,26 @@ class AtomicEnergyPotential(object):
                 "RMSE", self.rmse, family = "performance")
 
         if self.build_forces:
-            self.gradients = {}
-            for t in self.atom_types:
-                self.gradients[t] = _tf.gradients(self.E_predict,
-                    self.atomic_contributions[t].input)[0]
+            with _tf.name_scope("Force_Calculation"):
+                self.gradients = {}
+                for t in self.atom_types:
+                    self.gradients[t] = _tf.gradients(
+                        self.atomic_contributions[t].output,
+                        self.atomic_contributions[t].input)[0]
 
-            self.F_predict = _tf.scatter_nd(
-                _tf.concat([self.atom_indices[t] for t in self.atom_types], 0),
-                _tf.concat([-1.0*_tf.einsum('ijkl,ij->ikl',
-                    self.atomic_contributions[t].derivatives_input,
-                    self.gradients[t]) for t in self.atom_types], 0),
-                _tf.shape(self.target_forces), name = "F_prediction")
+                self.F_predict = _tf.scatter_nd(
+                    _tf.concat([
+                        self.atom_indices[t] for t in self.atom_types], 0),
+                    _tf.concat([-1.0*_tf.einsum('ijkl,ij->ikl',
+                        self.atomic_contributions[t].derivatives_input,
+                        self.gradients[t]) for t in self.atom_types], 0),
+                    _tf.shape(self.target_forces), name = "F_prediction")
 
-            with _tf.name_scope("RMSE"):
+            with _tf.name_scope("RMSE_forces"):
                 self.rmse_forces = _tf.sqrt(_tf.reduce_mean(
-                    _tf.reduce_sum((self.target_forces-self.F_predict)**2, [1, 2])*self.rmse_weights))
+                    _tf.reduce_sum((
+                    self.target_forces-self.F_predict)**2, [1, 2]
+                    )*self.rmse_weights))
                 self.rmse_forces_summ = _tf.summary.scalar(
                     "RMSE_Forces", self.rmse_forces, family = "performance")
 
