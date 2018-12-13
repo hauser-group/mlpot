@@ -12,11 +12,11 @@ class BPAtomicNN():
         self.layers = []
         for i, (n, act) in enumerate(zip(layers, act_funs)):
             previous, _, _ = nn_layer(previous, previous.shape[-1].value,
-                n, name = "hiddenLayer_%d"%(i+1), act = act,
+                n, name = 'hiddenLayer_%d'%(i+1), act = act,
                 precision = precision)
             self.layers.append(previous)
         self.output, _, _ = nn_layer(previous, previous.shape[-1].value,
-            1, act = None, initial_bias = [offset], name = "outputLayer", 
+            1, act = None, initial_bias = [offset], name = 'outputLayer',
             precision = precision)
         self.layers.append(self.output)
 
@@ -24,7 +24,7 @@ class BPAtomicNN():
 class BPpotential(AtomicEnergyPotential):
     def __init__(self, atom_types, input_dims, layers = None, offsets = None,
         act_funs = None, **kwargs):
-        with _tf.variable_scope("BPpot"):
+        with _tf.variable_scope('BPpot'):
             if layers == None:
                 layers = [[20]]*len(atom_types)
             if offsets == None:
@@ -56,7 +56,7 @@ class BPpotential(AtomicEnergyPotential):
         self.features, self.labels = self.iterator.get_next()
         for (t, in_dim, lays, offs, acts) in zip(self.atom_types, input_dims,
             layers, offsets, act_funs):
-            with _tf.variable_scope("%s_ANN"%t, reuse = _tf.AUTO_REUSE):
+            with _tf.variable_scope('%s_ANN'%t, reuse = _tf.AUTO_REUSE):
                 self.atomic_contributions[t] = BPAtomicNN(
                     self.features['%s_input'%t], lays, offs, acts,
                     self.precision)
@@ -86,7 +86,7 @@ def build_BPestimator(atom_types, input_dims, layers = None, offsets = None,
         atom_types = params['atom_types']
         for (t, lays, offs, acts) in zip(atom_types,
             params['layers'], params['offsets'], params['act_funs']):
-            with _tf.variable_scope("{}_ANN".format(t), reuse = _tf.AUTO_REUSE):
+            with _tf.variable_scope('{}_ANN'.format(t), reuse = _tf.AUTO_REUSE):
                 input_tensor = features['%s_input'%t]
                 atomic_contributions[t] = BPAtomicNN(
                     input_tensor, lays, offs, acts)
@@ -95,14 +95,14 @@ def build_BPestimator(atom_types, input_dims, layers = None, offsets = None,
             _tf.concat([features['%s_indices'%t] for t in atom_types], 0),
             _tf.concat([_tf.reshape(atomic_contributions[t].output, [-1])
             for t in atom_types], 0), _tf.shape(labels),
-            name = "E_prediction")
+            name = 'E_prediction')
 
         if mode == _tf.estimator.ModeKeys.PREDICT:
             predictions = {'energies': predicted_energies}
             return _tf.estimator.EstimatorSpec(mode, predictions=predictions)
 
         num_atoms = _tf.reduce_sum([_tf.bincount(features['%s_indices'%t])
-            for t in atom_types], axis = 0, name = "NumberOfAtoms")
+            for t in atom_types], axis = 0, name = 'NumberOfAtoms')
         # Compute loss.
         loss = _tf.losses.mean_squared_error(
             labels=labels, predictions=predicted_energies)

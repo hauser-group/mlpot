@@ -3,10 +3,10 @@ import numpy as _np
 import abc
 
 def nn_layer(input_tensor, input_dim, output_dim, act = _tf.nn.tanh,
-  initial_bias = None, name = "layer", precision = _tf.float32):
+  initial_bias = None, name = 'layer', precision = _tf.float32):
     with _tf.variable_scope(name):
         weights = _tf.get_variable(
-            "w", dtype = precision, shape = [input_dim, output_dim],
+            'w', dtype = precision, shape = [input_dim, output_dim],
             initializer = _tf.random_normal_initializer(
                 stddev = 1./_np.sqrt(input_dim), dtype = precision),
             collections = [_tf.GraphKeys.MODEL_VARIABLES,
@@ -14,13 +14,13 @@ def nn_layer(input_tensor, input_dim, output_dim, act = _tf.nn.tanh,
                             _tf.GraphKeys.GLOBAL_VARIABLES])
         if initial_bias == None:
             biases = _tf.get_variable(
-                "b", dtype = precision, shape = [output_dim],
+                'b', dtype = precision, shape = [output_dim],
                 initializer = _tf.constant_initializer(0.0, dtype = precision),
                 collections = [_tf.GraphKeys.MODEL_VARIABLES,
                             _tf.GraphKeys.GLOBAL_VARIABLES])
         else:
             biases = _tf.get_variable(
-                "b", dtype = precision, shape = [output_dim],
+                'b', dtype = precision, shape = [output_dim],
                 initializer = _tf.constant_initializer(
                     initial_bias, dtype = precision),
                 collections = [_tf.GraphKeys.MODEL_VARIABLES,
@@ -30,9 +30,9 @@ def nn_layer(input_tensor, input_dim, output_dim, act = _tf.nn.tanh,
             activations = preactivate
         else:
             activations = act(preactivate)
-        _tf.summary.histogram("weights", weights)
-        _tf.summary.histogram("biases", biases)
-        _tf.summary.histogram("activations", activations)
+        _tf.summary.histogram('weights', weights)
+        _tf.summary.histogram('biases', biases)
+        _tf.summary.histogram('activations', activations)
         return activations, weights, biases
 
 class AtomicEnergyPotential(object):
@@ -72,48 +72,50 @@ class AtomicEnergyPotential(object):
         for t in self.atom_types:
             self.atom_indices[t] = self.features['%s_indices'%t]
 
-        with _tf.name_scope("Energy_Calculation"):
+        with _tf.name_scope('Energy_Calculation'):
             self.E_predict = _tf.scatter_nd(
                 _tf.concat([self.atom_indices[t] for t in self.atom_types], 0),
                 _tf.concat([
                     _tf.reshape(self.atomic_contributions[t].output, [-1])
                 for t in self.atom_types], 0), _tf.shape(self.target),
-                name = "E_prediction")
+                name = 'E_prediction')
 
+        with _tf.name_scope('')
         self.num_atoms = _tf.reduce_sum([_tf.bincount(self.atom_indices[t])
-            for t in self.atom_types], axis = 0, name = "NumberOfAtoms")
-        # Tensorflow operation that calculates the sum squared error per atom.
-        # Note that the whole error per atom is squared.
-        with _tf.name_scope("RMSE"):
+            for t in self.atom_types], axis = 0, name = 'NumberOfAtoms')
+
+        with _tf.name_scope('RMSE'):
             self.rmse_weights = self.features['error_weights']
             self.rmse = _tf.sqrt(_tf.reduce_mean(
                 (self.target-self.E_predict)**2*self.rmse_weights))
             self.rmse_summ = _tf.summary.scalar(
-                "RMSE", self.rmse, family = "performance")
+                'RMSE', self.rmse, family = 'performance')
 
         if self.build_forces:
-            with _tf.name_scope("Force_Calculation"):
+            with _tf.name_scope('Force_Calculation'):
                 self.gradients = {}
                 for t in self.atom_types:
                     self.gradients[t] = _tf.gradients(
                         self.atomic_contributions[t].output,
-                        self.atomic_contributions[t].input)[0]
+                        self.atomic_contributions[t].input,
+                        name='%s_gradients'%t)[0]
 
-                self.F_predict = _tf.scatter_nd(
+                self.F_predict = _tf.negative(_tf.scatter_nd(
                     _tf.concat([
                         self.atom_indices[t] for t in self.atom_types], 0),
-                    _tf.concat([-1.0*_tf.einsum('ijkl,ij->ikl',
+                    _tf.concat([_tf.einsum('ijkl,ij->ikl',
                         self.atomic_contributions[t].derivatives_input,
-                        self.gradients[t]) for t in self.atom_types], 0),
-                    _tf.shape(self.target_forces), name = "F_prediction")
+                        self.gradients[t], name='%s_einsum'%t)
+                        for t in self.atom_types], 0),
+                    _tf.shape(self.target_forces), name = 'F_prediction'))
 
-            with _tf.name_scope("RMSE_forces"):
+            with _tf.name_scope('RMSE_forces'):
                 self.rmse_forces = _tf.sqrt(_tf.reduce_mean(
                     _tf.reduce_sum((
                     self.target_forces-self.F_predict)**2, [1, 2]
                     )*self.rmse_weights))
                 self.rmse_forces_summ = _tf.summary.scalar(
-                    "RMSE_Forces", self.rmse_forces, family = "performance")
+                    'RMSE_Forces', self.rmse_forces, family = 'performance')
 
         self.variables = _tf.get_collection(_tf.GraphKeys.MODEL_VARIABLES,
             scope = _tf.get_default_graph().get_name_scope())
