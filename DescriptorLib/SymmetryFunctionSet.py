@@ -48,11 +48,11 @@ try:
     lib.SymmetryFunctionSet_get_G_vector_size.argtypes = (
         _ct.c_void_p, _ct.c_int, _ct.POINTER(_ct.c_int))
     lib.SymmetryFunctionSet_print_symFuns.argtypes = (_ct.c_void_p,)
-    lib.SymmetryFunctionSet_eval_old.argtypes = (
+    lib.SymmetryFunctionSet_eval_atomwise.argtypes = (
         _ct.c_void_p, _ct.c_int, _ct.POINTER(_ct.c_int),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim = 2, flags = "C_CONTIGUOUS"),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim = 1, flags = "C_CONTIGUOUS"))
-    lib.SymmetryFunctionSet_eval_derivatives_old.argtypes = (
+    lib.SymmetryFunctionSet_eval_derivatives_atomwise.argtypes = (
         _ct.c_void_p, _ct.c_int, _ct.POINTER(_ct.c_int),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim = 2, flags = "C_CONTIGUOUS"),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim = 2, flags = "C_CONTIGUOUS"))
@@ -193,34 +193,34 @@ class SymmetryFunctionSet(object):
         xyzs = _np.array([a[1] for a in geo])
         return self.eval_derivatives(types, xyzs)
 
-    def eval_old(self, types, xyzs):
+    def eval_atomwiseself, types, xyzs):
         int_types = [self.type_dict[ti] for ti in types]
         types_ptr = (_ct.c_int*len(types))(*int_types)
         #len_G_vector = lib.SymmetryFunctionSet_get_G_vector_size(self.obj,
         #    len(types), types_ptr)
         num_Gs_per_atom = [self.num_Gs[ti] for ti in int_types]
         out = _np.zeros(sum(num_Gs_per_atom))
-        lib.SymmetryFunctionSet_eval_old(
+        lib.SymmetryFunctionSet_eval_atomwiese(
             self.obj, len(types), types_ptr, xyzs, out)
         cum_num_Gs = _np.cumsum([0]+num_Gs_per_atom)
         return [out[cum_num_Gs[i]:cum_num_Gs[i+1]] for i in range(len(types))]
 
-    def eval_derivatives_old(self, types, xyzs):
+    def eval_derivatives_atomwise(self, types, xyzs):
         int_types = [self.type_dict[ti] for ti in types]
         types_ptr = (_ct.c_int*len(types))(*int_types)
         #len_G_vector = lib.SymmetryFunctionSet_get_G_vector_size(
         #    self.obj, len(types), types_ptr)
         num_Gs_per_atom = [self.num_Gs[ti] for ti in int_types]
         out = _np.zeros((sum(num_Gs_per_atom), 3*len(types)))
-        lib.SymmetryFunctionSet_eval_derivatives_old(
+        lib.SymmetryFunctionSet_eval_derivatives_atomwise(
             self.obj, len(types), types_ptr, xyzs, out)
         cum_num_Gs = _np.cumsum([0]+num_Gs_per_atom)
         return [out[cum_num_Gs[i]:cum_num_Gs[i+1],:] for i in range(len(types))]
 
-    def eval_geometry_old(self, geo):
+    def eval_geometry_atomwise(self, geo):
         types = [a[0] for a in geo]
         xyzs = _np.array([a[1] for a in geo])
-        return self.eval_old(types, xyzs)
+        return self.eval_atomwise(types, xyzs)
 
 class SymmetryFunctionSet_py(object):
 
