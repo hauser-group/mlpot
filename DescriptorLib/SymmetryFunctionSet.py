@@ -55,7 +55,7 @@ try:
     lib.SymmetryFunctionSet_eval_derivatives_atomwise.argtypes = (
         _ct.c_void_p, _ct.c_int, _ct.POINTER(_ct.c_int),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim = 2, flags = "C_CONTIGUOUS"),
-        _np.ctypeslib.ndpointer(dtype=_np.float64, ndim = 2, flags = "C_CONTIGUOUS"))
+        _np.ctypeslib.ndpointer(dtype=_np.float64, ndim = 3, flags = "C_CONTIGUOUS"))
 except OSError as e:
     # Possibly switch to a python based implementation if loading the dll fails
     raise OSError(e.message)
@@ -211,11 +211,11 @@ class SymmetryFunctionSet(object):
         #len_G_vector = lib.SymmetryFunctionSet_get_G_vector_size(
         #    self.obj, len(types), types_ptr)
         num_Gs_per_atom = [self.num_Gs[ti] for ti in int_types]
-        out = _np.zeros((sum(num_Gs_per_atom), 3*len(types)))
+        dGs = _np.zeros((sum(num_Gs_per_atom), len(types), 3))
         lib.SymmetryFunctionSet_eval_derivatives_atomwise(
-            self.obj, len(types), types_ptr, xyzs, out)
+            self.obj, len(types), types_ptr, xyzs, dGs)
         cum_num_Gs = _np.cumsum([0]+num_Gs_per_atom)
-        return [out[cum_num_Gs[i]:cum_num_Gs[i+1],:] for i in range(len(types))]
+        return [dGs[cum_num_Gs[i]:cum_num_Gs[i+1],:] for i in range(len(types))]
 
     def eval_geometry_atomwise(self, geo):
         types = [a[0] for a in geo]
