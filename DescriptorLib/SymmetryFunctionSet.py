@@ -200,7 +200,7 @@ class SymmetryFunctionSet(object):
         #    len(types), types_ptr)
         num_Gs_per_atom = [self.num_Gs[ti] for ti in int_types]
         out = _np.zeros(sum(num_Gs_per_atom))
-        lib.SymmetryFunctionSet_eval_atomwiese(
+        lib.SymmetryFunctionSet_eval_atomwise(
             self.obj, len(types), types_ptr, xyzs, out)
         cum_num_Gs = _np.cumsum([0]+num_Gs_per_atom)
         return [out[cum_num_Gs[i]:cum_num_Gs[i+1]] for i in range(len(types))]
