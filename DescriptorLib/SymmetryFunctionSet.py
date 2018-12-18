@@ -193,7 +193,7 @@ class SymmetryFunctionSet(object):
         xyzs = _np.array([a[1] for a in geo])
         return self.eval_derivatives(types, xyzs)
 
-    def eval_atomwiseself, types, xyzs):
+    def eval_atomwise(self, types, xyzs):
         int_types = [self.type_dict[ti] for ti in types]
         types_ptr = (_ct.c_int*len(types))(*int_types)
         #len_G_vector = lib.SymmetryFunctionSet_get_G_vector_size(self.obj,
