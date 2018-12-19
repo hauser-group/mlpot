@@ -252,7 +252,7 @@ class LibraryTest(unittest.TestCase):
 
             N = 30
             r_vec = np.linspace(1., 5., N)#
-            theta_vec = np.linspace(0.0*np.pi, 2.*np.pi, N)
+            theta_vec = np.linspace(0.0*np.pi, 2.*np.pi, N, endpoint=True)
             for i, (ri, ti) in enumerate(zip(r_vec, theta_vec)):
                 xyzs = np.array([[0.0, 0.0, 0.0],
                                 [ri, 0.0, 0.0],
@@ -279,7 +279,9 @@ class LibraryTest(unittest.TestCase):
 
                 dGs = sfs.eval_derivatives(types, xyzs)
                 dGs_atomwise = sfs.eval_derivatives_atomwise(types, xyzs)
-                np.testing.assert_allclose(dGs, dGs_atomwise)
+                # Adding the equal_nan=False option shows a bug for descriptors
+                # using rik as input
+                np.testing.assert_allclose(dGs, dGs_atomwise)#, equal_nan=False)
 
 
     def test_acetone(self):
