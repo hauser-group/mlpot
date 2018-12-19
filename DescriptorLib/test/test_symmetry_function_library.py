@@ -143,23 +143,31 @@ class LibraryTest(unittest.TestCase):
 
             dr = np.sqrt(np.finfo(float).eps)
             for ri in np.linspace(0.1,7,101):
-                Gi = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
+                Gi = sfs_cpp.eval(
+                    types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
                 # Assert Symmmetry
                 np.testing.assert_array_equal(Gi[0], Gi[1])
                 # Assert Values
                 np.testing.assert_allclose(
-                    Gi[0], np.exp(-etas*(ri-rss)**2)*0.5*(1.0+np.cos(np.pi*ri/sfs_cpp.cutoff)))
+                    Gi[0], np.exp(-etas*(ri-rss)**2)*0.5*(1.0
+                        + np.cos(np.pi*ri/sfs_cpp.cutoff)))
                 # Derivatives
-                dGa = sfs_cpp.eval_derivatives(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
+                dGa = sfs_cpp.eval_derivatives(
+                    types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
                 # Assert Symmetry
                 np.testing.assert_array_equal(dGa[0], dGa[1])
                 # Assert Values
-                np.testing.assert_allclose(dGa[0][:,1,-1], np.exp(-etas*(ri-rss)**2)*(
-                    0.5*(1.0+np.cos(np.pi*ri/sfs_cpp.cutoff))*2.0*(-etas)*(ri-rss)+
-                    0.5*(-np.sin(np.pi*ri/sfs_cpp.cutoff)*np.pi/sfs_cpp.cutoff)))
+                np.testing.assert_allclose(
+                    dGa[0][:,1,-1], np.exp(-etas*(ri-rss)**2)*(
+                    0.5*(1.0+np.cos(np.pi*ri/sfs_cpp.cutoff))
+                    *2.0*(-etas)*(ri-rss)
+                    + 0.5*(-np.sin(np.pi*ri/sfs_cpp.cutoff)
+                    *np.pi/sfs_cpp.cutoff)))
 
-                Gi_drp = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri+dr]]))
-                Gi_drm = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri-dr]]))
+                Gi_drp = sfs_cpp.eval(
+                    types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri+dr]]))
+                Gi_drm = sfs_cpp.eval(
+                    types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri-dr]]))
                 dGn = [(Gi_drp[i] - Gi_drm[i])/(2*dr) for i in [0,1]]
                 # Assert Symmetry
                 np.testing.assert_array_equal(dGn[0], dGn[1])
@@ -178,33 +186,101 @@ class LibraryTest(unittest.TestCase):
 
             dr = np.sqrt(np.finfo(float).eps)
             for ri in np.linspace(2,7,10):
-                Gi = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
+                Gi = sfs_cpp.eval(
+                    types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
                 # Assert Symmmetry
                 np.testing.assert_array_equal(Gi[0], Gi[1])
                 # Assert Values
                 np.testing.assert_allclose(
-                    Gi[0], np.exp(-etas*(ri-rss)**2)*(1 - 10.0 * (ri/sfs_cpp.cutoff)**3 +
-                    15.0 * (ri/sfs_cpp.cutoff)**4 - 6.0 * (ri/sfs_cpp.cutoff)**5))
+                    Gi[0], np.exp(-etas*(ri-rss)**2)*(1
+                    - 10.0 * (ri/sfs_cpp.cutoff)**3
+                    + 15.0 * (ri/sfs_cpp.cutoff)**4
+                    - 6.0 * (ri/sfs_cpp.cutoff)**5))
                 # Derivatives
-                dGa = sfs_cpp.eval_derivatives(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
+                dGa = sfs_cpp.eval_derivatives(
+                    types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
                 # Assert Symmmetry
                 np.testing.assert_array_equal(dGa[0], dGa[1])
                 # Assert Values
                 np.testing.assert_allclose(np.exp(-etas*(ri-rss)**2)*(
-                    (1 - 10.0 * (ri/sfs_cpp.cutoff)**3 + 15.0 * (ri/sfs_cpp.cutoff)**4
+                    (1 - 10.0 * (ri/sfs_cpp.cutoff)**3
+                    + 15.0 * (ri/sfs_cpp.cutoff)**4
                     - 6.0 * (ri/sfs_cpp.cutoff)**5)*2.0*(-etas)*(ri-rss)
-                    +(-30.0 * (ri**2/sfs_cpp.cutoff**3) + 60.0 * (ri**3/sfs_cpp.cutoff**4)
+                    +(-30.0 * (ri**2/sfs_cpp.cutoff**3)
+                    + 60.0 * (ri**3/sfs_cpp.cutoff**4)
                     - 30.0 * (ri**4/sfs_cpp.cutoff**5))),
                     dGa[0][:,1,-1])
 
-                Gi_drp = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri+dr]]))
-                Gi_drm = sfs_cpp.eval(types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri-dr]]))
+                Gi_drp = sfs_cpp.eval(
+                    types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri+dr]]))
+                Gi_drm = sfs_cpp.eval(
+                    types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri-dr]]))
                 dGn = [(Gi_drp[i] - Gi_drm[i])/(2*dr) for i in [0,1]]
                 # Assert Symmetry
                 np.testing.assert_array_equal(dGn[0], dGn[1])
                 # Assert Values
                 np.testing.assert_allclose(dGa[0][:,1,-1], dGn[0],
                     rtol = 1E-7, atol = 1E-7)
+
+    def test_trimer(self):
+        with SymFunSet_cpp(['Ag'], cutoff = 8.0) as sfs:
+            types = ['Ag', 'Ag', 'Ag']
+
+            def fcut(r):
+                return 0.5*(1.0 + np.cos(np.pi*r/sfs.cutoff))*(r < sfs.cutoff)
+
+            # Parameters from Artrith and Kolpak Nano Lett. 2014, 14, 2670
+            etas = np.array([0.0009, 0.01, 0.02, 0.035, 0.06, 0.1, 0.2])
+            for eta in etas:
+                sfs.add_TwoBodySymmetryFunction('Ag', 'Ag', 'BehlerG1', [eta],
+                    cuttype='cos')
+
+            ang_etas = np.array([0.0001, 0.003, 0.008])
+            zetas = np.array([1.0, 4.0])
+            for ang_eta in ang_etas:
+                for lamb in [-1.0, 1.0]:
+                    for zeta in zetas:
+                        sfs.add_ThreeBodySymmetryFunction('Ag', 'Ag', 'Ag',
+                            'BehlerG3', [lamb, zeta, ang_eta], cuttype='cos')
+
+            # Also test BehlerG4
+            for ang_eta in ang_etas:
+                for lamb in [-1.0, 1.0]:
+                    for zeta in zetas:
+                        sfs.add_ThreeBodySymmetryFunction('Ag', 'Ag', 'Ag',
+                            'BehlerG4', [lamb, zeta, ang_eta], cuttype='cos')
+
+            N = 30
+            r_vec = np.linspace(1., 5., N)#
+            theta_vec = np.linspace(0.0*np.pi, 2.*np.pi, N)
+            for i, (ri, ti) in enumerate(zip(r_vec, theta_vec)):
+                xyzs = np.array([[0.0, 0.0, 0.0],
+                                [ri, 0.0, 0.0],
+                                [ri*np.cos(ti), ri*np.sin(ti), 0.0]])
+
+                rij = np.linalg.norm(xyzs[0,:]-xyzs[1,:])
+                rik = np.linalg.norm(xyzs[0,:]-xyzs[2,:])
+                rjk = np.linalg.norm(xyzs[1,:]-xyzs[2,:])
+                np.testing.assert_allclose(np.linalg.norm(xyzs[1,:]-xyzs[2,:]),
+                    np.sqrt(rij**2+rik**2-2.*rij*rik*np.cos(ti)), atol=1E-12)
+
+                Gs = sfs.eval(types, xyzs)
+                Gs_atomwise = sfs.eval_atomwise(types, xyzs)
+                Gs_ref = np.concatenate([2*np.exp(-etas*ri**2)*fcut(ri)]
+                    + [2**(1.-zetas)*np.exp(-eta*(rij**2+rik**2+rjk**2))
+                    *(1.+lamb*np.cos(ti))**zetas*fcut(rij)*fcut(rik)*fcut(rjk)
+                    for eta in ang_etas for lamb in [-1.0, 1.0]]
+                    + [2**(1.-zetas)*np.exp(-eta*(rij**2+rik**2))
+                    *(1.+lamb*np.cos(ti))**zetas*fcut(rij)*fcut(rik)
+                    for eta in ang_etas for lamb in [-1.0, 1.0]])
+                np.testing.assert_allclose(Gs, Gs_atomwise)
+                np.testing.assert_allclose(Gs[0], Gs_ref)
+                np.testing.assert_allclose(Gs_atomwise[0], Gs_ref)
+
+                dGs = sfs.eval_derivatives(types, xyzs)
+                dGs_atomwise = sfs.eval_derivatives_atomwise(types, xyzs)
+                np.testing.assert_allclose(dGs, dGs_atomwise)
+
 
     def test_acetone(self):
         from scipy.optimize import approx_fprime
@@ -243,18 +319,18 @@ class LibraryTest(unittest.TestCase):
                         approx_fprime(x0, f, epsilon = eps).reshape((-1,3)))
 
     def test_eval_with_derivatives(self):
-        xyzs = np.array([1.19856,        0.00000,        0.71051, # C
-                         2.39807,        0.00000,        0.00000, # C
-                         2.35589,        0.00000,       -1.39475, # C
-                         1.19865,        0.00000,       -2.09564, # N
-                         0.04130,        0.00000,       -1.39453, # C
-                         0.00000,        0.00000,        0.00000, # C
-                        -0.95363,        0.00000,        0.52249, # H
-                         3.35376,        0.00000,        0.51820, # H
-                         3.26989,        0.00000,       -1.98534, # H
-                        -0.87337,        0.00000,       -1.98400, # H
-                         1.19077,        0.00000,        2.07481, # O
-                         2.10344,        0.00000,        2.41504]).reshape((-1,3)) # H
+        xyzs = np.array([[ 1.19856,        0.00000,        0.71051], # C
+                         [ 2.39807,        0.00000,        0.00000], # C
+                         [ 2.35589,        0.00000,       -1.39475], # C
+                         [ 1.19865,        0.00000,       -2.09564], # N
+                         [ 0.04130,        0.00000,       -1.39453], # C
+                         [ 0.00000,        0.00000,        0.00000], # C
+                         [-0.95363,        0.00000,        0.52249], # H
+                         [ 3.35376,        0.00000,        0.51820], # H
+                         [ 3.26989,        0.00000,       -1.98534], # H
+                         [-0.87337,        0.00000,       -1.98400], # H
+                         [ 1.19077,        0.00000,        2.07481], # O
+                         [ 2.10344,        0.00000,        2.41504]]) # H
         types = ['C', 'C', 'C', 'N', 'C', 'C', 'H', 'H', 'H', 'H', 'O', 'H']
 
         with SymFunSet_cpp(['C', 'N', 'H', 'O'], cutoff = 7.0) as sfs:
@@ -271,7 +347,7 @@ class LibraryTest(unittest.TestCase):
             for ti in sfs.atomtypes:
                 for (tj, tk) in combinations_with_replacement(
                     sfs.atomtypes, 2):
-                    for etas in ang_etas:
+                    for eta in ang_etas:
                         for lamb in [-1.0, 1.0]:
                             for zeta in zetas:
                                 sfs.add_ThreeBodySymmetryFunction(
@@ -301,15 +377,19 @@ class LibraryTest(unittest.TestCase):
 
             out_cpp = sfs_cpp.eval(types, pos)
             analytical_derivatives = sfs_cpp.eval_derivatives(types, pos)
-            numerical_derivatives = np.zeros((len(out_cpp), out_cpp[0].size, pos.size))
+            numerical_derivatives = np.zeros(
+                (len(out_cpp), out_cpp[0].size, pos.size))
             dx = np.sqrt(np.finfo(float).eps)
             for i in range(pos.size):
                 dpos = np.zeros(pos.shape)
                 dpos[np.unravel_index(i,dpos.shape)] += dx
-                numerical_derivatives[:,:,i] = (np.array(sfs_cpp.eval(types, pos+dpos))
-                                 - np.array(sfs_cpp.eval(types, pos-dpos)))/(2*dx)
+                numerical_derivatives[:,:,i] = (
+                    np.array(sfs_cpp.eval(types, pos+dpos))
+                    - np.array(sfs_cpp.eval(types, pos-dpos)))/(2*dx)
 
-        np.testing.assert_array_almost_equal(numerical_derivatives.flatten(), np.array(analytical_derivatives).flatten())
+        np.testing.assert_array_almost_equal(
+            numerical_derivatives.flatten(),
+            np.array(analytical_derivatives).flatten())
 
 if __name__ == '__main__':
     unittest.main()
