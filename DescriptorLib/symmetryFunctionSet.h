@@ -24,7 +24,10 @@ class SymmetryFunctionSet
       int num_atoms, int* types, double* xyzs, double* dG_tensor);
     void eval_derivatives_atomwise(
       int num_atoms, int* types, double* xyzs, double* dG_tensor);
+
     void eval_with_derivatives(int num_atoms, int* types, double* xyzs,
+      double* G_vector, double* dG_tensor);
+    void eval_with_derivatives_atomwise(int num_atoms, int* types, double* xyzs,
       double* G_vector, double* dG_tensor);
     void print_symFuns() const;
 
@@ -113,5 +116,10 @@ extern "C" {
     int num_atoms, int* types, double* xyzs, double* dG_tensor)
   {
     symFunSet->eval_derivatives_atomwise(num_atoms, types, xyzs, dG_tensor);
+  }
+  void SymmetryFunctionSet_eval_with_derivatives_atomwise(SymmetryFunctionSet* symFunSet,
+    int num_atoms, int* types, double* xyzs, double* G_vector, double* dG_tensor)
+  {
+    symFunSet->eval_with_derivatives_atomwise(num_atoms, types, xyzs, G_vector, dG_tensor);
   }
 };

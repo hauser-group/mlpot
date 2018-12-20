@@ -283,6 +283,11 @@ class LibraryTest(unittest.TestCase):
                 # using rik as input
                 np.testing.assert_allclose(dGs, dGs_atomwise)#, equal_nan=False)
 
+                Gs, dGs = sfs.eval_with_derivatives(types, xyzs)
+                Gs_atomwise, dGs_atomwise = sfs.eval_with_derivatives_atomwise(types, xyzs)
+                np.testing.assert_allclose(Gs, Gs_atomwise)
+                np.testing.assert_allclose(dGs, dGs_atomwise)
+
 
     def test_acetone(self):
         from scipy.optimize import approx_fprime

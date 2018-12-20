@@ -1015,3 +1015,149 @@ void SymmetryFunctionSet::eval_derivatives_atomwise(
   }
   delete[] pos_atoms;
 }
+
+void SymmetryFunctionSet::eval_with_derivatives_atomwise(
+  int num_atoms, int* types, double* xyzs, double* G_vector, double* dG_tensor)
+{
+  // Figure out the positions of symmetry functions centered on atom i and
+  // save in pos_atoms
+  int i, counter = 0;
+  int* pos_atoms = new int[num_atoms];
+
+  for (i = 0; i < num_atoms; i++)
+  {
+    pos_atoms[i] = counter;
+    counter += num_symFuns[2*types[i]] + num_symFuns[2*types[i] + 1];
+  }
+
+  #pragma omp parallel
+  {
+    double rij, rij2, rik, rik2, costheta, G, dGdr, dGdrij, dGdrik,
+      dGdcostheta, dot;
+    int j, k, coord, index_base, type_ij, type_ijk;
+    std::size_t two_Body_i, three_Body_i;
+
+    #pragma omp for
+    for (i = 0; i < num_atoms; i++)
+    {
+      for (j = 0; j < num_atoms; j++)
+      {
+        if (i == j)
+        {
+          continue;
+        } else
+        {
+          rij2 = pow(xyzs[3*i]-xyzs[3*j], 2) + pow(xyzs[3*i+1]-xyzs[3*j+1], 2) +
+                    pow(xyzs[3*i+2]-xyzs[3*j+2], 2);
+          rij = sqrt(rij2);
+          // Combine the atomic indices i and j
+          type_ij = types[i]*num_atomtypes+types[j];
+
+          // Loop over all two body descriptors
+          for (two_Body_i = 0;
+            two_Body_i < twoBodySymFuns[type_ij].size();
+            two_Body_i++)
+          {
+            twoBodySymFuns[type_ij][two_Body_i]->eval_with_derivatives(rij, G, dGdr);
+            G_vector[pos_atoms[i] + pos_twoBody[type_ij] + two_Body_i] += G;
+            // Loop over the three cartesian coordinates
+            for (coord = 0; coord < 3; coord++){
+              // dG/dx is calculated as product of dG/dr * dr/dx
+              dG_tensor[3*num_atoms*(pos_atoms[i] + pos_twoBody[type_ij] + two_Body_i) +
+                3*i+coord] += dGdr*(xyzs[3*i+coord]-xyzs[3*j+coord])/rij;
+              dG_tensor[3*num_atoms*(pos_atoms[i] + pos_twoBody[type_ij] + two_Body_i) +
+                3*j+coord] += dGdr*(-xyzs[3*i+coord]+xyzs[3*j+coord])/rij;
+            }
+          }
+          // Loop over the third atom k
+          for (k = 0; k < num_atoms; k++)
+          {
+            if (i == k || j == k)
+            {
+              continue;
+            } else
+            {
+              rik2 = pow(xyzs[3*i]-xyzs[3*k], 2)
+                + pow(xyzs[3*i+1]-xyzs[3*k+1], 2)
+                + pow(xyzs[3*i+2]-xyzs[3*k+2], 2);
+              rik = sqrt(rik2);
+
+              if (rik > max_cutoff[type_ij] &&
+                rik > max_cutoff[types[k]*num_atomtypes+types[i]])
+              {
+                continue;
+              }
+
+              // Combines the atomic indices i, j, and k
+              type_ijk =
+                num_atomtypes_sq*types[i]+num_atomtypes*types[j]+types[k];
+
+              dot = ((xyzs[3*i]-xyzs[3*j])*(xyzs[3*i]-xyzs[3*k]) +
+                (xyzs[3*i+1]-xyzs[3*j+1])*(xyzs[3*i+1]-xyzs[3*k+1]) +
+                (xyzs[3*i+2]-xyzs[3*j+2])*(xyzs[3*i+2]-xyzs[3*k+2]));
+              costheta = (dot/(rij*rik));
+
+              for (three_Body_i = 0;
+                three_Body_i < threeBodySymFuns[type_ijk].size();
+                three_Body_i++)
+              {
+                threeBodySymFuns[type_ijk][three_Body_i]->eval_with_derivatives(
+                  rij, rik, costheta, G, dGdrij, dGdrik, dGdcostheta);
+                // Derivative with respect to costheta can fail for 0 or 180
+                // degrees. TODO: deal with possible NaN (divide by zero) results.
+                if (types[j] == types[k])
+                {
+                  G *= 0.5;
+                  dGdrij *= 0.5;
+                  dGdrik *= 0.5;
+                  dGdcostheta *= 0.5;
+                }
+
+                G_vector[pos_atoms[i] + num_symFuns[2*types[i]]
+                  + pos_threeBody[type_ijk]+ three_Body_i] += G;
+                index_base = 3*num_atoms*(pos_atoms[i] + num_symFuns[2*types[i]]
+                  + pos_threeBody[type_ijk] + three_Body_i);
+                // Loop over the cartesian coordinates
+                for (coord = 0; coord < 3; coord++){
+                  // Derivative with respect to rij
+                  // Add on atom i
+                  dG_tensor[index_base + 3*i + coord] +=
+                    dGdrij*(xyzs[3*i+coord]-xyzs[3*j+coord])/rij;
+                  // Add on atom j
+                  dG_tensor[index_base + 3*j + coord] +=
+                    dGdrij*(-xyzs[3*i+coord]+xyzs[3*j+coord])/rij;
+                  // Derivative with respect to rik
+                  // Add on atom i
+                  dG_tensor[index_base + 3*i + coord] +=
+                    dGdrik*(xyzs[3*i+coord]-xyzs[3*k+coord])/rik;
+                  // Add on atom j
+                  dG_tensor[index_base + 3*k + coord] +=
+                    dGdrik*(-xyzs[3*i+coord]+xyzs[3*k+coord])/rik;
+
+                  // Derivative with respect to theta
+                  dG_tensor[index_base + 3*i + coord] +=
+                    dGdcostheta*-(dot*rik2*(xyzs[3*i + coord]-xyzs[3*j+coord])
+                    + dot*rij2*(xyzs[3*i + coord] - xyzs[3*k + coord])
+                    + rij2*rik2*(xyzs[3*j + coord] + xyzs[3*k + coord] -
+                      2*xyzs[3*i + coord]))/
+                    (rij*rij2*rik*rik2+std::numeric_limits<double>::epsilon());
+
+                  dG_tensor[index_base + 3*j + coord] +=
+                    dGdcostheta*-(rij2*(xyzs[3*i+coord]-xyzs[3*k+coord])
+                    - dot*(xyzs[3*i + coord]-xyzs[3*j+coord]))/
+                    (rij*rij2*rik+std::numeric_limits<double>::epsilon());
+
+                  dG_tensor[index_base + 3*k + coord] +=
+                    dGdcostheta*-(rik2*(xyzs[3*i + coord]-xyzs[3*j+coord])
+                    - dot*(xyzs[3*i+coord]-xyzs[3*k+coord]))/
+                    (rij*rik*rik2+std::numeric_limits<double>::epsilon());
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  delete[] pos_atoms;
+}
