@@ -822,6 +822,7 @@ void SymmetryFunctionSet::eval_atomwise(
       }
     }
   }
+  delete[] pos_atoms;
 }
 
 void SymmetryFunctionSet::eval_derivatives_atomwise(
@@ -961,4 +962,5 @@ void SymmetryFunctionSet::eval_derivatives_atomwise(
       }
     }
   }
+  delete[] pos_atoms;
 }
