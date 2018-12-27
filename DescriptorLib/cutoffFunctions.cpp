@@ -18,7 +18,8 @@ double CutoffFunction::eval(double r)
 
 double ConstCutoffFunction::eval(double r)
 {
-    return 1.0;
+  if (r <= cutoff) return 1.0;
+  else return 0.0;
 };
 
 double ConstCutoffFunction::derivative(double r)
@@ -96,7 +97,7 @@ double SmoothCutoffFunction::derivative(double r)
 
 double Smooth2CutoffFunction::eval(double r)
 {
-    if (r <= cutoff)
+    if (r < cutoff)
     {
       return exp(1.0 - 1.0/(1.0-pow(r/cutoff,2)));
     }
@@ -105,7 +106,7 @@ double Smooth2CutoffFunction::eval(double r)
 
 double Smooth2CutoffFunction::derivative(double r)
 {
-    if (r <= cutoff)
+    if (r < cutoff)
     {
       auto x0 = pow(r,2)-pow(cutoff,2);
       return -(2.0*pow(cutoff,2)*r*exp(pow(r,2)/x0))/pow(x0,2);
