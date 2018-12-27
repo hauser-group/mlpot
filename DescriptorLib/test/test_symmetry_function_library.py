@@ -5,28 +5,8 @@ from itertools import product, combinations_with_replacement
 
 class LibraryTest(unittest.TestCase):
 
-    def test_cos_cutoff_functions(self):
-        r_vec = np.linspace(0.1,7,101)
-        geos = [[("F", np.array([0.0, 0.0, 0.0])),
-                ("H", np.array([0.0, 0.0, ri]))] for ri in r_vec]
-        with SymFunSet_cpp(["H", "F"], cutoff = 6.5) as sfs:
-            for (t1, t2) in product(sfs.atomtypes, repeat = 2):
-                sfs.add_TwoBodySymmetryFunction(
-                    t1, t2, "BehlerG0", [], cuttype = "cos")
-
-            Gs = []
-            dGs = []
-            for geo in geos:
-                Gs.append(sfs.eval_geometry(geo))
-                dGs.append(sfs.eval_geometry_derivatives(geo))
-            np.testing.assert_allclose(np.array(Gs)[:,0,0],
-                0.5*(1.0+np.cos(r_vec*np.pi/sfs.cutoff))*(r_vec < sfs.cutoff))
-            np.testing.assert_allclose(np.array(dGs)[:,0,0,1,-1],
-                0.5*(-np.sin(r_vec*np.pi/sfs.cutoff)*np.pi/sfs.cutoff)*(
-                r_vec < sfs.cutoff))
-
     def test_poly_cutoff_functions(self):
-        r_vec = np.linspace(0.1,7,101)
+        r_vec = np.linspace(0.1, 8, 101)
         geos = [[("F", np.array([0.0, 0.0, 0.0])),
                 ("H", np.array([0.0, 0.0, ri]))] for ri in r_vec]
         with SymFunSet_cpp(["H", "F"], cutoff = 6.5) as sfs:
@@ -49,7 +29,7 @@ class LibraryTest(unittest.TestCase):
                 - 30.0 * (r_vec/sfs.cutoff)**4/sfs.cutoff)*(r_vec < sfs.cutoff))
 
     def test_tanh_cutoff_functions(self):
-        r_vec = np.linspace(0.1,7,101)
+        r_vec = np.linspace(0.1, 8, 101)
         geos = [[("F", np.array([0.0, 0.0, 0.0])),
                 ("H", np.array([0.0, 0.0, ri]))] for ri in r_vec]
         with SymFunSet_cpp(["H", "F"], cutoff = 6.5) as sfs:
@@ -71,7 +51,7 @@ class LibraryTest(unittest.TestCase):
 
 
     def test_const_cutoff_functions(self):
-        r_vec = np.linspace(0.1,7,101)
+        r_vec = np.linspace(0.1, 8, 101)
         geos = [[("F", np.array([0.0, 0.0, 0.0])),
                 ("H", np.array([0.0, 0.0, ri]))] for ri in r_vec]
         with SymFunSet_cpp(["H", "F"], cutoff = 6.5) as sfs:
@@ -88,32 +68,8 @@ class LibraryTest(unittest.TestCase):
                 (1.0)*(r_vec < sfs.cutoff))
             np.testing.assert_allclose(np.array(dGs)[:,0,0,-1], 0.0)
 
-    def test_smooth_cutoff_functions(self):
-        r_vec = np.linspace(0.1,7,101)
-        geos = [[("F", np.array([0.0, 0.0, 0.0])),
-                ("H", np.array([0.0, 0.0, ri]))] for ri in r_vec]
-        cut = 6.5
-        with SymFunSet_cpp(["H", "F"], cutoff = cut) as sfs:
-            for (t1, t2) in product(sfs.atomtypes, repeat = 2):
-                sfs.add_TwoBodySymmetryFunction(
-                    t1, t2, "BehlerG0", [], cuttype = "smooth")
-
-            Gs = []
-            dGs = []
-            for geo in geos:
-                Gs.append(sfs.eval_geometry(geo))
-                dGs.append(sfs.eval_geometry_derivatives(geo))
-            np.testing.assert_allclose(np.array(Gs)[:,0,0],
-                (1.0-np.exp(-cut/r_vec)/(np.exp(-cut/r_vec)+
-                np.exp(-cut/(cut-r_vec))))*(r_vec < cut))
-            np.testing.assert_allclose(np.array(dGs)[:,0,0,1,-1],
-                (cut*np.exp(cut/(cut-r_vec)+cut/r_vec)*
-                (cut**2-2.*cut*r_vec+2.*r_vec**2)/
-                (r_vec**2*(np.exp(cut/(cut-r_vec))+np.exp(cut/r_vec))**2*
-                (cut-r_vec)**2))*(r_vec < cut), atol = 1E-7)
-
     def test_smooth2_cutoff_functions(self):
-        r_vec = np.linspace(0.1,7,101)
+        r_vec = np.linspace(0.1, 8, 101)
         geos = [[("F", np.array([0.0, 0.0, 0.0])),
                 ("H", np.array([0.0, 0.0, ri]))] for ri in r_vec]
         cut = 6.5
@@ -141,16 +97,18 @@ class LibraryTest(unittest.TestCase):
 
             sfs_cpp.add_radial_functions(rss, etas)
 
+            def cutfun(r):
+                return 0.5*(1.0+np.cos(np.pi*r/sfs_cpp.cutoff))*(r<sfs_cpp.cutoff)
+
             dr = np.sqrt(np.finfo(float).eps)
-            for ri in np.linspace(0.1,7,101):
+            for ri in np.linspace(0.1, 8, 101):
                 Gi = sfs_cpp.eval(
                     types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
                 # Assert Symmmetry
                 np.testing.assert_array_equal(Gi[0], Gi[1])
                 # Assert Values
                 np.testing.assert_allclose(
-                    Gi[0], np.exp(-etas*(ri-rss)**2)*0.5*(1.0
-                        + np.cos(np.pi*ri/sfs_cpp.cutoff)))
+                    Gi[0], np.exp(-etas*(ri-rss)**2)*cutfun(ri))
                 # Derivatives
                 dGa = sfs_cpp.eval_derivatives(
                     types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
@@ -159,10 +117,9 @@ class LibraryTest(unittest.TestCase):
                 # Assert Values
                 np.testing.assert_allclose(
                     dGa[0][:,1,-1], np.exp(-etas*(ri-rss)**2)*(
-                    0.5*(1.0+np.cos(np.pi*ri/sfs_cpp.cutoff))
-                    *2.0*(-etas)*(ri-rss)
+                    cutfun(ri)*2.0*(-etas)*(ri-rss)
                     + 0.5*(-np.sin(np.pi*ri/sfs_cpp.cutoff)
-                    *np.pi/sfs_cpp.cutoff)))
+                    *np.pi/sfs_cpp.cutoff)*(ri<sfs_cpp.cutoff)))
 
                 Gi_drp = sfs_cpp.eval(
                     types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri+dr]]))
@@ -184,18 +141,21 @@ class LibraryTest(unittest.TestCase):
 
             sfs_cpp.add_radial_functions(rss, etas, cuttype = "polynomial")
 
+            def cutfun(r):
+                return (1
+                - 10.0 * (r/sfs_cpp.cutoff)**3
+                + 15.0 * (r/sfs_cpp.cutoff)**4
+                - 6.0 * (r/sfs_cpp.cutoff)**5) * (r<sfs_cpp.cutoff)
+
             dr = np.sqrt(np.finfo(float).eps)
-            for ri in np.linspace(2,7,10):
+            for ri in np.linspace(2, 8, 10):
                 Gi = sfs_cpp.eval(
                     types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
                 # Assert Symmmetry
                 np.testing.assert_array_equal(Gi[0], Gi[1])
                 # Assert Values
                 np.testing.assert_allclose(
-                    Gi[0], np.exp(-etas*(ri-rss)**2)*(1
-                    - 10.0 * (ri/sfs_cpp.cutoff)**3
-                    + 15.0 * (ri/sfs_cpp.cutoff)**4
-                    - 6.0 * (ri/sfs_cpp.cutoff)**5))
+                    Gi[0], np.exp(-etas*(ri-rss)**2)*cutfun(ri))
                 # Derivatives
                 dGa = sfs_cpp.eval_derivatives(
                     types, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, ri]]))
@@ -203,12 +163,10 @@ class LibraryTest(unittest.TestCase):
                 np.testing.assert_array_equal(dGa[0], dGa[1])
                 # Assert Values
                 np.testing.assert_allclose(np.exp(-etas*(ri-rss)**2)*(
-                    (1 - 10.0 * (ri/sfs_cpp.cutoff)**3
-                    + 15.0 * (ri/sfs_cpp.cutoff)**4
-                    - 6.0 * (ri/sfs_cpp.cutoff)**5)*2.0*(-etas)*(ri-rss)
+                    cutfun(ri)*2.0*(-etas)*(ri-rss)
                     +(-30.0 * (ri**2/sfs_cpp.cutoff**3)
                     + 60.0 * (ri**3/sfs_cpp.cutoff**4)
-                    - 30.0 * (ri**4/sfs_cpp.cutoff**5))),
+                    - 30.0 * (ri**4/sfs_cpp.cutoff**5))* (ri<sfs_cpp.cutoff)),
                     dGa[0][:,1,-1])
 
                 Gi_drp = sfs_cpp.eval(
@@ -221,73 +179,6 @@ class LibraryTest(unittest.TestCase):
                 # Assert Values
                 np.testing.assert_allclose(dGa[0][:,1,-1], dGn[0],
                     rtol = 1E-7, atol = 1E-7)
-
-    def test_trimer(self):
-        with SymFunSet_cpp(['Ag'], cutoff = 8.0) as sfs:
-            types = ['Ag', 'Ag', 'Ag']
-
-            def fcut(r):
-                return 0.5*(1.0 + np.cos(np.pi*r/sfs.cutoff))*(r < sfs.cutoff)
-
-            # Parameters from Artrith and Kolpak Nano Lett. 2014, 14, 2670
-            etas = np.array([0.0009, 0.01, 0.02, 0.035, 0.06, 0.1, 0.2])
-            for eta in etas:
-                sfs.add_TwoBodySymmetryFunction('Ag', 'Ag', 'BehlerG1', [eta],
-                    cuttype='cos')
-
-            ang_etas = np.array([0.0001, 0.003, 0.008])
-            zetas = np.array([1.0, 4.0])
-            for ang_eta in ang_etas:
-                for lamb in [-1.0, 1.0]:
-                    for zeta in zetas:
-                        sfs.add_ThreeBodySymmetryFunction('Ag', 'Ag', 'Ag',
-                            'BehlerG3', [lamb, zeta, ang_eta], cuttype='cos')
-
-            # Also test BehlerG4
-            for ang_eta in ang_etas:
-                for lamb in [-1.0, 1.0]:
-                    for zeta in zetas:
-                        sfs.add_ThreeBodySymmetryFunction('Ag', 'Ag', 'Ag',
-                            'BehlerG4', [lamb, zeta, ang_eta], cuttype='cos')
-
-            N = 30
-            r_vec = np.linspace(1., 5., N)#
-            theta_vec = np.linspace(0.0*np.pi, 2.*np.pi, N, endpoint=True)
-            for i, (ri, ti) in enumerate(zip(r_vec, theta_vec)):
-                xyzs = np.array([[0.0, 0.0, 0.0],
-                                [ri, 0.0, 0.0],
-                                [ri*np.cos(ti), ri*np.sin(ti), 0.0]])
-
-                rij = np.linalg.norm(xyzs[0,:]-xyzs[1,:])
-                rik = np.linalg.norm(xyzs[0,:]-xyzs[2,:])
-                rjk = np.linalg.norm(xyzs[1,:]-xyzs[2,:])
-                np.testing.assert_allclose(np.linalg.norm(xyzs[1,:]-xyzs[2,:]),
-                    np.sqrt(rij**2+rik**2-2.*rij*rik*np.cos(ti)), atol=1E-12)
-
-                Gs = sfs.eval(types, xyzs)
-                Gs_atomwise = sfs.eval_atomwise(types, xyzs)
-                Gs_ref = np.concatenate([2*np.exp(-etas*ri**2)*fcut(ri)]
-                    + [2**(1.-zetas)*np.exp(-eta*(rij**2+rik**2+rjk**2))
-                    *(1.+lamb*np.cos(ti))**zetas*fcut(rij)*fcut(rik)*fcut(rjk)
-                    for eta in ang_etas for lamb in [-1.0, 1.0]]
-                    + [2**(1.-zetas)*np.exp(-eta*(rij**2+rik**2))
-                    *(1.+lamb*np.cos(ti))**zetas*fcut(rij)*fcut(rik)
-                    for eta in ang_etas for lamb in [-1.0, 1.0]])
-                np.testing.assert_allclose(Gs, Gs_atomwise)
-                np.testing.assert_allclose(Gs[0], Gs_ref)
-                np.testing.assert_allclose(Gs_atomwise[0], Gs_ref)
-
-                dGs = sfs.eval_derivatives(types, xyzs)
-                dGs_atomwise = sfs.eval_derivatives_atomwise(types, xyzs)
-                # Adding the equal_nan=False option shows a bug for descriptors
-                # using rik as input
-                np.testing.assert_allclose(dGs, dGs_atomwise)#, equal_nan=False)
-
-                Gs, dGs = sfs.eval_with_derivatives(types, xyzs)
-                Gs_atomwise, dGs_atomwise = sfs.eval_with_derivatives_atomwise(types, xyzs)
-                np.testing.assert_allclose(Gs, Gs_atomwise)
-                np.testing.assert_allclose(dGs, dGs_atomwise)
-
 
     def test_acetone(self):
         from scipy.optimize import approx_fprime
