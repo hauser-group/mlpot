@@ -14,7 +14,8 @@ threeBodySymFuns(num_atomtypes*num_atomtypes*num_atomtypes)
   num_symFuns = new int[2*num_atomtypes]();
   pos_twoBody = new int[num_atomtypes_sq]();
   pos_threeBody = new int[num_atomtypes_sq*num_atomtypes]();
-  max_cutoff = new double[num_atomtypes_sq]{1000.0};
+  max_cutoff = new double[num_atomtypes_sq]{0.0};
+  global_max_cutoff = 0.0;
   printf("Constructor called with %d atom types\n",num_atomtypes);
 }
 
@@ -49,9 +50,13 @@ void SymmetryFunctionSet::add_TwoBodySymmetryFunction(
     pos_twoBody[num_atomtypes*type1 + i]++;
   }
 
-  if (max_cutoff[type1*num_atomtypes+type2] < cutoff)
+  if (cutoff > max_cutoff[type1*num_atomtypes+type2])
   {
     max_cutoff[type1*num_atomtypes+type2] = cutoff;
+  }
+  if (cutoff > global_max_cutoff)
+  {
+    global_max_cutoff = cutoff;
   }
 }
 
@@ -77,13 +82,17 @@ void SymmetryFunctionSet::add_ThreeBodySymmetryFunction(
       pos_threeBody[num_atomtypes_sq*type1 + num_atomtypes*i + j]++;
     }
   }
-  if (max_cutoff[type1*num_atomtypes + type2] < cutoff)
+  if (cutoff > max_cutoff[type1*num_atomtypes + type2])
   {
     max_cutoff[type1*num_atomtypes + type2] = cutoff;
   }
-  if (max_cutoff[type1*num_atomtypes + type3] < cutoff)
+  if (cutoff > max_cutoff[type1*num_atomtypes + type3])
   {
     max_cutoff[type1*num_atomtypes + type3] = cutoff;
+  }
+  if (cutoff > global_max_cutoff)
+  {
+    global_max_cutoff = cutoff;
   }
 }
 

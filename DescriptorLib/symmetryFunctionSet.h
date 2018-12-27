@@ -41,6 +41,7 @@ class SymmetryFunctionSet
       threeBodySymFuns;
     int* pos_threeBody;
     double* max_cutoff;
+    double global_max_cutoff;
 };
 
 // Wrap the C++ classes for C usage in python ctypes:
