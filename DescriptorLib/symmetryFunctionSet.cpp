@@ -154,27 +154,26 @@ void SymmetryFunctionSet::eval(
         type_ij = types[i]*num_atomtypes+types[j];
         type_ji = types[j]*num_atomtypes+types[i];
 
-        if (rij > max_cutoff[type_ij] && rij > max_cutoff[type_ji])
+        if (rij < max_cutoff[type_ij] && rij < max_cutoff[type_ji])
         {
-          continue;
+          // Add to two body symmetry functions centered on atom i
+          for (two_Body_i = 0; two_Body_i < twoBodySymFuns[type_ij].size();
+            two_Body_i++)
+          {
+            #pragma omp atomic
+            G_vector[pos_atoms[i] + pos_twoBody[type_ij] + two_Body_i] +=
+              twoBodySymFuns[type_ij][two_Body_i]->eval(rij);
+          }
+          // Add to two body symmetry functions centered on atom j
+          for (two_Body_i = 0; two_Body_i < twoBodySymFuns[type_ji].size();
+            two_Body_i++)
+          {
+            #pragma omp atomic
+            G_vector[pos_atoms[j] + pos_twoBody[type_ji] + two_Body_i] +=
+              twoBodySymFuns[type_ji][two_Body_i]->eval(rij);
+          }
         }
 
-        // Add to two body symmetry functions centered on atom i
-        for (two_Body_i = 0; two_Body_i < twoBodySymFuns[type_ij].size();
-          two_Body_i++)
-        {
-          #pragma omp atomic
-          G_vector[pos_atoms[i] + pos_twoBody[type_ij] + two_Body_i] +=
-            twoBodySymFuns[type_ij][two_Body_i]->eval(rij);
-        }
-        // Add to two body symmetry functions centered on atom j
-        for (two_Body_i = 0; two_Body_i < twoBodySymFuns[type_ji].size();
-          two_Body_i++)
-        {
-          #pragma omp atomic
-          G_vector[pos_atoms[j] + pos_twoBody[type_ji] + two_Body_i] +=
-            twoBodySymFuns[type_ji][two_Body_i]->eval(rij);
-        }
         // Loop over third atom j:
         // TODO: maybe first check if even needed by checking number of
         // ThreeBodySymFuns
@@ -186,8 +185,11 @@ void SymmetryFunctionSet::eval(
           rjk = sqrt(pow(xyzs[3*j]-xyzs[3*k], 2) +
                     pow(xyzs[3*j+1]-xyzs[3*k+1], 2) +
                     pow(xyzs[3*j+2]-xyzs[3*k+2], 2));
-          if (rik > max_cutoff[types[i]*num_atomtypes+types[k]] &&
-            rik > max_cutoff[types[k]*num_atomtypes+types[i]])
+          if (rij > max_cutoff[type_ij] && rij > max_cutoff[type_ji] &&
+            rik > max_cutoff[types[i]*num_atomtypes+types[k]] &&
+            rik > max_cutoff[types[k]*num_atomtypes+types[i]] &&
+            rjk > max_cutoff[types[j]*num_atomtypes+types[k]] &&
+            rjk > max_cutoff[types[k]*num_atomtypes+types[j]])
           {
             continue;
           }
@@ -284,39 +286,38 @@ void SymmetryFunctionSet::eval_derivatives(
 
         type_ij = types[i]*num_atomtypes+types[j];
         type_ji = types[j]*num_atomtypes+types[i];
-        if (rij > max_cutoff[type_ij] && rij > max_cutoff[type_ji])
+        if (rij < max_cutoff[type_ij] && rij < max_cutoff[type_ji])
         {
-          continue;
-        }
-        // dG/dx is calculated as product of dG/dr * dr/dx
-        // Add to two body symmetry functions centered on atom i
-        for (two_Body_i = 0; two_Body_i < twoBodySymFuns[type_ij].size();
-          two_Body_i++)
-        {
-          dGdr = twoBodySymFuns[type_ij][two_Body_i]->drij(rij);
-          // Loop over the three cartesian coordinates
-          for (coord = 0; coord < 3; coord++){
-            #pragma omp atomic
-            dG_tensor[3*num_atoms*(pos_atoms[i] + pos_twoBody[type_ij] +
-              two_Body_i) + 3*i+coord] += dGdr*(xyzs[3*i+coord]-xyzs[3*j+coord])/rij;
-            #pragma omp atomic
-            dG_tensor[3*num_atoms*(pos_atoms[i] + pos_twoBody[type_ij] +
-              two_Body_i) + 3*j+coord] += dGdr*(-xyzs[3*i+coord]+xyzs[3*j+coord])/rij;
+          // dG/dx is calculated as product of dG/dr * dr/dx
+          // Add to two body symmetry functions centered on atom i
+          for (two_Body_i = 0; two_Body_i < twoBodySymFuns[type_ij].size();
+            two_Body_i++)
+          {
+            dGdr = twoBodySymFuns[type_ij][two_Body_i]->drij(rij);
+            // Loop over the three cartesian coordinates
+            for (coord = 0; coord < 3; coord++){
+              #pragma omp atomic
+              dG_tensor[3*num_atoms*(pos_atoms[i] + pos_twoBody[type_ij] +
+                two_Body_i) + 3*i+coord] += dGdr*(xyzs[3*i+coord]-xyzs[3*j+coord])/rij;
+              #pragma omp atomic
+              dG_tensor[3*num_atoms*(pos_atoms[i] + pos_twoBody[type_ij] +
+                two_Body_i) + 3*j+coord] += dGdr*(-xyzs[3*i+coord]+xyzs[3*j+coord])/rij;
+            }
           }
-        }
-        // Add to two body symmetry functions centered on atom j
-        for (two_Body_i = 0; two_Body_i < twoBodySymFuns[type_ji].size();
-          two_Body_i++)
-        {
-          dGdr = twoBodySymFuns[type_ji][two_Body_i]->drij(rij);
-          // Loop over the three cartesian coordinates
-          for (coord = 0; coord < 3; coord++){
-            #pragma omp atomic
-            dG_tensor[3*num_atoms*(pos_atoms[j] + pos_twoBody[type_ji] + two_Body_i) +
-              3*i+coord] += dGdr*(xyzs[3*i+coord]-xyzs[3*j+coord])/rij;
-            #pragma omp atomic
-            dG_tensor[3*num_atoms*(pos_atoms[j] + pos_twoBody[type_ji] + two_Body_i) +
-              3*j+coord] += dGdr*(-xyzs[3*i+coord]+xyzs[3*j+coord])/rij;
+          // Add to two body symmetry functions centered on atom j
+          for (two_Body_i = 0; two_Body_i < twoBodySymFuns[type_ji].size();
+            two_Body_i++)
+          {
+            dGdr = twoBodySymFuns[type_ji][two_Body_i]->drij(rij);
+            // Loop over the three cartesian coordinates
+            for (coord = 0; coord < 3; coord++){
+              #pragma omp atomic
+              dG_tensor[3*num_atoms*(pos_atoms[j] + pos_twoBody[type_ji] + two_Body_i) +
+                3*i+coord] += dGdr*(xyzs[3*i+coord]-xyzs[3*j+coord])/rij;
+              #pragma omp atomic
+              dG_tensor[3*num_atoms*(pos_atoms[j] + pos_twoBody[type_ji] + two_Body_i) +
+                3*j+coord] += dGdr*(-xyzs[3*i+coord]+xyzs[3*j+coord])/rij;
+            }
           }
         }
 
@@ -328,8 +329,11 @@ void SymmetryFunctionSet::eval_derivatives(
           rjk2 = pow(xyzs[3*j]-xyzs[3*k], 2) + pow(xyzs[3*j+1]-xyzs[3*k+1], 2) +
                     pow(xyzs[3*j+2]-xyzs[3*k+2], 2);
           rjk = sqrt(rjk2);
-          if (rik > max_cutoff[types[i]*num_atomtypes+types[k]] &&
-            rik > max_cutoff[types[k]*num_atomtypes+types[i]])
+          if (rij > max_cutoff[type_ij] && rij > max_cutoff[type_ji] &&
+            rik > max_cutoff[types[i]*num_atomtypes+types[k]] &&
+            rik > max_cutoff[types[k]*num_atomtypes+types[i]] &&
+            rjk > max_cutoff[types[j]*num_atomtypes+types[k]] &&
+            rjk > max_cutoff[types[j]*num_atomtypes+types[k]])
           {
             continue;
           }
@@ -542,46 +546,45 @@ void SymmetryFunctionSet::eval_with_derivatives(
 
         type_ij = types[i]*num_atomtypes+types[j];
         type_ji = types[j]*num_atomtypes+types[i];
-        if (rij > max_cutoff[type_ij] && rij > max_cutoff[type_ji])
+        if (rij < max_cutoff[type_ij] && rij < max_cutoff[type_ji])
         {
-          continue;
-        }
-        // Add to two body symmetry functions centered on atom i
-        for (two_Body_i = 0; two_Body_i < twoBodySymFuns[type_ij].size();
-          two_Body_i++)
-        {
-          twoBodySymFuns[type_ij][two_Body_i]->eval_with_derivatives(
-            rij, G, dGdr);
-          #pragma omp atomic
-          G_vector[pos_atoms[i] + pos_twoBody[type_ij] + two_Body_i] += G;
+          // Add to two body symmetry functions centered on atom i
+          for (two_Body_i = 0; two_Body_i < twoBodySymFuns[type_ij].size();
+            two_Body_i++)
+          {
+            twoBodySymFuns[type_ij][two_Body_i]->eval_with_derivatives(
+              rij, G, dGdr);
+            #pragma omp atomic
+            G_vector[pos_atoms[i] + pos_twoBody[type_ij] + two_Body_i] += G;
 
-          // Loop over the three cartesian coordinates
-          for (coord = 0; coord < 3; coord++){
-            #pragma omp atomic
-            dG_tensor[3*num_atoms*(pos_atoms[i] + pos_twoBody[type_ij] +
-              two_Body_i) + 3*i+coord] += dGdr*(xyzs[3*i+coord]-xyzs[3*j+coord])/rij;
-            #pragma omp atomic
-            dG_tensor[3*num_atoms*(pos_atoms[i] + pos_twoBody[type_ij] + two_Body_i) +
-              3*j+coord] += dGdr*(-xyzs[3*i+coord]+xyzs[3*j+coord])/rij;
+            // Loop over the three cartesian coordinates
+            for (coord = 0; coord < 3; coord++){
+              #pragma omp atomic
+              dG_tensor[3*num_atoms*(pos_atoms[i] + pos_twoBody[type_ij] +
+                two_Body_i) + 3*i+coord] += dGdr*(xyzs[3*i+coord]-xyzs[3*j+coord])/rij;
+              #pragma omp atomic
+              dG_tensor[3*num_atoms*(pos_atoms[i] + pos_twoBody[type_ij] + two_Body_i) +
+                3*j+coord] += dGdr*(-xyzs[3*i+coord]+xyzs[3*j+coord])/rij;
+            }
           }
-        }
-        // Add to two body symmetry functions centered on atom j
-        for (two_Body_i = 0; two_Body_i < twoBodySymFuns[type_ji].size();
-          two_Body_i++)
-        {
-          twoBodySymFuns[type_ji][two_Body_i]->eval_with_derivatives(
-            rij, G, dGdr);
-          #pragma omp atomic
-          G_vector[pos_atoms[j] + pos_twoBody[type_ji] + two_Body_i] += G;
+          // Add to two body symmetry functions centered on atom j
+          for (two_Body_i = 0; two_Body_i < twoBodySymFuns[type_ji].size();
+            two_Body_i++)
+          {
+            twoBodySymFuns[type_ji][two_Body_i]->eval_with_derivatives(
+              rij, G, dGdr);
+            #pragma omp atomic
+            G_vector[pos_atoms[j] + pos_twoBody[type_ji] + two_Body_i] += G;
 
-          // Loop over the three cartesian coordinates
-          for (coord = 0; coord < 3; coord++){
-            #pragma omp atomic
-            dG_tensor[3*num_atoms*(pos_atoms[j] + pos_twoBody[type_ji] + two_Body_i) +
-              3*i+coord] += dGdr*(xyzs[3*i+coord]-xyzs[3*j+coord])/rij;
-            #pragma omp atomic
-            dG_tensor[3*num_atoms*(pos_atoms[j] + pos_twoBody[type_ji] + two_Body_i) +
-              3*j+coord] += dGdr*(-xyzs[3*i+coord]+xyzs[3*j+coord])/rij;
+            // Loop over the three cartesian coordinates
+            for (coord = 0; coord < 3; coord++){
+              #pragma omp atomic
+              dG_tensor[3*num_atoms*(pos_atoms[j] + pos_twoBody[type_ji] + two_Body_i) +
+                3*i+coord] += dGdr*(xyzs[3*i+coord]-xyzs[3*j+coord])/rij;
+              #pragma omp atomic
+              dG_tensor[3*num_atoms*(pos_atoms[j] + pos_twoBody[type_ji] + two_Body_i) +
+                3*j+coord] += dGdr*(-xyzs[3*i+coord]+xyzs[3*j+coord])/rij;
+            }
           }
         }
 
@@ -593,8 +596,11 @@ void SymmetryFunctionSet::eval_with_derivatives(
           rjk2 = pow(xyzs[3*j]-xyzs[3*k], 2) + pow(xyzs[3*j+1]-xyzs[3*k+1], 2) +
                     pow(xyzs[3*j+2]-xyzs[3*k+2], 2);
           rjk = sqrt(rjk2);
-          if (rik > max_cutoff[types[i]*num_atomtypes+types[k]] &&
-            rik > max_cutoff[types[k]*num_atomtypes+types[i]])
+          if (rij > max_cutoff[type_ij] && rij > max_cutoff[type_ji] &&
+            rik > max_cutoff[types[i]*num_atomtypes+types[k]] &&
+            rik > max_cutoff[types[k]*num_atomtypes+types[i]] &&
+            rjk > max_cutoff[types[j]*num_atomtypes+types[k]] &&
+            rjk > max_cutoff[types[k]*num_atomtypes+types[j]])
           {
             continue;
           }
@@ -849,8 +855,7 @@ void SymmetryFunctionSet::eval_atomwise(
           rik = sqrt(pow(xyzs[3*i]-xyzs[3*k], 2) +
                     pow(xyzs[3*i+1]-xyzs[3*k+1], 2) +
                     pow(xyzs[3*i+2]-xyzs[3*k+2], 2));
-          if (rik > max_cutoff[type_ij] &&
-            rik > max_cutoff[types[k]*num_atomtypes+types[i]])
+          if (rik > max_cutoff[types[i]*num_atomtypes+types[k]])
           {
             continue;
           }
@@ -949,8 +954,7 @@ void SymmetryFunctionSet::eval_derivatives_atomwise(
                 + pow(xyzs[3*i+2]-xyzs[3*k+2], 2);
               rik = sqrt(rik2);
 
-              if (rik > max_cutoff[type_ij] &&
-                rik > max_cutoff[types[k]*num_atomtypes+types[i]])
+              if (rik > max_cutoff[types[i]*num_atomtypes+types[k]])
               {
                 continue;
               }
@@ -1091,8 +1095,7 @@ void SymmetryFunctionSet::eval_with_derivatives_atomwise(
                 + pow(xyzs[3*i+2]-xyzs[3*k+2], 2);
               rik = sqrt(rik2);
 
-              if (rik > max_cutoff[type_ij] &&
-                rik > max_cutoff[types[k]*num_atomtypes+types[i]])
+              if (rik > max_cutoff[types[i]*num_atomtypes+types[k]])
               {
                 continue;
               }
