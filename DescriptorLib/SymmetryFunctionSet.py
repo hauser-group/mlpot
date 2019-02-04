@@ -188,6 +188,26 @@ class SymmetryFunctionSet(object):
         return ([Gs[cum_num_Gs[i]:cum_num_Gs[i+1]] for i in range(len(types))],
             [dGs[cum_num_Gs[i]:cum_num_Gs[i+1],:] for i in range(len(types))])
 
+    def eval_ase(self, atoms, derivatives=False):
+        int_types = [self.type_dict[ti] for ti in atoms.get_chemical_symbols()]
+        types_ptr = (_ct.c_int*len(types))(*int_types)
+        # For each atom save how many symmetry functions are centered on it:
+        num_Gs_per_atom = [self.num_Gs[ti] for ti in int_types]
+        # The cummulative sum is used to determine the position of the symmetry
+        # functions in the larger G vector
+        cum_Gs = _np.cumsum([0]+num_Gs_per_atom)
+        Gs = _np.zeros(sum(num_Gs_per_atom))
+        if derivatives:
+            dGs = _np.zeros((sum(num_Gs_per_atom), len(atoms), 3))
+            lib.SymmetryFunctionSet_eval_with_derivatives(
+                self.obj, len(atoms), types_ptr, atoms.get_positions(), Gs, dGs)
+            return ([Gs[cum_Gs[i]:cum_Gs[i+1]] for i in range(len(types))],
+                [dGs[cum_Gs[i]:cum_Gs[i+1],:] for i in range(len(types))])
+        else:
+            lib.SymmetryFunctionSet_eval(
+                self.obj, len(atoms), types_ptr, atoms.get_positions(), Gs)
+            return [out[cum_Gs[i]:cum_Gs[i+1]] for i in range(len(atoms))]          
+
     def eval_geometry(self, geo):
         types = [a[0] for a in geo]
         xyzs = _np.array([a[1] for a in geo])
