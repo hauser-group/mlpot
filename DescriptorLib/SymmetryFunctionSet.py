@@ -206,7 +206,7 @@ class SymmetryFunctionSet(object):
         else:
             lib.SymmetryFunctionSet_eval(
                 self.obj, len(atoms), types_ptr, atoms.get_positions(), Gs)
-            return [out[cum_Gs[i]:cum_Gs[i+1]] for i in range(len(atoms))]          
+            return [Gs[cum_Gs[i]:cum_Gs[i+1]] for i in range(len(atoms))]          
 
     def eval_geometry(self, geo):
         types = [a[0] for a in geo]
