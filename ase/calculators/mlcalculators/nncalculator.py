@@ -56,6 +56,7 @@ class NNCalculator(MLCalculator):
         self.session.run(tf.initializers.variables(self.pot.variables))
 
     def fit(self, atoms_list):
+        print('Fit called with %d geometries.'%len(atoms_list))
         Gs = []
         dGs = []
         energies = []
@@ -72,22 +73,15 @@ class NNCalculator(MLCalculator):
             Gs.append(Gi)
             dGs.append(dGi)
 
-        print('Fit called with %d geometries. E_max = %f E_min=%f'%(
-            len(atoms_list), np.max(energies), np.min(energies)))
         ann_inputs, indices, ann_derivs = calculate_bp_indices(
             len(self.atomtypes), Gs, int_types, dGs=dGs)
 
-        #print(forces)
-        #print(indices[0])
-        #print(indices[1])
         if self.normalize_input:
             for i, t in enumerate(self.atomtypes):
                 self.Gs_mean[t] = np.mean(ann_inputs[i], axis=0)
                 # Small offset for numerical stability
                 self.Gs_std[t] = np.std(ann_inputs[i], axis=0) + 1E-6
 
-        #print(self.Gs_mean['C'])
-        #print(self.Gs_mean['H'])
         train_dict = {self.pot.target: energies,
             self.pot.target_forces: forces,
             self.pot.error_weights: np.ones(len(atoms_list))}
@@ -98,8 +92,7 @@ class NNCalculator(MLCalculator):
             train_dict[
                 self.pot.atomic_contributions[t].derivatives_input
                 ] = np.einsum('ijkl,j->ijkl', ann_derivs[i], 1.0/self.Gs_std[t])
-        #print(train_dict[self.pot.atomic_contributions['C'].input])
-        #print(train_dict[self.pot.atomic_contributions['H'].input])
+
         if self.reset_fit:
             self.session.run(tf.initializers.variables(self.pot.variables))
         self.optimizer.minimize(self.session, train_dict)
