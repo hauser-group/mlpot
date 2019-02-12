@@ -9,7 +9,7 @@ class NNCalculator(MLCalculator):
     def __init__(self, restart=None, ignore_bad_restart_file=False,
                  label=None, atoms=None, C1=1.0, C2=1.0,
                  descriptor_set=None, layers=None, offsets=None,
-                 normalize_input=True, **kwargs):
+                 normalize_input=False, reset_fit=False, **kwargs):
         MLCalculator.__init__(self, restart, ignore_bad_restart_file, label,
                             atoms, C1, C2, **kwargs)
 
@@ -26,6 +26,7 @@ class NNCalculator(MLCalculator):
         if offsets == None:
             offsets = [0.0 for _ in self.atomtypes]
 
+        self.reset_fit = reset_fit
         self.normalize_input = normalize_input
         self.Gs_mean = {}
         self.Gs_std = {}
@@ -47,12 +48,14 @@ class NNCalculator(MLCalculator):
                 reg_variables = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
                 reg_term = tf.contrib.layers.apply_regularization(
                     regularizer, reg_variables)
-                self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(
-                    self.C1*self.pot.rmse + self.C2*self.pot.rmse_forces + reg_term,
+                loss = tf.add(self.C1*self.pot.rmse,
+                    self.C2*self.pot.rmse_forces + reg_term, name='Loss')
+                self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(loss,
                     method='L-BFGS-B')
         self.session = tf.Session(graph=self.graph)
+        self.session.run(tf.initializers.variables(self.pot.variables))
 
-    def fit(self, atoms_list, reset=True):
+    def fit(self, atoms_list):
         Gs = []
         dGs = []
         energies = []
@@ -64,28 +67,40 @@ class NNCalculator(MLCalculator):
             forces.append(atoms.get_forces())
             int_types.append([self.descriptor_set.type_dict[ti] for ti in
                 atoms.get_chemical_symbols()])
-            Gi, dGi = self.descriptor_set.eval_ase(atoms, derivatives=True)
+            Gi, dGi = self.descriptor_set.eval_with_derivatives(int_types[-1],
+                atoms.get_positions())
             Gs.append(Gi)
             dGs.append(dGi)
+
+        print('Fit called with %d geometries. E_max = %f E_min=%f'%(
+            len(atoms_list), np.max(energies), np.min(energies)))
         ann_inputs, indices, ann_derivs = calculate_bp_indices(
             len(self.atomtypes), Gs, int_types, dGs=dGs)
+
+        #print(forces)
+        #print(indices[0])
+        #print(indices[1])
         if self.normalize_input:
             for i, t in enumerate(self.atomtypes):
                 self.Gs_mean[t] = np.mean(ann_inputs[i], axis=0)
                 # Small offset for numerical stability
                 self.Gs_std[t] = np.std(ann_inputs[i], axis=0) + 1E-6
+
+        #print(self.Gs_mean['C'])
+        #print(self.Gs_mean['H'])
         train_dict = {self.pot.target: energies,
             self.pot.target_forces: forces,
-            self.pot.error_weights: np.ones(len(Gs))}
+            self.pot.error_weights: np.ones(len(atoms_list))}
         for i, t in enumerate(self.atomtypes):
             train_dict[self.pot.atomic_contributions[t].input] = (
                 ann_inputs[i]-self.Gs_mean[t])/self.Gs_std[t]
             train_dict[self.pot.atom_indices[t]] = indices[i]
-            print(ann_derivs[i].shape)
             train_dict[
                 self.pot.atomic_contributions[t].derivatives_input
                 ] = np.einsum('ijkl,j->ijkl', ann_derivs[i], 1.0/self.Gs_std[t])
-        if self.reset:
+        #print(train_dict[self.pot.atomic_contributions['C'].input])
+        #print(train_dict[self.pot.atomic_contributions['H'].input])
+        if self.reset_fit:
             self.session.run(tf.initializers.variables(self.pot.variables))
         self.optimizer.minimize(self.session, train_dict)
         e_rmse, f_rmse = self.session.run(
@@ -96,9 +111,10 @@ class NNCalculator(MLCalculator):
         self.fitted = True
 
     def predict(self, atoms):
-        Gs, dGs = self.descriptor_set.eval_ase(atoms, derivatives=True)
         int_types = [self.descriptor_set.type_dict[ti] for ti in
             atoms.get_chemical_symbols()]
+        Gs, dGs = self.descriptor_set.eval_with_derivatives(int_types,
+            atoms.get_positions())
         ann_inputs, indices, ann_derivs = calculate_bp_indices(
             len(self.atomtypes), [Gs], [int_types], dGs = [dGs])
 
@@ -112,15 +128,22 @@ class NNCalculator(MLCalculator):
                 self.pot.atomic_contributions[t].derivatives_input
                 ] = np.einsum('ijkl,j->ijkl', ann_derivs[i], 1.0/self.Gs_std[t])
 
-        E = self.session.run(self.pot.E_predict, eval_dict)
-        F = self.session.run(self.pot.F_predict, eval_dict)
+        E = self.session.run(self.pot.E_predict, eval_dict)[0]
+        F = self.session.run(self.pot.F_predict, eval_dict)[0]
         return E, F
 
-    def get_params(self):
-        return self.session.run(self.pot.variables)
+    def get_params(self, model_dir):
+        params = {'normalize_input':self.normalize_input,
+            'Gs_mean':self.Gs_mean, 'Gs_std':self.Gs_std,
+            'model_dir':self.pot.saver.save(
+                self.session, model_dir+'model.ckpt')}
+        return params
 
     def set_params(self, **params):
-        pass
+        self.normalize_input = params['normalize_input']
+        self.Gs_mean = params['Gs_mean']
+        self.Gs_std = params['Gs_std']
+        self.pot.saver.restore(self.session, params['model_dir'])
 
     def close(self):
         self.descriptor_set.close()

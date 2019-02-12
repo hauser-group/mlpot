@@ -1,5 +1,5 @@
-from ase.calculators.calculator import (Calculator, CalculatorSetupError,
-    all_changes)
+from ase.calculators.calculator import (Calculator, all_changes)#,
+#    CalculatorSetupError)
 
 class MLCalculator(Calculator):
     """Base class for all machine learning calculators"""
