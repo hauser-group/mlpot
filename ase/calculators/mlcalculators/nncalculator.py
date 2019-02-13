@@ -98,8 +98,8 @@ class NNCalculator(MLCalculator):
         self.optimizer.minimize(self.session, train_dict)
         e_rmse, f_rmse = self.session.run(
             [self.pot.rmse, self.pot.rmse_forces], train_dict)
-        print('fit finished with energy rmse '
-            '%f and gradient rmse %f'%(e_rmse, f_rmse))
+        print('Fit finished with energy rmse '
+            '%f and gradient rmse %f.'%(e_rmse, f_rmse))
 
         self.fitted = True
 
