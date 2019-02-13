@@ -15,12 +15,8 @@ class MLCalculator(Calculator):
         self.C2 = C2
         self.fitted = False
 
-    def calculate(self, atoms=None, properties=['energy', 'forces'],
-                                system_changes=all_changes):
+    def calculate(self, atoms=None, properties, system_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
-        #if not self.fitted:
-        #    raise CalculatorSetupError('fit() method needs to be called' +
-        #        ' first to determine the machine learning model parameters')
         self.results['energy'], self.results['forces'] = self.predict(atoms)
 
     def fit(self, atoms_list):
