@@ -48,8 +48,9 @@ class NNCalculator(MLCalculator):
                 reg_variables = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
                 reg_term = tf.contrib.layers.apply_regularization(
                     regularizer, reg_variables)
-                loss = tf.add(self.C1*self.pot.rmse,
-                    self.C2*self.pot.rmse_forces + reg_term, name='Loss')
+                loss = tf.add(self.pot.rmse,
+                    self.C2*self.pot.rmse_forces/self.C1 + reg_term/self.C1,
+                    name='Loss')
                 self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(loss,
                     method='L-BFGS-B')
         self.session = tf.Session(graph=self.graph)
@@ -139,5 +140,4 @@ class NNCalculator(MLCalculator):
         self.pot.saver.restore(self.session, params['model_dir'])
 
     def close(self):
-        self.descriptor_set.close()
         self.session.close()
