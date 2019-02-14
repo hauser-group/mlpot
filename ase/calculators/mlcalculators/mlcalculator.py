@@ -15,7 +15,8 @@ class MLCalculator(Calculator):
         self.C2 = C2
         self.fitted = False
 
-    def calculate(self, atoms=None, properties, system_changes):
+    def calculate(self, atoms=None, properties=['energy', 'forces'],
+                                system_changes=all_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
         self.results['energy'], self.results['forces'] = self.predict(atoms)
 
