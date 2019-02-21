@@ -52,7 +52,7 @@ class NNCalculator(MLCalculator):
                 reg_term = tf.contrib.layers.apply_regularization(
                     regularizer, reg_variables)
                 self.loss = tf.add(self.pot.rmse,
-                    self.C2*self.pot.rmse_forces/self.C1 + reg_term/self.C1,
+                    self.C2/self.C1*self.pot.rmse_forces + reg_term/self.C1,
                     name='Loss')
                 self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(
                     self.loss, method='L-BFGS-B', options={'maxiter': maxiter})
@@ -100,14 +100,17 @@ class NNCalculator(MLCalculator):
         # Start with large minimum loss value
         min_loss_value = 1E10
         for i in range(self.opt_restarts):
-            print('Starting optimization %d/%d'%(i+1,self.opt_restarts))
             # Set random weights. Retry from previous parameters on first run.
             if i > 0:
                 self.session.run(tf.initializers.variables(self.pot.variables))
             # Optimize weights using scipy.minimize
             self.optimizer.minimize(self.session, train_dict)
 
-            loss_value = self.session.run(self.loss, train_dict)
+            loss_value, e_rmse, f_rmse = self.session.run(
+                [self.loss, self.pot.rmse, self.pot.rmse_forces], train_dict)
+            print('Finished optimization %d/%d. '%(i+1,self.opt_restarts) +
+                'Total loss = %f, RMSE energy = %f, RMSE forces = %f.'%(
+                    loss_value, e_rmse, f_rmse))
             if loss_value < min_loss_value:
                 # save loss value and parameters to restore minimum later
                 min_loss_value = loss_value
@@ -117,8 +120,8 @@ class NNCalculator(MLCalculator):
         self.pot.saver.restore(self.session, self.model_dir+'min_model.ckpt')
         e_rmse, f_rmse = self.session.run(
             [self.pot.rmse, self.pot.rmse_forces], train_dict)
-        print('Fit finished with energy rmse '
-            '%f and gradient rmse %f.'%(e_rmse, f_rmse))
+        print('Fit finished. Final RMSE energy = '
+            '%f, RMSE force = %f.'%(e_rmse, f_rmse))
 
         self.fitted = True
 
