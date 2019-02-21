@@ -9,7 +9,8 @@ class NNCalculator(MLCalculator):
     def __init__(self, restart=None, ignore_bad_restart_file=False,
                  label=None, atoms=None, C1=1.0, C2=1.0,
                  descriptor_set=None, layers=None, offsets=None,
-                 normalize_input=False, reset_fit=False, **kwargs):
+                 normalize_input=False, opt_restarts=1, model_dir=None,
+                 maxiter=1000, **kwargs):
         MLCalculator.__init__(self, restart, ignore_bad_restart_file, label,
                             atoms, C1, C2, **kwargs)
 
@@ -26,7 +27,9 @@ class NNCalculator(MLCalculator):
         if offsets == None:
             offsets = [0.0 for _ in self.atomtypes]
 
-        self.reset_fit = reset_fit
+        self.opt_restarts = opt_restarts
+
+        self.model_dir = model_dir
         self.normalize_input = normalize_input
         self.Gs_mean = {}
         self.Gs_std = {}
@@ -48,11 +51,11 @@ class NNCalculator(MLCalculator):
                 reg_variables = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
                 reg_term = tf.contrib.layers.apply_regularization(
                     regularizer, reg_variables)
-                loss = tf.add(self.pot.rmse,
+                self.loss = tf.add(self.pot.rmse,
                     self.C2*self.pot.rmse_forces/self.C1 + reg_term/self.C1,
                     name='Loss')
-                self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(loss,
-                    method='L-BFGS-B')
+                self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(
+                    self.loss, method='L-BFGS-B', options={'maxiter': maxiter})
         self.session = tf.Session(graph=self.graph)
         self.session.run(tf.initializers.variables(self.pot.variables))
 
@@ -94,9 +97,24 @@ class NNCalculator(MLCalculator):
                 self.pot.atomic_contributions[t].derivatives_input
                 ] = np.einsum('ijkl,j->ijkl', ann_derivs[i], 1.0/self.Gs_std[t])
 
-        if self.reset_fit:
-            self.session.run(tf.initializers.variables(self.pot.variables))
-        self.optimizer.minimize(self.session, train_dict)
+        # Start with large minimum loss value
+        min_loss_value = 1E10
+        for i in range(self.opt_restarts):
+            print('Starting optimization %d/%d'%(i+1,self.opt_restarts))
+            # Set random weights. Retry from previous parameters on first run.
+            if i > 0:
+                self.session.run(tf.initializers.variables(self.pot.variables))
+            # Optimize weights using scipy.minimize
+            self.optimizer.minimize(self.session, train_dict)
+
+            loss_value = self.session.run(self.loss, train_dict)
+            if loss_value < min_loss_value:
+                # save loss value and parameters to restore minimum later
+                min_loss_value = loss_value
+                self.pot.saver.save(self.session,
+                    self.model_dir+'min_model.ckpt')
+
+        self.pot.saver.restore(self.session, self.model_dir+'min_model.ckpt')
         e_rmse, f_rmse = self.session.run(
             [self.pot.rmse, self.pot.rmse_forces], train_dict)
         print('Fit finished with energy rmse '
@@ -126,11 +144,11 @@ class NNCalculator(MLCalculator):
         F = self.session.run(self.pot.F_predict, eval_dict)[0]
         return E, F
 
-    def get_params(self, model_dir):
+    def get_params(self):
         params = {'normalize_input':self.normalize_input,
             'Gs_mean':self.Gs_mean, 'Gs_std':self.Gs_std,
             'model_dir':self.pot.saver.save(
-                self.session, model_dir+'model.ckpt')}
+                self.session, self.model_dir+'model.ckpt')}
         return params
 
     def set_params(self, **params):
