@@ -63,6 +63,7 @@ class GPRCalculator(MLCalculator):
             value.append(opt[1])
 
             for ii in range(self.opt_restarts):
+                print('Starting optimization %d/%d'%(ii+1,self.opt_restarts))
                 initial_hyper_parameters = []
                 bounds = self.kernel.bounds
                 for element in bounds:
