@@ -120,7 +120,8 @@ class AtomicEnergyPotential(object):
                 # Following Behler. Int. J. Quant. Chem. 2015 115, 1032-1050
                 # equation (21)
                 self.rmse_forces = _tf.sqrt(_tf.reduce_mean(
-                    (self.target_forces-self.F_predict)**2*self.error_weights))
+                    _tf.reduce_mean((self.target_forces-self.F_predict)**2,
+                    axis = [1,2])*self.error_weights))
                 self.rmse_forces_summ = _tf.summary.scalar(
                     'RMSE_Forces', self.rmse_forces, family = 'performance')
 
