@@ -55,7 +55,8 @@ class NNCalculator(MLCalculator):
                     self.C2/self.C1*self.pot.rmse_forces + reg_term/self.C1,
                     name='Loss')
                 self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(
-                    self.loss, method='L-BFGS-B', options={'maxiter': maxiter})
+                    self.loss, method='L-BFGS-B', options={'maxiter': maxiter,
+                    'disp': False})
         self.session = tf.Session(graph=self.graph)
         self.session.run(tf.initializers.variables(self.pot.variables))
 
@@ -101,7 +102,7 @@ class NNCalculator(MLCalculator):
         min_loss_value = 1E10
         for i in range(self.opt_restarts):
             # Set random weights. Retry from previous parameters on first run.
-            if i > 0:
+            if i > 0 or self.opt_restarts == 1:
                 self.session.run(tf.initializers.variables(self.pot.variables))
             # Optimize weights using scipy.minimize
             self.optimizer.minimize(self.session, train_dict)
