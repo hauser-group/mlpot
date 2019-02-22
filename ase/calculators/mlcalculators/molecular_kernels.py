@@ -112,6 +112,11 @@ class RBF(sk_RBF):
             hyperparameter of the kernel. Only returned when eval_gradient
             is True.
         """
+        #X = atoms_X.get_positions()
+        #if atoms_Y is None:
+        #    Y = X
+        #else:
+        #    Y = atoms_Y.get_positions()
         X = np.atleast_2d(X)
         length_scale = _check_length_scale(X, self.length_scale)
         dists = cdist(X / length_scale, Y / length_scale, metric='sqeuclidean')
