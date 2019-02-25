@@ -102,7 +102,7 @@ class GPRCalculator(MLCalculator):
         try:
             L = cholesky(kernel, lower=True)
         except np.linalg.LinAlgError:
-            check_matrix(kernel)
+            # check_matrix(kernel)
             print(self.get_hyper_parameter())
             # implement automatic increasing noise
             raise Exception('failed')
