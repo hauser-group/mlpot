@@ -2,7 +2,7 @@ from sklearn.gaussian_process.kernels import RBF as sk_RBF
 from sklearn.gaussian_process.kernels import Sum as sk_Sum
 from sklearn.gaussian_process.kernels import ConstantKernel as sk_ConstantKernel
 from sklearn.gaussian_process.kernels import _check_length_scale
-from scipy.spatial.distance import pdist, cdist, squareform
+from scipy.spatial.distance import cdist
 import numpy as np
 
 class Sum(sk_Sum):
