@@ -9,8 +9,8 @@ class NNCalculator(MLCalculator):
     def __init__(self, restart=None, ignore_bad_restart_file=False,
                  label=None, atoms=None, C1=1.0, C2=1.0,
                  descriptor_set=None, layers=None, offsets=None,
-                 normalize_input=False, opt_restarts=1, model_dir=None,
-                 maxiter=1000, **kwargs):
+                 normalize_input=False, model_dir=None, opt_restarts=1,
+                 reset_fit=True, maxiter=1000, **kwargs):
         MLCalculator.__init__(self, restart, ignore_bad_restart_file, label,
                             atoms, C1, C2, **kwargs)
 
@@ -28,6 +28,7 @@ class NNCalculator(MLCalculator):
             offsets = [0.0 for _ in self.atomtypes]
 
         self.opt_restarts = opt_restarts
+        self.reset_fit = reset_fit
 
         self.model_dir = model_dir
         self.normalize_input = normalize_input
@@ -101,8 +102,9 @@ class NNCalculator(MLCalculator):
         # Start with large minimum loss value
         min_loss_value = 1E10
         for i in range(self.opt_restarts):
-            # Set random weights. Retry from previous parameters on first run.
-            if i > 0 or self.opt_restarts == 1:
+            # Reset weights to random initialization:
+            if (i > 0 or self.reset_fit or
+                  (self.opt_restarts == 1 and self.reset_fit)):
                 self.session.run(tf.initializers.variables(self.pot.variables))
             # Optimize weights using scipy.minimize
             self.optimizer.minimize(self.session, train_dict)
