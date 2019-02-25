@@ -91,7 +91,7 @@ class ConstantKernel(sk_ConstantKernel):
 
 
 class RBF(sk_RBF):
-    def __call__(self, atoms_X, atoms_Y=None, dx=0, dy=0, eval_gradient=False):
+    def __call__(self, X, Y=None, dx=0, dy=0, eval_gradient=False):
         """Return the kernel k(X, Y) and optionally its gradient.
         Parameters
         ----------
