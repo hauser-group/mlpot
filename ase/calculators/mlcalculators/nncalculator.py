@@ -10,7 +10,7 @@ class NNCalculator(MLCalculator):
                  label=None, atoms=None, C1=1.0, C2=1.0,
                  descriptor_set=None, layers=None, offsets=None,
                  normalize_input=False, model_dir=None, opt_restarts=1,
-                 reset_fit=True, maxiter=1000, **kwargs):
+                 reset_fit=True, maxiter=1000, opt_method='L-BFGS-B', **kwargs):
         MLCalculator.__init__(self, restart, ignore_bad_restart_file, label,
                             atoms, C1, C2, **kwargs)
 
@@ -56,7 +56,7 @@ class NNCalculator(MLCalculator):
                     self.C2/self.C1*self.pot.rmse_forces + reg_term/self.C1,
                     name='Loss')
                 self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(
-                    self.loss, method='L-BFGS-B', options={'maxiter': maxiter,
+                    self.loss, method=opt_method, options={'maxiter': maxiter,
                     'disp': False})
         self.session = tf.Session(graph=self.graph)
         self.session.run(tf.initializers.variables(self.pot.variables))
