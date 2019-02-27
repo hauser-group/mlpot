@@ -1,6 +1,5 @@
 from ase.calculators.mlcalculators.mlcalculator import MLCalculator
 import numpy as np
-from ase.calculators.mlcalculators.molecular_kernels import RBF
 from scipy.linalg import cho_solve, cholesky
 import scipy.optimize as sp_opt
 import warnings
@@ -9,16 +8,12 @@ class GPRCalculator(MLCalculator):
 
     def __init__(self, restart=None, ignore_bad_restart_file=False,
                  label=None, atoms=None, C1=1.0, C2=1.0,
-                 kernel='RBF',  opt_method='LBFGS_B',
+                 kernel=None,  opt_method='LBFGS_B',
                  opt_restarts=0, normalize_y=True, **kwargs):
         MLCalculator.__init__(self, restart, ignore_bad_restart_file, label,
                             atoms, C1, C2, **kwargs)
 
-        if kernel == 'RBF':
-            self.kernel = RBF(length_scale=0.2)
-        else:
-            self.kernel = kernel
-
+        self.kernel = kernel
         self.opt_method = opt_method
         self.opt_restarts = opt_restarts
         self.normalize_y = normalize_y
