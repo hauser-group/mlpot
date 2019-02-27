@@ -28,6 +28,7 @@ class GPRCalculator(MLCalculator):
         # TODO check if all atoms objects have same size!
         self.n_dim = 3*len(atoms_list[0])
         self.x_train = np.zeros((len(atoms_list), self.n_dim))
+        self.atom_train = atoms_list
         self.E_train = np.zeros(len(atoms_list))
         self.F_train = np.zeros((len(atoms_list), self.n_dim))
 
@@ -37,21 +38,14 @@ class GPRCalculator(MLCalculator):
             self.F_train[i,:] = atoms.get_forces().flatten()
 
         self.n_samples = len(atoms_list)
-        if self.F_train.size == 0:
-            self.n_samples_force = 0
-            self.F_train = np.array([])
-        else:
-            self.n_samples_force = self.F_train.shape[0]
-            self.F_train = self.F_train.flatten('F')
+        self.n_samples_force = len(atoms_list)
+        self.F_train = self.F_train.flatten('F')
 
         if self.normalize_y:
             self.E_mean = np.mean(self.E_train)
         else:
             self.E_mean = 0.
-        if self.F_train.size == 0:
-            self._target_vector = self.E_train - self.E_mean
-        else:
-            self._target_vector = np.concatenate([self.E_train - self.E_mean, -self.F_train])
+        self._target_vector = np.concatenate([self.E_train - self.E_mean, -self.F_train])
 
         if self.opt_restarts > 0:
             initial_hyper_parameters = self.get_hyper_parameter()
@@ -76,20 +70,13 @@ class GPRCalculator(MLCalculator):
             min_idx = np.argmin(value)
             self.set_hyper_parameter(opt_hyper_parameter[min_idx])
 
-        if self.n_samples_force == 0:
-            K = create_mat(self.kernel, self.x_train, self.x_train)
-            K += np.eye(K.shape[0]) * self._reg_value
-            self.L, alpha = self._cholesky(K)
-            self._alpha = alpha
-        else:
-            k_mat = create_mat(self.kernel, self.x_train, self.x_train, x1_prime=self.x_train,
-                               x2_prime=self.x_train, dx_max=self.n_dim, dy_max=self.n_dim)
-            k_mat[:self.n_samples, :self.n_samples] += np.eye(self.n_samples)/self.C1
-            k_mat[self.n_samples:, self.n_samples:] += np.eye(self.n_samples_force * self.n_dim)/self.C2
+        k_mat = create_mat(self.kernel, self.x_train, self.x_train, dx_max=self.n_dim, dy_max=self.n_dim)
+        k_mat[:self.n_samples, :self.n_samples] += np.eye(self.n_samples)/self.C1
+        k_mat[self.n_samples:, self.n_samples:] += np.eye(self.n_samples_force * self.n_dim)/self.C2
 
-            self.L, alpha = self._cholesky(k_mat)
-            self._alpha = alpha[:self.n_samples]
-            self._beta = alpha[self.n_samples:].reshape(self.n_dim, -1).T
+        self.L, alpha = self._cholesky(k_mat)
+        self._alpha = alpha[:self.n_samples]
+        self._beta = alpha[self.n_samples:].reshape(self.n_dim, -1).T
 
         self._intercept = self.E_mean
 
@@ -136,14 +123,9 @@ class GPRCalculator(MLCalculator):
         :return: log marinal likelihood, derivative of the log marignal likelihood
         """
         # gives vale of log marginal likelihood with the gradient
-        if self.n_samples_force == 0:
-            k_mat, k_grad = create_mat(self.kernel, self.x_train, self.x_train, eval_gradient=True)
-            k_mat += np.eye(k_mat.shape[0]) * self._reg_value
-        else:
-            k_mat, k_grad = create_mat(self.kernel, self.x_train, self.x_train, self.x_train,
-                                        self.x_train, dx_max=self.n_dim, dy_max=self.n_dim, eval_gradient=True)
-            k_mat[:self.n_samples, :self.n_samples] += np.eye(self.n_samples)/self.C1
-            k_mat[self.n_samples:, self.n_samples:] += np.eye(self.n_samples_force*self.n_dim)/self.C2
+        k_mat, k_grad = create_mat(self.kernel, self.x_train, self.x_train, dx_max=self.n_dim, dy_max=self.n_dim, eval_gradient=True)
+        k_mat[:self.n_samples, :self.n_samples] += np.eye(self.n_samples)/self.C1
+        k_mat[self.n_samples:, self.n_samples:] += np.eye(self.n_samples_force*self.n_dim)/self.C2
         L, alpha = self._cholesky(k_mat)
         # Following Rasmussen Algorithm 2.1 the determinant in 2.30 can be
         # expressed as a sum over the Cholesky decomposition
@@ -203,14 +185,12 @@ class GPRCalculator(MLCalculator):
         self._intercept = params['intercept']
         self.set_hyper_parameter(params['hyper_parameters'])
 
-def create_mat(kernel, x1, x2, x1_prime=None, x2_prime=None, dx_max=0, dy_max=0, eval_gradient=False):
+def create_mat(kernel, x1, x2, dx_max=0, dy_max=0, eval_gradient=False):
     """
     creates the kernel matrix with respect to the derivatives.
     :param kernel: given kernel like RBF
-    :param x1: training points shape (n_samples, n_featuresprediction
+    :param x1: training points shape (n_samples, n_features)
     :param x2: training or prediction points (n_samples, n_features)
-    :param x1_prime: derivative training points (n_samples, n_features)
-    :param x2_prime: derivative training or prediction points (n_samples, n_features)
     :param dx_max: maximum derivative in x1_prime
     :param dy_max: maximum derivative in x2_prime
     :param eval_gradient: flag if kernels derivative have to be evaluated. default False
@@ -220,42 +200,22 @@ def create_mat(kernel, x1, x2, x1_prime=None, x2_prime=None, dx_max=0, dy_max=0,
     # if x1_prime is None then no derivative elements are calculated.
     # derivative elements are given in the manner of [dx1, dx2, dx3, ...., dxn]
     n, d = x1.shape
-    if x1_prime is None:
-        return kernel(x1, x2, dx=0, dy=0, eval_gradient=eval_gradient)
+    m, f = x2.shape
+    if not eval_gradient:
+        kernel_mat = np.zeros([n * (1 + d), m * (1 + f)])
+        for jj in range(dx_max + 1):
+            for ii in range(dy_max + 1):
+                kernel_mat[n * ii:n * (ii + 1), m * jj:m * (jj + 1)] = kernel(
+                    x1, x2, dx=ii, dy=jj, eval_gradient=False)
+        return kernel_mat
     else:
-        m, f = x2.shape
-        if not eval_gradient:
-            kernel_mat = np.zeros([n * (1 + d), m * (1 + f)])
-            for jj in range(dx_max + 1):
-                for ii in range(dy_max + 1):
-                    if ii == 0 and jj == 0:
-                        kernel_mat[n * ii:n * (ii + 1), m * jj:m * (jj + 1)] = kernel(x1, x2, dx=ii, dy=jj,
-                                                                                      eval_gradient=eval_gradient)
-                    elif (ii == 0 and jj != 0):
-                        kernel_mat[n * ii:n * (ii + 1), m * jj:m * (jj + 1)] = kernel(x1, x2_prime, dx=ii, dy=jj,
-                                                                                      eval_gradient=eval_gradient)
-                    elif (jj == 0 and ii != 0):
-                        kernel_mat[n * ii:n * (ii + 1), m * jj:m * (jj + 1)] = kernel(x1_prime, x2, dx=ii, dy=jj,
-                                                                                      eval_gradient=eval_gradient)
-                    else:
-                        kernel_mat[n * ii:n * (ii + 1), m * jj:m * (jj + 1)] = kernel(x1_prime, x2_prime, dx=ii, dy=jj,
-                                                                                      eval_gradient=eval_gradient)
-            return kernel_mat
-        else:
-            num_theta = len(kernel.theta)
-            kernel_derivative = np.zeros([n * (1 + d), m * (1 + f), num_theta])
-            kernel_mat = np.zeros([n * (1 + d), m * (1 + f)])
-            for ii in range(dx_max + 1):
-                for jj in range(dy_max + 1):
-                    if ii == 0 and jj == 0:
-                       k_mat, deriv_mat = kernel(x1, x2, dx=ii, dy=jj, eval_gradient=eval_gradient)
-                    elif (ii == 0 and jj != 0):
-                        k_mat, deriv_mat = kernel(x1, x2_prime, dx=ii, dy=jj, eval_gradient=eval_gradient)
-                    elif (jj == 0 and ii != 0):
-                        k_mat, deriv_mat = kernel(x1_prime, x2, dx=ii, dy=jj, eval_gradient=eval_gradient)
-                    else:
-                        k_mat, deriv_mat = kernel(x1_prime, x2_prime, dx=ii, dy=jj, eval_gradient=eval_gradient)
+        num_theta = len(kernel.theta)
+        kernel_derivative = np.zeros([n * (1 + d), m * (1 + f), num_theta])
+        kernel_mat = np.zeros([n * (1 + d), m * (1 + f)])
+        for ii in range(dx_max + 1):
+            for jj in range(dy_max + 1):
+                k_mat, deriv_mat = kernel(x1, x2, dx=ii, dy=jj, eval_gradient=True)
 
-                    kernel_mat[n * ii:n * (ii + 1), m * jj:m * (jj + 1)] = k_mat
-                    kernel_derivative[n * ii:n * (ii + 1), m * jj:m * (jj + 1), :] = deriv_mat
+                kernel_mat[n * ii:n * (ii + 1), m * jj:m * (jj + 1)] = k_mat
+                kernel_derivative[n * ii:n * (ii + 1), m * jj:m * (jj + 1), :] = deriv_mat
     return kernel_mat, kernel_derivative
