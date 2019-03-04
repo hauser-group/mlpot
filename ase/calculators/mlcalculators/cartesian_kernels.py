@@ -1,5 +1,6 @@
 from sklearn.gaussian_process.kernels import RBF as sk_RBF
 from sklearn.gaussian_process.kernels import Sum as sk_Sum
+from sklearn.gaussian_process.kernels import Product as sk_Product
 from sklearn.gaussian_process.kernels import ConstantKernel as sk_ConstantKernel
 from sklearn.gaussian_process.kernels import _check_length_scale
 from scipy.spatial.distance import cdist
@@ -38,6 +39,60 @@ class Sum(sk_Sum):
             return K1 + K2, np.dstack((K1_gradient, K2_gradient))
         else:
             return self.k1(X, Y, dx=dx, dy=dy) + self.k2(X, Y, dx=dx, dy=dy)
+
+class Product(sk_Product):
+    def __call__(self, X, Y=None, dx=0, dy=0, eval_gradient=False):
+        """Return the kernel k(X, Y) and optionally its gradient.
+        Parameters
+        ----------
+        X : array, shape (n_samples_X, n_features)
+            Left argument of the returned kernel k(X, Y)
+        Y : array, shape (n_samples_Y, n_features), (optional, default=None)
+            Right argument of the returned kernel k(X, Y). If None, k(X, X)
+            if evaluated instead.
+        eval_gradient : bool (optional, default=False)
+            Determines whether the gradient with respect to the kernel
+            hyperparameter is determined.
+        Returns
+        -------
+        K : array, shape (n_samples_X, n_samples_Y)
+            Kernel k(X, Y)
+        K_gradient : array (opt.), shape (n_samples_X, n_samples_X, n_dims)
+            The gradient of the kernel k(X, X) with respect to the
+            hyperparameter of the kernel. Only returned when eval_gradient
+            is True.
+        """
+        if eval_gradient:
+            K1, K1_gradient = self.k1(X, Y, dx=dx, dy=dy, eval_gradient=True)
+            K2, K2_gradient = self.k2(X, Y, dx=dx, dy=dy, eval_gradient=True)
+
+            if dx != 0 or dy != 0:
+                if isinstance(self.k1, ConstantKernel):
+                    K1_gradient = np.zeros_like(K1_gradient)
+                    K1 = np.zeros_like(K1)
+                if isinstance(self.k2, ConstantKernel):
+                    K2_gradient = np.zeros_like(K2_gradient)
+                    K2 = np.zeros_like(K2)
+
+                K1_0, K1_gradient_0 = self.k1(X, Y, eval_gradient=True)
+                K2_0, K2_gradient_0 = self.k2(X, Y, eval_gradient=True)
+
+                return K1*K2_0 + K2 * K1_0, \
+                       np.dstack((K1_gradient * K2_0[:, :, np.newaxis] + K1_gradient_0 * K2[:, :, np.newaxis],
+                                  K2_gradient * K1_0[:, :, np.newaxis]+ K2_gradient_0 * K1[:, :, np.newaxis]))
+
+            return K1 * K2, np.dstack((K1_gradient * K2[:, :, np.newaxis], K2_gradient * K1[:, :, np.newaxis]))
+        else:
+            K1 = self.k1(X, Y, dx=dx, dy=dy, eval_gradient=False)
+            K2 = self.k2(X, Y, dx=dx, dy=dy, eval_gradient=False)
+            if dx != 0 or dy != 0:
+                if isinstance(self.k1, ConstantKernel):
+                    K1 = np.zeros_like(K1)
+                if isinstance(self.k2, ConstantKernel):
+                    K2 = np.zeros_like(K2)
+                return K1*self.k2(X, Y, dx=0, dy=0, eval_gradient=False) \
+                       + K2 * self.k1(X, Y, dx=0, dy=0, eval_gradient=False)
+            return K1 * K2
 
 class ConstantKernel(sk_ConstantKernel):
     def __call__(self, X, Y=None, dx=0, dy=0, eval_gradient=False):
