@@ -70,6 +70,7 @@ class GPRCalculator(MLCalculator):
         k_mat[self.n_samples:, self.n_samples:] += np.eye(self.n_samples_force * self.n_dim)/self.C2
 
         self.L, alpha = self._cholesky(k_mat)
+        self.alpha = alpha
         self._alpha = alpha[:self.n_samples]
         self._beta = alpha[self.n_samples:].reshape(self.n_dim, -1).T
 
@@ -155,28 +156,40 @@ class GPRCalculator(MLCalculator):
 
         return opt_hyper_parameter, value
 
-    def predict(self, atoms):
+    def predict_old(self, atoms):
         x = atoms.get_positions().reshape((1,-1))
+
         E = self._alpha.dot(self.kernel(self.x_train, x)) + self._intercept \
-            + sum(self._beta[:, ii].dot(self.kernel(self.x_train, x, dx=ii+1))
+            + sum(self._beta[:, ii].dot(self.kernel(self.x_train, x, dx=ii + 1))
                 for ii in range(self.n_dim))
         F = np.zeros((len(x), self.n_dim))
         for ii in range(self.n_dim):
             F[:, ii] = self._alpha.dot(self.kernel(self.x_train, x, dy=ii + 1)) \
-                                 + sum([self._beta[:, jj].dot(self.kernel(self.x_train, x, dy=ii + 1, dx=jj + 1))
-                                        for jj in range(self.n_dim)])
+                + sum([self._beta[:, jj].dot(self.kernel(self.x_train, x,
+                dy=ii + 1, dx=jj + 1)) for jj in range(self.n_dim)])
         return E, -F.reshape((-1,3))
 
+    def predict(self, atoms):
+        x = atoms.get_positions().reshape((1,-1))
+        # Prediction
+        y = self.alpha.dot(create_mat(self.kernel, self.x_train, x,
+            dx_max=self.n_dim, dy_max=self.n_dim))
+        E = y[0]
+        F = y[1:].reshape((-1,3))
+        return E, F
+
     def get_params(self):
-        return {'x_train':self.x_train, 'alpha':self._alpha,
-            'beta':self._beta, 'intercept':self._intercept,
+        return {'x_train':self.x_train, 'alpha':self.alpha,
+            '_alpha':self._alpha, '_beta':self._beta, 
+            'intercept':self._intercept,
             'hyper_parameters':self.get_hyper_parameter()}
 
     def set_params(self, **params):
         self.x_train = params['x_train']
         self.n_dim = self.x_train.shape[1]
-        self._alpha = params['alpha']
-        self._beta = params['beta']
+        self.alpha = params['alpha']
+        self._alpha = params['_alpha']
+        self._beta = params['_beta']
         self._intercept = params['intercept']
         self.set_hyper_parameter(params['hyper_parameters'])
 
@@ -198,8 +211,8 @@ def create_mat(kernel, x1, x2, dx_max=0, dy_max=0, eval_gradient=False):
     m, f = x2.shape
     if not eval_gradient:
         kernel_mat = np.zeros([n * (1 + d), m * (1 + f)])
-        for jj in range(dx_max + 1):
-            for ii in range(dy_max + 1):
+        for ii in range(dx_max + 1):
+            for jj in range(dy_max + 1):
                 kernel_mat[n * ii:n * (ii + 1), m * jj:m * (jj + 1)] = kernel(
                     x1, x2, dx=ii, dy=jj, eval_gradient=False)
         return kernel_mat
