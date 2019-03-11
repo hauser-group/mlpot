@@ -7,12 +7,12 @@ class LibraryTest(unittest.TestCase):
 
     def test_poly_cutoff_functions(self):
         r_vec = np.linspace(0.1, 8, 101)
-        geos = [[("F", np.array([0.0, 0.0, 0.0])),
-                ("H", np.array([0.0, 0.0, ri]))] for ri in r_vec]
-        with SymFunSet_cpp(["H", "F"], cutoff = 6.5) as sfs:
+        geos = [[('F', np.array([0.0, 0.0, 0.0])),
+                ('H', np.array([0.0, 0.0, ri]))] for ri in r_vec]
+        with SymFunSet_cpp(['H', 'F'], cutoff = 6.5) as sfs:
             for (t1, t2) in product(sfs.atomtypes, repeat = 2):
                 sfs.add_TwoBodySymmetryFunction(
-                    t1, t2, "BehlerG0", [], cuttype = "polynomial")
+                    t1, t2, 'BehlerG0', [], cuttype = 'polynomial')
 
             Gs = []
             dGs = []
@@ -30,12 +30,12 @@ class LibraryTest(unittest.TestCase):
 
     def test_tanh_cutoff_functions(self):
         r_vec = np.linspace(0.1, 8, 101)
-        geos = [[("F", np.array([0.0, 0.0, 0.0])),
-                ("H", np.array([0.0, 0.0, ri]))] for ri in r_vec]
-        with SymFunSet_cpp(["H", "F"], cutoff = 6.5) as sfs:
+        geos = [[('F', np.array([0.0, 0.0, 0.0])),
+                ('H', np.array([0.0, 0.0, ri]))] for ri in r_vec]
+        with SymFunSet_cpp(['H', 'F'], cutoff = 6.5) as sfs:
             for (t1, t2) in product(sfs.atomtypes, repeat = 2):
                 sfs.add_TwoBodySymmetryFunction(
-                    t1, t2, "BehlerG0", [], cuttype = "tanh")
+                    t1, t2, 'BehlerG0', [], cuttype = 'tanh')
 
             Gs = []
             dGs = []
@@ -52,12 +52,12 @@ class LibraryTest(unittest.TestCase):
 
     def test_const_cutoff_functions(self):
         r_vec = np.linspace(0.1, 8, 101)
-        geos = [[("F", np.array([0.0, 0.0, 0.0])),
-                ("H", np.array([0.0, 0.0, ri]))] for ri in r_vec]
-        with SymFunSet_cpp(["H", "F"], cutoff = 6.5) as sfs:
+        geos = [[('F', np.array([0.0, 0.0, 0.0])),
+                ('H', np.array([0.0, 0.0, ri]))] for ri in r_vec]
+        with SymFunSet_cpp(['H', 'F'], cutoff = 6.5) as sfs:
             for (t1, t2) in product(sfs.atomtypes, repeat = 2):
                 sfs.add_TwoBodySymmetryFunction(
-                    t1, t2, "BehlerG0", [], cuttype = "const")
+                    t1, t2, 'BehlerG0', [], cuttype = 'const')
 
             Gs = []
             dGs = []
@@ -70,13 +70,13 @@ class LibraryTest(unittest.TestCase):
 
     def test_smooth2_cutoff_functions(self):
         r_vec = np.linspace(0.1, 8, 101)
-        geos = [[("F", np.array([0.0, 0.0, 0.0])),
-                ("H", np.array([0.0, 0.0, ri]))] for ri in r_vec]
+        geos = [[('F', np.array([0.0, 0.0, 0.0])),
+                ('H', np.array([0.0, 0.0, ri]))] for ri in r_vec]
         cut = 6.5
-        with SymFunSet_cpp(["H", "F"], cutoff = cut) as sfs:
+        with SymFunSet_cpp(['H', 'F'], cutoff = cut) as sfs:
             for (t1, t2) in product(sfs.atomtypes, repeat = 2):
                 sfs.add_TwoBodySymmetryFunction(
-                    t1, t2, "BehlerG0", [], cuttype = "smooth2")
+                    t1, t2, 'BehlerG0', [], cuttype = 'smooth2')
 
             Gs = []
             dGs = []
@@ -90,12 +90,12 @@ class LibraryTest(unittest.TestCase):
                 (cut**2-r_vec**2)**2*(r_vec < cut))
 
     def test_dimer_cos(self):
-        with SymFunSet_cpp(["Au"], cutoff = 7.) as sfs_cpp:
-            types = ["Au", "Au"]
+        with SymFunSet_cpp(['Au'], cutoff = 7.) as sfs_cpp:
+            types = ['Au', 'Au']
             rss = [0.0, 0.0, 0.0]
             etas = np.array([0.01, 0.1, 1.0])
 
-            sfs_cpp.add_radial_functions(rss, etas)
+            sfs_cpp.add_G2_functions(rss, etas)
 
             def cutfun(r):
                 return 0.5*(1.0+np.cos(np.pi*r/sfs_cpp.cutoff))*(r<sfs_cpp.cutoff)
@@ -133,13 +133,13 @@ class LibraryTest(unittest.TestCase):
                     rtol = 1E-7, atol = 1E-7)
 
     def test_dimer_polynomial(self):
-        with SymFunSet_cpp(["Au"], cutoff = 7.) as sfs_cpp:
-            types = ["Au", "Au"]
+        with SymFunSet_cpp(['Au'], cutoff = 7.) as sfs_cpp:
+            types = ['Au', 'Au']
             rss = [0.0, 0.0, 0.0]
             bohr2ang = 0.529177249
             etas = np.array([0.01, 0.1, 1.0])/bohr2ang**2
 
-            sfs_cpp.add_radial_functions(rss, etas, cuttype = "polynomial")
+            sfs_cpp.add_G2_functions(rss, etas, cuttype = 'polynomial')
 
             def cutfun(r):
                 return (1
@@ -192,9 +192,9 @@ class LibraryTest(unittest.TestCase):
                       -2.20522,       -0.03081,        0.10912, #H
                       -1.64457,       -0.88332,       -1.31507, #H
                        0.00000,       -0.00000,        1.20367]) #O
-        types = ["C", "C", "H", "H", "H", "C", "H", "H", "H", "O"]
+        types = ['C', 'C', 'H', 'H', 'H', 'C', 'H', 'H', 'H', 'O']
 
-        with SymFunSet_cpp(["C", "H", "O"], cutoff = 7.0) as sfs:
+        with SymFunSet_cpp(['C', 'H', 'O'], cutoff = 7.0) as sfs:
             radial_etas = [0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0]
             rss = [0.0]*len(radial_etas)
 
@@ -202,8 +202,8 @@ class LibraryTest(unittest.TestCase):
             lambs = [1.0, -1.0]
             zetas = [1.0, 4.0]
 
-            sfs.add_radial_functions(rss, radial_etas)
-            sfs.add_angular_functions(angular_etas, zetas, lambs)
+            sfs.add_G2_functions(rss, radial_etas)
+            sfs.add_G4_functions(angular_etas, zetas, lambs)
             f0 = sfs.eval(types, x0.reshape((-1,3)))
             eps = np.sqrt(np.finfo(float).eps)
 
@@ -249,7 +249,7 @@ class LibraryTest(unittest.TestCase):
                         for lamb in [-1.0, 1.0]:
                             for zeta in zetas:
                                 sfs.add_ThreeBodySymmetryFunction(
-                                    ti, tj, tk, "BehlerG3", [lamb, zeta, eta],
+                                    ti, tj, tk, 'BehlerG3', [lamb, zeta, eta],
                                     cuttype = 'cos')
 
             Gs_ref = sfs.eval(types, xyzs)
@@ -259,19 +259,19 @@ class LibraryTest(unittest.TestCase):
             np.testing.assert_allclose(dGs, dGs_ref)
 
     def test_derivaties(self):
-        with SymFunSet_cpp(["Ni", "Au"], cutoff = 10.) as sfs_cpp:
+        with SymFunSet_cpp(['Ni', 'Au'], cutoff = 10.) as sfs_cpp:
             pos = np.array([[0.0, 0.0, 0.0],
                     [1.0, 0.0, 0.0],
                     [0.0, 1.0, 0.0],
                     [-1.0, 0.0, 0.0],
                     [0.0,-1.0, 0.0]])
-            types = ["Ni", "Ni", "Au", "Ni", "Au"]
+            types = ['Ni', 'Ni', 'Au', 'Ni', 'Au']
 
             rss = [0.0, 0.0, 0.0]
             etas = [1.0, 0.01, 0.0001]
 
-            sfs_cpp.add_radial_functions(rss, etas)
-            sfs_cpp.add_angular_functions(etas, [1.0], [1.0])
+            sfs_cpp.add_G2_functions(rss, etas)
+            sfs_cpp.add_G4_functions(etas, [1.0], [1.0])
 
             out_cpp = sfs_cpp.eval(types, pos)
             analytical_derivatives = sfs_cpp.eval_derivatives(types, pos)
