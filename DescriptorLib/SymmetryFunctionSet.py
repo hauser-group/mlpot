@@ -199,12 +199,12 @@ class SymmetryFunctionSet(object):
         Gs = _np.zeros(sum(num_Gs_per_atom))
         if derivatives:
             dGs = _np.zeros((sum(num_Gs_per_atom), len(atoms), 3))
-            lib.SymmetryFunctionSet_eval_with_derivatives(
+            lib.SymmetryFunctionSet_eval_with_derivatives_atomwise(
                 self.obj, len(atoms), types_ptr, atoms.get_positions(), Gs, dGs)
             return ([Gs[cum_Gs[i]:cum_Gs[i+1]] for i in range(len(atoms))],
                 [dGs[cum_Gs[i]:cum_Gs[i+1],:] for i in range(len(atoms))])
         else:
-            lib.SymmetryFunctionSet_eval(
+            lib.SymmetryFunctionSet_eval_atomwise(
                 self.obj, len(atoms), types_ptr, atoms.get_positions(), Gs)
             return [Gs[cum_Gs[i]:cum_Gs[i+1]] for i in range(len(atoms))]          
 
