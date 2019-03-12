@@ -23,7 +23,7 @@ class GPRCalculator(MLCalculator):
         # TODO check if all atoms objects have same size!
         self.n_dim = 3*len(atoms_list[0])
         self.x_train = np.zeros((len(atoms_list), self.n_dim))
-        self.atom_train = atoms_list
+        self.atoms_train = atoms_list
         self.E_train = np.zeros(len(atoms_list))
         self.F_train = np.zeros((len(atoms_list), self.n_dim))
 
@@ -34,7 +34,7 @@ class GPRCalculator(MLCalculator):
 
         self.n_samples = len(atoms_list)
         self.n_samples_force = len(atoms_list)
-        self.F_train = self.F_train.flatten('F')
+        self.F_train = self.F_train.flatten()#('F')
 
         if self.normalize_y:
             self.E_mean = np.mean(self.E_train)
@@ -65,7 +65,8 @@ class GPRCalculator(MLCalculator):
             min_idx = np.argmin(value)
             self.set_hyper_parameter(opt_hyper_parameter[min_idx])
 
-        k_mat = create_mat(self.kernel, self.x_train, self.x_train, dx_max=self.n_dim, dy_max=self.n_dim)
+        #k_mat = create_mat(self.kernel, self.x_train, self.x_train, dx_max=self.n_dim, dy_max=self.n_dim)
+        k_mat = self.kernel(self.atoms_train, self.atoms_train, dx=True, dy=True)
         k_mat[:self.n_samples, :self.n_samples] += np.eye(self.n_samples)/self.C1
         k_mat[self.n_samples:, self.n_samples:] += np.eye(self.n_samples_force * self.n_dim)/self.C2
 
@@ -119,7 +120,9 @@ class GPRCalculator(MLCalculator):
         :return: log marinal likelihood, derivative of the log marignal likelihood
         """
         # gives vale of log marginal likelihood with the gradient
-        k_mat, k_grad = create_mat(self.kernel, self.x_train, self.x_train, dx_max=self.n_dim, dy_max=self.n_dim, eval_gradient=True)
+        #k_mat, k_grad = create_mat(self.kernel, self.x_train, self.x_train, dx_max=self.n_dim, dy_max=self.n_dim, eval_gradient=True)
+        k_mat, k_grad = self.kernel(self.atoms_train, self.atoms_train,
+            dx=True, dy=True, eval_gradient=True)
         k_mat[:self.n_samples, :self.n_samples] += np.eye(self.n_samples)/self.C1
         k_mat[self.n_samples:, self.n_samples:] += np.eye(self.n_samples_force*self.n_dim)/self.C2
         L, alpha = self._cholesky(k_mat)
@@ -172,20 +175,20 @@ class GPRCalculator(MLCalculator):
     def predict(self, atoms):
         x = atoms.get_positions().reshape((1,-1))
         # Prediction
-        y = self.alpha.dot(create_mat(self.kernel, self.x_train, x,
-            dx_max=self.n_dim, dy_max=self.n_dim))
-        E = y[0]
-        F = y[1:].reshape((-1,3))
+        y = self.alpha.dot(self.kernel(self.atoms_train, [atoms], dx=True, dy=True))
+        E = y[0] + self._intercept
+        F = -y[1:].reshape((-1,3))
         return E, F
 
     def get_params(self):
-        return {'x_train':self.x_train, 'alpha':self.alpha,
-            '_alpha':self._alpha, '_beta':self._beta, 
+        return {'x_train':self.x_train, 'atoms_train':self.atoms_train,
+            'alpha':self.alpha, '_alpha':self._alpha, '_beta':self._beta,
             'intercept':self._intercept,
             'hyper_parameters':self.get_hyper_parameter()}
 
     def set_params(self, **params):
         self.x_train = params['x_train']
+        self.atoms_train = params['atoms_train']
         self.n_dim = self.x_train.shape[1]
         self.alpha = params['alpha']
         self._alpha = params['_alpha']
