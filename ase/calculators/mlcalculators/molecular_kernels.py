@@ -5,192 +5,213 @@ from sklearn.gaussian_process.kernels import _check_length_scale
 from scipy.spatial.distance import cdist
 import numpy as np
 
-class Sum(sk_Sum):
-    def __call__(self, X, Y=None, dx=0, dy=0, eval_gradient=False):
-        """Return the kernel k(X, Y) and optionally its gradient.
+class KlemensInterface(object):
+    def __init__(self, kernel):
+        self.kernel = kernel
 
-        Parameters
-        ----------
-        X : array, shape (n_samples_X, n_features)
-            Left argument of the returned kernel k(X, Y)
+    @property
+    def bounds(self):
+        return self.kernel.bounds
 
-        Y : array, shape (n_samples_Y, n_features), (optional, default=None)
-            Right argument of the returned kernel k(X, Y). If None, k(X, X)
-            if evaluated instead.
+    @property
+    def theta(self):
+        return self.kernel.theta
 
-        eval_gradient : bool (optional, default=False)
-            Determines whether the gradient with respect to the kernel
-            hyperparameter is determined.
+    @theta.setter
+    def theta(self, value):
+        self.kernel.theta = value
 
-        Returns
-        -------
-        K : array, shape (n_samples_X, n_samples_Y)
-            Kernel k(X, Y)
+    def __call__(self, atoms_X, atoms_Y, dx=False, dy=False, eval_gradient=False,
+            order='new'):
+        n_dim = 3*len(atoms_X[0])
+        X = np.zeros((len(atoms_X), n_dim))
+        Y = np.zeros((len(atoms_Y), n_dim))
+        for i, atoms in enumerate(atoms_X):
+            X[i,:] = atoms.get_positions().flatten()
+        for i, atoms in enumerate(atoms_Y):
+            Y[i,:] = atoms.get_positions().flatten()
+        if order=='old':
+            mat = self.create_mat
+        elif order=='new':
+            mat = self.create_mat_new
 
-        K_gradient : array (opt.), shape (n_samples_X, n_samples_X, n_dims)
-            The gradient of the kernel k(X, X) with respect to the
-            hyperparameter of the kernel. Only returned when eval_gradient
-            is True.
+        if not dx and not dy:
+            return mat(self.kernel, X, Y, dx_max=0, dy_max=0,
+                eval_gradient=eval_gradient)
+        elif dx and not dy:
+            return mat(self.kernel, X, Y, dx_max=n_dim, dy_max=0,
+                eval_gradient=eval_gradient)
+        elif not dx and dy:
+            return mat(self.kernel, X, Y, dx_max=0, dy_max=n_dim,
+                eval_gradient=eval_gradient)
+        elif dx and dy:
+            return mat(self.kernel, X, Y,
+                dx_max=n_dim, dy_max=n_dim, eval_gradient=eval_gradient)
+
+    def create_mat(self, kernel, x1, x2, dx_max=0, dy_max=0, eval_gradient=False):
         """
-        if eval_gradient:
-            K1, K1_gradient = self.k1(X, Y, dx=dx, dy=dy, eval_gradient=True)
-            K2, K2_gradient = self.k2(X, Y, dx=dx, dy=dy, eval_gradient=True)
-            return K1 + K2, np.dstack((K1_gradient, K2_gradient))
-        else:
-            return self.k1(X, Y, dx=dx, dy=dy) + self.k2(X, Y, dx=dx, dy=dy)
-
-class ConstantKernel(sk_ConstantKernel):
-    def __call__(self, X, Y=None, dx=0, dy=0, eval_gradient=False):
-        """Return the kernel k(X, Y) and optionally its gradient.
-
-        Parameters
-        ----------
-        X : array, shape (n_samples_X, n_features)
-            Left argument of the returned kernel k(X, Y)
-
-        Y : array, shape (n_samples_Y, n_features), (optional, default=None)
-            Right argument of the returned kernel k(X, Y). If None, k(X, X)
-            if evaluated instead.
-
-        eval_gradient : bool (optional, default=False)
-            Determines whether the gradient with respect to the kernel
-            hyperparameter is determined. Only supported when Y is None.
-
-        Returns
-        -------
-        K : array, shape (n_samples_X, n_samples_Y)
-            Kernel k(X, Y)
-
-        K_gradient : array (opt.), shape (n_samples_X, n_samples_X, n_dims)
-            The gradient of the kernel k(X, X) with respect to the
-            hyperparameter of the kernel. Only returned when eval_gradient
-            is True.
+        creates the kernel matrix with respect to the derivatives.
+        :param kernel: given kernel like RBF
+        :param x1: training points shape (n_samples, n_features)
+        :param x2: training or prediction points (n_samples, n_features)
+        :param dx_max: maximum derivative in x1_prime
+        :param dy_max: maximum derivative in x2_prime
+        :param eval_gradient: flag if kernels derivative have to be evaluated. default False
+        :return: kernel matrix, derivative of the kernel matrix
         """
-        X = np.atleast_2d(X)
-        if Y is None:
-            Y = X
-        elif eval_gradient:
-            if not X is Y:
-                raise ValueError("Gradient can only be evaluated when Y is None or X is Y.")
-
-        if dx==0 and dy==0:
-            K = np.full((X.shape[0], Y.shape[0]), self.constant_value,
-                        dtype=np.array(self.constant_value).dtype)
+        # creates the kernel matrix
+        # if x1_prime is None then no derivative elements are calculated.
+        # derivative elements are given in the manner of [dx1, dx2, dx3, ...., dxn]
+        n, d = x1.shape
+        m, f = x2.shape
+        if not eval_gradient:
+            kernel_mat = np.zeros([n * (1 + dx_max), m * (1 + dy_max)])
+            for ii in range(dx_max + 1):
+                for jj in range(dy_max + 1):
+                    kernel_mat[n * ii:n * (ii + 1), m * jj:m * (jj + 1)] = kernel(
+                        x1, x2, dx=ii, dy=jj, eval_gradient=False)
+            return kernel_mat
         else:
-            K = np.zeros((X.shape[0], Y.shape[0]),
-                        dtype=np.array(self.constant_value).dtype)
-        if eval_gradient:
-            if not self.hyperparameter_constant_value.fixed and dx==0 and dy==0:
-                return (K, np.full((X.shape[0], X.shape[0], 1),
-                                   self.constant_value,
-                                   dtype=np.array(self.constant_value).dtype))
+            num_theta = len(kernel.theta)
+            kernel_derivative = np.zeros([n * (1 + dx_max), m * (1 + dy_max),
+                num_theta])
+            kernel_mat = np.zeros([n * (1 + dx_max), m * (1 + dy_max)])
+            for ii in range(dx_max + 1):
+                for jj in range(dy_max + 1):
+                    k_mat, deriv_mat = kernel(x1, x2, dx=ii, dy=jj, eval_gradient=True)
+                    kernel_mat[n * ii:n * (ii + 1), m * jj:m * (jj + 1)] = k_mat
+                    kernel_derivative[n * ii:n * (ii + 1), m * jj:m * (jj + 1), :] = deriv_mat
+        return kernel_mat, kernel_derivative
+
+    def create_mat_new(self, kernel, x1, x2, dx_max=0, dy_max=0, eval_gradient=False):
+        """
+        creates the kernel matrix with respect to the derivatives.
+        :param kernel: given kernel like RBF
+        :param x1: training points shape (n_samples, n_features)
+        :param x2: training or prediction points (n_samples, n_features)
+        :param dx_max: maximum derivative in x1_prime
+        :param dy_max: maximum derivative in x2_prime
+        :param eval_gradient: flag if kernels derivative have to be evaluated. default False
+        :return: kernel matrix, derivative of the kernel matrix
+        """
+        # creates the kernel matrix
+        # if x1_prime is None then no derivative elements are calculated.
+        # derivative elements are given in the manner of [dx1, dx2, dx3, ...., dxn]
+        n, d = x1.shape
+        m, f = x2.shape
+        if not eval_gradient:
+            kernel_mat = np.zeros([n * (1 + dx_max), m * (1 + dy_max)])
+            #kernel_mat[0:n, 0:m] = kernel(x1, x2, dx=0, dy=0, eval_gradient=False)
+            for ii in range(dx_max + 1):
+                for jj in range(dy_max + 1):
+                    if ii == 0 and jj == 0:
+                        kernel_mat[0:n, 0:m] = kernel(x1, x2, dx=0, dy=0,
+                            eval_gradient=False)
+                    elif ii == 0:
+                        kernel_mat[0:n, (m+jj-1)::dy_max] = kernel(
+                            x1, x2, dx=0, dy=jj, eval_gradient=False)
+                    elif jj == 0:
+                        kernel_mat[(n+ii-1)::dx_max, 0:m] = kernel(
+                            x1, x2, dx=ii, dy=0, eval_gradient=False)
+                    #kernel_mat[(n+ii)::dx_max, (m+jj)::dy_max] = kernel(
+                    #    x1, x2, dx=ii+1, dy=jj+1, eval_gradient=False)
+                    else:
+                        kernel_mat[(n+ii-1)::dx_max, (m+jj-1)::dy_max] = kernel(
+                            x1, x2, dx=ii, dy=jj, eval_gradient=False)
+            return kernel_mat
+        else:
+            num_theta = len(kernel.theta)
+            kernel_derivative = np.zeros([n * (1 + dx_max), m * (1 + dy_max),
+                num_theta])
+            kernel_mat = np.zeros([n * (1 + dx_max), m * (1 + dy_max)])
+            for ii in range(dx_max + 1):
+                for jj in range(dy_max + 1):
+                    k_mat, deriv_mat = kernel(x1, x2, dx=ii, dy=jj, eval_gradient=True)
+                    if ii==0 and jj==0:
+                        kernel_mat[0:n, 0:m] = k_mat
+                        kernel_derivative[0:n, 0:m] = deriv_mat
+                    elif ii==0:
+                        kernel_mat[0:n, (m+jj-1)::dy_max] = k_mat
+                        kernel_derivative[0:n, (m+jj-1)::dy_max] = deriv_mat
+                    elif jj==0:
+                        kernel_mat[(n+ii-1)::dx_max, 0:m] = k_mat
+                        kernel_derivative[(n+ii-1)::dx_max, 0:m] = deriv_mat
+                    else:
+                        kernel_mat[(n+ii-1)::dx_max, (m+jj-1)::dy_max] = k_mat
+                        kernel_derivative[(n+ii-1)::dx_max, (m+jj-1)::dy_max] = deriv_mat
+        return kernel_mat, kernel_derivative
+
+class SFSKernel():
+    def __init__(self, descriptor_set, factor = 1.0, kernel = 'dot_product'):
+        self.descriptor_set = descriptor_set
+        self.factor = factor
+        self.kernel = kernel
+
+    @property
+    def bounds(self):
+        return (1e-5, 1e5)
+
+    @property
+    def theta(self):
+        return np.array([self.factor])
+
+    @theta.setter
+    def theta(self, theta):
+        self.factor = theta
+
+    def __call__(self, atoms_X, atoms_Y, dx=False, dy=False, eval_gradient=False):
+        n_dim = 3*len(atoms_X[0])
+        if dx:
+            Gs_X, dGs_X = zip(*[self.descriptor_set.eval_ase(
+                atoms, derivatives=True) for atoms in atoms_X])
+        else:
+            Gs_X = [self.descriptor_set.eval_ase(atoms) for atoms in atoms_X]
+        if dy:
+            Gs_Y, dGs_Y = zip(*[self.descriptor_set.eval_ase(
+                atoms, derivatives=True) for atoms in atoms_Y])
+        else:
+            Gs_Y = [self.descriptor_set.eval_ase(atoms) for atoms in atoms_Y]
+
+        descrip_dim = len(Gs_X[0][0])
+        n = len(atoms_X)
+        m = len(atoms_Y)
+        if not eval_gradient:
+            if dx and dy:
+                kernel_mat = np.zeros((n*(1+n_dim), m*(1+n_dim)))
+                kernel_mat[:n,:m] += 100
+                for i, (Gsi, dGsi) in enumerate(zip(Gs_X, dGs_X)):
+                    for j, (Gsj, dGsj) in enumerate(zip(Gs_Y, dGs_Y)):
+                        for Gi, dGi in zip(Gsi, dGsi):
+                            for Gj, dGj in zip(Gsj, dGsj):
+                                norm_Gi = np.linalg.norm(Gi)
+                                norm_Gj = np.linalg.norm(Gj)
+                                if self.kernel == 'dot_product':
+                                    kernel_mat[i,j] += Gi.dot(Gj)
+                                    K = Gj
+                                    K_prime = Gi
+                                    J = np.eye(descrip_dim)
+                                elif self.kernel == 'dot_product_norm':
+                                    kernel_mat[i,j] += Gi.dot(Gj)/(norm_Gi*norm_Gj)
+                                    K = (-Gi.dot(Gj)*Gi+norm_Gi**2*Gj)/(norm_Gi**3*norm_Gj)
+                                    K_prime = (-Gi.dot(Gj)*Gj+norm_Gj**2*Gi)/(norm_Gj**3*norm_Gi)
+                                    J = (-np.outer(Gj,Gj)*norm_Gi**2 - np.outer(Gi,Gi)*norm_Gj**2+
+                                        np.outer(Gj,Gi)*np.dot(Gi,Gj)+np.eye(descrip_dim)*norm_Gi**2*norm_Gj**2
+                                        )/(norm_Gi**3*norm_Gj**3)
+                                elif self.kernel == 'squared_exp':
+                                    exp_mat = np.exp(-np.sum((Gi-Gj)**2)/2)
+                                    kernel_mat[i,j] += exp_mat
+                                    K = -exp_mat*(Gi-Gj)
+                                    K_prime = -exp_mat*(Gj-Gi)
+                                    J = exp_mat*(np.eye(descrip_dim) - np.outer(Gi,Gi) + np.outer(Gi,Gj) +
+                                        np.outer(Gj,Gi) - np.outer(Gj,Gj))
+                                else:
+                                    raise NotImplementedError
+                                kernel_mat[n+i*n_dim:n+(i+1)*n_dim,j] += K.dot(dGi.reshape((-1,n_dim)))
+                                kernel_mat[i, m+j*n_dim:m+(j+1)*n_dim] += K_prime.dot(dGj.reshape((-1,n_dim)))
+                                kernel_mat[n+i*n_dim:n+(i+1)*n_dim,m+j*n_dim:m+(j+1)*n_dim] += (
+    			    dGi.reshape((-1,n_dim)).T.dot(J).dot(dGj.reshape((-1,n_dim))))
             else:
-                return K, np.empty((X.shape[0], X.shape[0], 0))
+                raise NotImplementedError
+            return kernel_mat
         else:
-            return K
-
-
-class RBF(sk_RBF):
-    def __call__(self, X, Y=None, dx=0, dy=0, eval_gradient=False):
-        """Return the kernel k(X, Y) and optionally its gradient.
-        Parameters
-        ----------
-        X : array, shape (n_samples_X, n_features)
-            Left argument of the returned kernel k(X, Y)
-        Y : array, shape (n_samples_Y, n_features), (optional, default=None)
-            Right argument of the returned kernel k(X, Y). If None, k(X, X)
-            if evaluated instead.
-        eval_gradient : bool (optional, default=False)
-            Determines whether the gradient with respect to the kernel
-            hyperparameter is determined. Only supported when Y is None.
-        Returns
-        -------
-        K : array, shape (n_samples_X, n_samples_Y)
-            Kernel k(X, Y)
-        K_gradient : array (opt.), shape (n_samples_X, n_samples_X, n_dims)
-            The gradient of the kernel k(X, X) with respect to the
-            hyperparameter of the kernel. Only returned when eval_gradient
-            is True.
-        """
-        #X = atoms_X.get_positions()
-        #if atoms_Y is None:
-        #    Y = X
-        #else:
-        #    Y = atoms_Y.get_positions()
-        X = np.atleast_2d(X)
-        length_scale = _check_length_scale(X, self.length_scale)
-        dists = cdist(X / length_scale, Y / length_scale, metric='sqeuclidean')
-        K = np.exp(-.5 * dists)
-
-        if not self.anisotropic or length_scale.shape[0] == 1:
-            if dx != 0 or dy != 0:
-                if dx == dy:
-                    K = K * (1 - np.subtract.outer(X[:, dx-1].T, Y[:, dx-1])**2 / length_scale**2) / length_scale**2 # J_ii
-                elif dx == 0: # and dy != 0:
-                    K = K * np.subtract.outer(X[:, dy-1].T, Y[:, dy-1])/length_scale**2 # G
-                elif dy == 0: # and dx != 0:
-                    K = -K * np.subtract.outer(X[:, dx-1].T, Y[:, dx-1])/length_scale**2 # K_prime
-                else:
-                    K = -K * np.subtract.outer(X[:, dx-1].T, Y[:, dx-1])*np.subtract.outer(X[:, dy-1].T, Y[:, dy-1])\
-                                 /length_scale**4 # J_ij
-        else:
-            if dx != 0 or dy != 0:
-                if dx == dy:
-                    K = K * (1 - np.subtract.outer(X[:,dx-1].T, Y[:, dx-1])**2/length_scale[dx-1]**2)\
-                             /length_scale[dx-1]**2
-                elif dx == 0:
-                    K = K * np.subtract.outer(X[:, dy-1].T, Y[:, dy-1])/length_scale[dy-1]**2
-                elif dy == 0:
-                    K = -K * np.subtract.outer(X[:, dx-1].T, Y[:, dx-1])/length_scale[dx-1]**2
-                else:
-                    K = - K * np.subtract.outer(X[:, dx-1].T, Y[:, dx-1])*np.subtract.outer(X[:, dy-1].T, Y[:, dy-1])\
-                             / (length_scale[dx-1]**2 * length_scale[dy-1]**2)
-
-        if eval_gradient:
-            if self.hyperparameter_length_scale.fixed:
-                # Hyperparameter l kept fixed
-                return K, np.empty((X.shape[0], Y.shape[0], 0))
-            elif not self.anisotropic or length_scale.shape[0] == 1:
-                if dx == 0 and dy == 0:
-                    K_gradient = (K * dists)[:, :, np.newaxis]
-                elif dx != 0 and dy == 0:
-                    K_gradient = (K * (dists - 2))[:, :, np.newaxis]
-                elif dy != 0 and dx == 0:
-                    K_gradient = (K * (dists - 2))[:, :, np.newaxis]
-                    # K_gradient = (K * (dists/length_scale**2 - 2/length_scale**2))[:, :, np.newaxis]
-                else:
-                    if dx == dy:
-                        K_gradient = (K * (dists - 4) + 2 * np.exp(-0.5*dists)/length_scale**2)[:, :, np.newaxis]
-                        # K_gradient = (np.exp(-.5 * dists) / length_scale ** 2 * (5*dists - 2 - dists **2))[:, :, np.newaxis]
-                        # K_gradient = (np.exp(-0.5*dists)*(dists**2/length_scale**3-1./length_scale**5-4*(dists-1/length_scale**3)-2/length_scale**3))[:, :, np.newaxis]
-                    else:
-                        K_gradient = (K * (dists - 4))[:, :, np.newaxis]
-                        # K_gradient = (-np.exp(-.5 * dists) * dists/length_scale**2 * (4 - dists))[:, :, np.newaxis]
-                        # K_gradient = (np.exp(-.5 * dists) * dists**2 / length_scale ** 3 * (dists**2 - 4))[:, :, np.newaxis]
-                return K, K_gradient
-            elif self.anisotropic:
-
-                # We need to recompute the pairwise dimension-wise distances
-                grad = (X[:, np.newaxis, :] - Y[np.newaxis, :, :]) ** 2 / (length_scale ** 2)
-                if dx == 0 and dy == 0:
-                    K_gradient = grad * K[..., np.newaxis]
-
-                elif (dx != 0 and dy == 0):
-                    K_gradient = grad * K[..., np.newaxis]
-                    K_gradient[:, :, dx - 1] = K_gradient[:, :, dx - 1] - 2 * K
-                elif (dy != 0 and dx == 0):
-                    K_gradient = grad * K[..., np.newaxis]
-                    K_gradient[:, :, dy-1] = K_gradient[:, :, dy-1] - 2*K
-                else:
-                    if dx == dy:
-                        K_gradient = grad * K[..., np.newaxis]
-                        K_gradient[:, :, dx - 1] = K_gradient[:, :, dx - 1] - np.exp(-0.5 * dists) * (2 /
-                                            length_scale[dx-1] ** 2 - 4 * grad[:, :, dx - 1] / length_scale[dx-1] ** 2)
-
-                    else:
-                        K_gradient = grad * K[..., np.newaxis]
-                        K_gradient[:, :, dx - 1] = K_gradient[:, :, dx - 1] - 2*K
-                        K_gradient[:, :, dy - 1] = K_gradient[:, :, dy - 1] - 2*K
-                return K, K_gradient
-        else:
-            return K
+            raise NotImplementedError
