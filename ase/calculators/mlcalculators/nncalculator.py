@@ -52,12 +52,12 @@ class NNCalculator(MLCalculator):
                 reg_variables = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
                 reg_term = tf.contrib.layers.apply_regularization(
                     regularizer, reg_variables)
-                self.loss = tf.add(self.pot.rmse,
-                    self.C2/self.C1*self.pot.rmse_forces + reg_term/self.C1,
+                self.loss = tf.add(self.pot.mse,
+                    self.C2/self.C1*self.pot.mse_forces + reg_term/self.C1,
                     name='Loss')
                 self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(
                     self.loss, method=opt_method, options={'maxiter': maxiter,
-                    'disp': False})
+                    'disp': False, 'ftol':1E-20, 'gtol':1E-10})
         self.session = tf.Session(graph=self.graph)
         self.session.run(tf.initializers.variables(self.pot.variables))
 
