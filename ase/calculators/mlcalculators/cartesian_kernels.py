@@ -125,7 +125,7 @@ class ConstantKernel(sk_ConstantKernel):
         if Y is None:
             Y = X
         elif eval_gradient:
-            if not X is Y:
+            if not np.all(X==Y):
                 raise ValueError("Gradient can only be evaluated when Y is None or X is Y.")
 
         if dx==0 and dy==0:
