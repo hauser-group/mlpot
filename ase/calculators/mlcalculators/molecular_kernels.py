@@ -142,9 +142,11 @@ class KlemensInterface(object):
         return kernel_mat, kernel_derivative
 
 class SFSKernel():
-    def __init__(self, descriptor_set, factor = 1.0, kernel = 'dot_product'):
+    def __init__(self, descriptor_set, factor=1.0, constant=1.0,
+            kernel='dot_product'):
         self.descriptor_set = descriptor_set
         self.factor = factor
+        self.constant = constant
         self.kernel = kernel
 
     @property
@@ -171,6 +173,8 @@ class SFSKernel():
                 atoms, derivatives=True) for atoms in atoms_Y])
         else:
             Gs_Y = [self.descriptor_set.eval_ase(atoms) for atoms in atoms_Y]
+        types_X = [atoms.get_chemical_symbols() for atoms in atoms_X]
+        types_Y = [atoms.get_chemical_symbols() for atoms in atoms_Y]
 
         descrip_dim = len(Gs_X[0][0])
         n = len(atoms_X)
@@ -178,38 +182,39 @@ class SFSKernel():
         if not eval_gradient:
             if dx and dy:
                 kernel_mat = np.zeros((n*(1+n_dim), m*(1+n_dim)))
-                kernel_mat[:n,:m] += 100
-                for i, (Gsi, dGsi) in enumerate(zip(Gs_X, dGs_X)):
-                    for j, (Gsj, dGsj) in enumerate(zip(Gs_Y, dGs_Y)):
-                        for Gi, dGi in zip(Gsi, dGsi):
-                            for Gj, dGj in zip(Gsj, dGsj):
-                                norm_Gi = np.linalg.norm(Gi)
-                                norm_Gj = np.linalg.norm(Gj)
-                                if self.kernel == 'dot_product':
-                                    kernel_mat[i,j] += Gi.dot(Gj)
-                                    K = Gj
-                                    K_prime = Gi
-                                    J = np.eye(descrip_dim)
-                                elif self.kernel == 'dot_product_norm':
-                                    kernel_mat[i,j] += Gi.dot(Gj)/(norm_Gi*norm_Gj)
-                                    K = (-Gi.dot(Gj)*Gi+norm_Gi**2*Gj)/(norm_Gi**3*norm_Gj)
-                                    K_prime = (-Gi.dot(Gj)*Gj+norm_Gj**2*Gi)/(norm_Gj**3*norm_Gi)
-                                    J = (-np.outer(Gj,Gj)*norm_Gi**2 - np.outer(Gi,Gi)*norm_Gj**2+
-                                        np.outer(Gj,Gi)*np.dot(Gi,Gj)+np.eye(descrip_dim)*norm_Gi**2*norm_Gj**2
-                                        )/(norm_Gi**3*norm_Gj**3)
-                                elif self.kernel == 'squared_exp':
-                                    exp_mat = np.exp(-np.sum((Gi-Gj)**2)/2)
-                                    kernel_mat[i,j] += exp_mat
-                                    K = -exp_mat*(Gi-Gj)
-                                    K_prime = -exp_mat*(Gj-Gi)
-                                    J = exp_mat*(np.eye(descrip_dim) - np.outer(Gi,Gi) + np.outer(Gi,Gj) +
-                                        np.outer(Gj,Gi) - np.outer(Gj,Gj))
-                                else:
-                                    raise NotImplementedError
-                                kernel_mat[n+i*n_dim:n+(i+1)*n_dim,j] += K.dot(dGi.reshape((-1,n_dim)))
-                                kernel_mat[i, m+j*n_dim:m+(j+1)*n_dim] += K_prime.dot(dGj.reshape((-1,n_dim)))
-                                kernel_mat[n+i*n_dim:n+(i+1)*n_dim,m+j*n_dim:m+(j+1)*n_dim] += (
-    			    dGi.reshape((-1,n_dim)).T.dot(J).dot(dGj.reshape((-1,n_dim))))
+                kernel_mat[:n,:m] += self.constant
+                for i, (Gsi, dGsi, tsi) in enumerate(zip(Gs_X, dGs_X, types_X)):
+                    for j, (Gsj, dGsj, tsj) in enumerate(zip(Gs_Y, dGs_Y, types_Y)):
+                        for Gi, dGi, ti in zip(Gsi, dGsi, tsi):
+                            norm_Gi = np.linalg.norm(Gi)
+                            for Gj, dGj, tj in zip(Gsj, dGsj, tsj):
+                                if ti == tj:
+                                    norm_Gj = np.linalg.norm(Gj)
+                                    if self.kernel == 'dot_product':
+                                        kernel_mat[i,j] += Gi.dot(Gj)
+                                        K = Gj
+                                        K_prime = Gi
+                                        J = np.eye(descrip_dim)
+                                    elif self.kernel == 'dot_product_norm':
+                                        kernel_mat[i,j] += Gi.dot(Gj)/(norm_Gi*norm_Gj)
+                                        K = (-Gi.dot(Gj)*Gi+norm_Gi**2*Gj)/(norm_Gi**3*norm_Gj)
+                                        K_prime = (-Gi.dot(Gj)*Gj+norm_Gj**2*Gi)/(norm_Gj**3*norm_Gi)
+                                        J = (-np.outer(Gj,Gj)*norm_Gi**2 - np.outer(Gi,Gi)*norm_Gj**2+
+                                            np.outer(Gj,Gi)*np.dot(Gi,Gj)+np.eye(descrip_dim)*norm_Gi**2*norm_Gj**2
+                                            )/(norm_Gi**3*norm_Gj**3)
+                                    elif self.kernel == 'squared_exp':
+                                        exp_mat = np.exp(-np.sum((Gi-Gj)**2)/2)
+                                        kernel_mat[i,j] += exp_mat
+                                        K = -exp_mat*(Gi-Gj)
+                                        K_prime = -exp_mat*(Gj-Gi)
+                                        J = exp_mat*(np.eye(descrip_dim) - np.outer(Gi,Gi) + np.outer(Gi,Gj) +
+                                            np.outer(Gj,Gi) - np.outer(Gj,Gj))
+                                    else:
+                                        raise NotImplementedError
+                                    kernel_mat[n+i*n_dim:n+(i+1)*n_dim,j] += K.dot(dGi.reshape((-1,n_dim)))
+                                    kernel_mat[i, m+j*n_dim:m+(j+1)*n_dim] += K_prime.dot(dGj.reshape((-1,n_dim)))
+                                    kernel_mat[n+i*n_dim:n+(i+1)*n_dim,m+j*n_dim:m+(j+1)*n_dim] += (
+        			                    dGi.reshape((-1,n_dim)).T.dot(J).dot(dGj.reshape((-1,n_dim))))
             else:
                 raise NotImplementedError
             return kernel_mat
