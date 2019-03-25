@@ -46,10 +46,12 @@ class GPRCalculator(MLCalculator):
             initial_hyper_parameters = self.get_hyper_parameter()
             opt_hyper_parameter = []
             value = []
-            opt = self._opt_routine(initial_hyper_parameters)
-
-            opt_hyper_parameter.append(opt[0])
-            value.append(opt[1])
+            try:
+                opt = self._opt_routine(initial_hyper_parameters)
+                opt_hyper_parameter.append(opt[0])
+                value.append(opt[1])
+            except np.linalg.LinAlgError:
+                print('Cholesky factorization failed')
 
             for ii in range(self.opt_restarts):
                 print('Starting optimization %d/%d'%(ii+1,self.opt_restarts))
@@ -58,10 +60,15 @@ class GPRCalculator(MLCalculator):
                 for element in bounds:
                     initial_hyper_parameters.append(np.random.uniform(element[0], element[1], 1))
                 initial_hyper_parameters = np.array(initial_hyper_parameters)
-                opt = self._opt_routine(initial_hyper_parameters)
-                opt_hyper_parameter.append(opt[0])
-                value.append(opt[1])
+                try:
+                    opt = self._opt_routine(initial_hyper_parameters)
+                    opt_hyper_parameter.append(opt[0])
+                    value.append(opt[1])
+                except np.linalg.LinAlgError:
+                    print('Cholesky factorization failed')
 
+            if len(value) == 0:
+                raise ValueError('No successful optimization')
             min_idx = np.argmin(value)
             self.set_hyper_parameter(opt_hyper_parameter[min_idx])
 
@@ -89,7 +96,7 @@ class GPRCalculator(MLCalculator):
             # check_matrix(kernel)
             print(self.get_hyper_parameter())
             # implement automatic increasing noise
-            raise Exception('failed')
+            raise np.linalg.LinAlgError
         alpha = cho_solve((L, True), self._target_vector)
         return L, alpha
 
