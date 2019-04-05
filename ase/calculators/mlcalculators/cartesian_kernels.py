@@ -67,12 +67,12 @@ class Product(sk_Product):
             K2, K2_gradient = self.k2(X, Y, dx=dx, dy=dy, eval_gradient=True)
 
             if dx != 0 or dy != 0:
-                if isinstance(self.k1, ConstantKernel):
-                    K1_gradient = np.zeros_like(K1_gradient)
-                    K1 = np.zeros_like(K1)
-                if isinstance(self.k2, ConstantKernel):
-                    K2_gradient = np.zeros_like(K2_gradient)
-                    K2 = np.zeros_like(K2)
+                #if isinstance(self.k1, ConstantKernel):
+                #    K1_gradient = np.zeros_like(K1_gradient)
+                #    K1 = np.zeros_like(K1)
+                #if isinstance(self.k2, ConstantKernel):
+                #    K2_gradient = np.zeros_like(K2_gradient)
+                #    K2 = np.zeros_like(K2)
 
                 K1_0, K1_gradient_0 = self.k1(X, Y, eval_gradient=True)
                 K2_0, K2_gradient_0 = self.k2(X, Y, eval_gradient=True)
@@ -136,9 +136,9 @@ class ConstantKernel(sk_ConstantKernel):
                         dtype=np.array(self.constant_value).dtype)
         if eval_gradient:
             if not self.hyperparameter_constant_value.fixed and dx==0 and dy==0:
-                return (K, np.full((X.shape[0], X.shape[0], 1),
-                                   self.constant_value,
-                                   dtype=np.array(self.constant_value).dtype))
+                return K, np.ones((X.shape[0], X.shape[0], 1))
+            elif not self.hyperparameter_constant_value.fixed:
+                return K, np.zeros((X.shape[0], X.shape[0], 1))
             else:
                 return K, np.empty((X.shape[0], X.shape[0], 0))
         else:
@@ -207,19 +207,24 @@ class RBF(sk_RBF):
                 return K, np.empty((X.shape[0], Y.shape[0], 0))
             elif not self.anisotropic or length_scale.shape[0] == 1:
                 if dx == 0 and dy == 0:
-                    K_gradient = (K * dists)[:, :, np.newaxis]
+                    #K_gradient = (K * dists)[:, :, np.newaxis]
+                    K_gradient = (K * dists)[:, :, np.newaxis]/length_scale
                 elif dx != 0 and dy == 0:
-                    K_gradient = (K * (dists - 2))[:, :, np.newaxis]
+                    #K_gradient = (K * (dists - 2))[:, :, np.newaxis]
+                    K_gradient = (K * (dists - 2))[:, :, np.newaxis]/length_scale
                 elif dy != 0 and dx == 0:
-                    K_gradient = (K * (dists - 2))[:, :, np.newaxis]
+                    #K_gradient = (K * (dists - 2))[:, :, np.newaxis]
+                    K_gradient = (K * (dists - 2))[:, :, np.newaxis]/length_scale
                     # K_gradient = (K * (dists/length_scale**2 - 2/length_scale**2))[:, :, np.newaxis]
                 else:
                     if dx == dy:
-                        K_gradient = (K * (dists - 4) + 2 * np.exp(-0.5*dists)/length_scale**2)[:, :, np.newaxis]
+                        #K_gradient = (K * (dists - 4) + 2 * np.exp(-0.5*dists)/length_scale**2)[:, :, np.newaxis]
+                        K_gradient = (K * (dists - 4) + 2 * np.exp(-0.5*dists)/length_scale**2)[:, :, np.newaxis]/length_scale
                         # K_gradient = (np.exp(-.5 * dists) / length_scale ** 2 * (5*dists - 2 - dists **2))[:, :, np.newaxis]
                         # K_gradient = (np.exp(-0.5*dists)*(dists**2/length_scale**3-1./length_scale**5-4*(dists-1/length_scale**3)-2/length_scale**3))[:, :, np.newaxis]
                     else:
-                        K_gradient = (K * (dists - 4))[:, :, np.newaxis]
+                        #K_gradient = (K * (dists - 4))[:, :, np.newaxis]
+                        K_gradient = (K * (dists - 4))[:, :, np.newaxis]/length_scale
                         # K_gradient = (-np.exp(-.5 * dists) * dists/length_scale**2 * (4 - dists))[:, :, np.newaxis]
                         # K_gradient = (np.exp(-.5 * dists) * dists**2 / length_scale ** 3 * (dists**2 - 4))[:, :, np.newaxis]
                 return K, K_gradient
