@@ -43,9 +43,13 @@ class GPRCalculator(MLCalculator):
         self._target_vector = np.concatenate([self.E_train - self.E_mean, -self.F_train])
 
         if self.opt_restarts > 0:
+            # TODO: Maybe it would be better to start from the same
+            # initial_hyper_parameters every time...
             initial_hyper_parameters = self.get_hyper_parameter()
             opt_hyper_parameter = []
             value = []
+            print('Starting optimization %d/%d'%(0, self.opt_restarts),
+                'with parameters: ', initial_hyper_parameters)
             try:
                 opt = self._opt_routine(initial_hyper_parameters)
                 opt_hyper_parameter.append(opt[0])
@@ -54,12 +58,13 @@ class GPRCalculator(MLCalculator):
                 print('Cholesky factorization failed')
 
             for ii in range(self.opt_restarts):
-                print('Starting optimization %d/%d'%(ii+1,self.opt_restarts))
                 initial_hyper_parameters = []
                 bounds = self.kernel.bounds
                 for element in bounds:
                     initial_hyper_parameters.append(np.random.uniform(element[0], element[1], 1))
                 initial_hyper_parameters = np.array(initial_hyper_parameters)
+                print('Starting optimization %d/%d'%(ii+1, self.opt_restarts),
+                    'with parameters: ', initial_hyper_parameters)
                 try:
                     opt = self._opt_routine(initial_hyper_parameters)
                     opt_hyper_parameter.append(opt[0])
