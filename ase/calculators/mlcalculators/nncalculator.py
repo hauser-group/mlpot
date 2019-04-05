@@ -7,7 +7,7 @@ import tensorflow as tf
 class NNCalculator(MLCalculator):
 
     def __init__(self, restart=None, ignore_bad_restart_file=False,
-                 label=None, atoms=None, C1=1.0, C2=1.0,
+                 label=None, atoms=None, C1=1.0, C2=1.0, lamb=1.0,
                  descriptor_set=None, layers=None, offsets=None,
                  normalize_input=False, model_dir=None, opt_restarts=1,
                  reset_fit=True, maxiter=1000, opt_method='L-BFGS-B', **kwargs):
@@ -48,16 +48,23 @@ class NNCalculator(MLCalculator):
                 build_forces = True, offsets = offsets, precision = tf.float64)
 
             with self.graph.name_scope('train'):
-                regularizer = tf.contrib.layers.l2_regularizer(scale=1.0)
-                reg_variables = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+                regularizer = tf.contrib.layers.l2_regularizer(scale=lamb)
+                #reg_variables = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+                reg_variables = self.pot.variables
                 reg_term = tf.contrib.layers.apply_regularization(
                     regularizer, reg_variables)
-                self.loss = tf.add(self.pot.mse,
-                    self.C2/self.C1*self.pot.mse_forces + reg_term/self.C1,
+                self.sum_squared_error = tf.reduce_sum(
+                    (self.pot.target-self.pot.E_predict)**2)
+                self.sum_squared_error_force = tf.reduce_sum(
+                    (self.pot.target_forces-self.pot.F_predict)**2)
+                self.loss = tf.add(.5*self.sum_squared_error,
+                    .5*self.sum_squared_error_force*(self.C2/self.C1)
+                    + reg_term/self.C1,
                     name='Loss')
                 self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(
                     self.loss, method=opt_method, options={'maxiter': maxiter,
-                    'disp': False, 'ftol':1E-20, 'gtol':1E-10})
+                    'disp': False, 'ftol':1E-20, 'gtol':1E-10},
+                    var_list = self.pot.variables)#[v for v in self.pot.variables if not 'b:' in v.name])
         self.session = tf.Session(graph=self.graph)
         self.session.run(tf.initializers.variables(self.pot.variables))
 
@@ -100,7 +107,7 @@ class NNCalculator(MLCalculator):
                 ] = np.einsum('ijkl,j->ijkl', ann_derivs[i], 1.0/self.Gs_std[t])
 
         # Start with large minimum loss value
-        min_loss_value = 1E10
+        min_loss_value = 1E20
         for i in range(self.opt_restarts):
             # Reset weights to random initialization:
             if (i > 0 or self.reset_fit or
