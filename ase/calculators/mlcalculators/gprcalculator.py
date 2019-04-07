@@ -2,13 +2,14 @@ from ase.calculators.mlcalculators.mlcalculator import MLCalculator
 import numpy as np
 from scipy.linalg import cho_solve, cholesky
 import scipy.optimize as sp_opt
+from scipy.optimize import minimize
 import warnings
 
 class GPRCalculator(MLCalculator):
 
     def __init__(self, restart=None, ignore_bad_restart_file=False,
                  label=None, atoms=None, C1=1.0, C2=1.0,
-                 kernel=None,  opt_method='LBFGS_B',
+                 kernel=None,  opt_method='L-BFGS-B',
                  opt_restarts=0, normalize_y=True, **kwargs):
         MLCalculator.__init__(self, restart, ignore_bad_restart_file, label,
                             atoms, C1, C2, **kwargs)
@@ -40,47 +41,48 @@ class GPRCalculator(MLCalculator):
             self.E_mean = np.mean(self.E_train)
         else:
             self.E_mean = 0.
-        self._target_vector = np.concatenate([self.E_train - self.E_mean, -self.F_train])
+        self._target_vector = np.concatenate(
+            [self.E_train - self.E_mean, -self.F_train])
 
         if self.opt_restarts > 0:
             # TODO: Maybe it would be better to start from the same
             # initial_hyper_parameters every time...
-            initial_hyper_parameters = self.get_hyper_parameter()
+
+            # Lists to hold the results of the hyperparameter optimizations
             opt_hyper_parameter = []
             value = []
-            print('Starting optimization %d/%d'%(0, self.opt_restarts),
-                'with parameters: ', initial_hyper_parameters)
-            try:
-                opt = self._opt_routine(initial_hyper_parameters)
-                opt_hyper_parameter.append(opt[0])
-                value.append(opt[1])
-            except np.linalg.LinAlgError:
-                print('Cholesky factorization failed')
-
             for ii in range(self.opt_restarts):
-                initial_hyper_parameters = []
-                bounds = self.kernel.bounds
-                for element in bounds:
-                    initial_hyper_parameters.append(np.random.uniform(element[0], element[1], 1))
-                initial_hyper_parameters = np.array(initial_hyper_parameters)
+                if ii == 0:
+                    initial_hyper_parameters = self.get_hyper_parameter()
+                else:
+                    bounds = self.kernel.bounds
+                    initial_hyper_parameters = np.zeros(len(bounds))
+                    for bi, element in enumerate(bounds):
+                        initial_hyper_parameters[bi] = np.random.uniform(
+                            element[0], element[1], 1)
                 print('Starting optimization %d/%d'%(ii+1, self.opt_restarts),
                     'with parameters: ', initial_hyper_parameters)
                 try:
                     opt = self._opt_routine(initial_hyper_parameters)
                     opt_hyper_parameter.append(opt[0])
                     value.append(opt[1])
+                    print('Finished with value:', opt[1],
+                        ' and parameters:', opt[0])
                 except np.linalg.LinAlgError:
                     print('Cholesky factorization failed')
 
             if len(value) == 0:
                 raise ValueError('No successful optimization')
+            # Find the optimum among all runs:
             min_idx = np.argmin(value)
             self.set_hyper_parameter(opt_hyper_parameter[min_idx])
 
-        #k_mat = create_mat(self.kernel, self.x_train, self.x_train, dx_max=self.n_dim, dy_max=self.n_dim)
-        k_mat = self.kernel(self.atoms_train, self.atoms_train, dx=True, dy=True)
-        k_mat[:self.n_samples, :self.n_samples] += np.eye(self.n_samples)/self.C1
-        k_mat[self.n_samples:, self.n_samples:] += np.eye(self.n_samples_force * self.n_dim)/self.C2
+        k_mat = self.kernel(
+            self.atoms_train, self.atoms_train, dx=True, dy=True)
+        k_mat[:self.n_samples, :self.n_samples] += np.eye(
+            self.n_samples)/self.C1
+        k_mat[self.n_samples:, self.n_samples:] += np.eye(
+            self.n_samples_force * self.n_dim)/self.C2
 
         self.L, alpha = self._cholesky(k_mat)
         self.alpha = alpha
@@ -95,13 +97,7 @@ class GPRCalculator(MLCalculator):
         :param kernel: kernel matrix
         :return: lower cholesky matrix, weights.
         """
-        try:
-            L = cholesky(kernel, lower=True)
-        except np.linalg.LinAlgError:
-            # check_matrix(kernel)
-            print(self.get_hyper_parameter())
-            # implement automatic increasing noise
-            raise np.linalg.LinAlgError
+        L = cholesky(kernel, lower=True)
         alpha = cho_solve((L, True), self._target_vector)
         return L, alpha
 
@@ -118,10 +114,12 @@ class GPRCalculator(MLCalculator):
         """
         Function to optimize kernels hyper parameters
         :param hyper_parameter: new kernel hyper parameters
-        :return: negative log marignal likelihood, derivative of the negative log marignal likelihood
+        :return: negative log marignal likelihood, derivative of the negative
+                log marignal likelihood
         """
         self.set_hyper_parameter(hyper_parameter)
-        log_marginal_likelihood, d_log_marginal_likelihood = self.log_marginal_likelihood(derivative=self._opt_flag)
+        log_marginal_likelihood, d_log_marginal_likelihood = self.log_marginal_likelihood(
+            derivative=self._opt_flag)
 
         return -log_marginal_likelihood, -d_log_marginal_likelihood
 
@@ -132,14 +130,13 @@ class GPRCalculator(MLCalculator):
         :return: log marinal likelihood, derivative of the log marignal likelihood
         """
         # gives vale of log marginal likelihood with the gradient
-        #k_mat, k_grad = create_mat(self.kernel, self.x_train, self.x_train, dx_max=self.n_dim, dy_max=self.n_dim, eval_gradient=True)
         k_mat, k_grad = self.kernel(self.atoms_train, self.atoms_train,
             dx=True, dy=True, eval_gradient=True)
         k_mat[:self.n_samples, :self.n_samples] += np.eye(self.n_samples)/self.C1
         k_mat[self.n_samples:, self.n_samples:] += np.eye(self.n_samples_force*self.n_dim)/self.C2
         L, alpha = self._cholesky(k_mat)
         # Following Rasmussen Algorithm 2.1 the determinant in 2.30 can be
-        # expressed as a sum over the Cholesky decomposition
+        # expressed as a sum over the Cholesky decomposition L
         log_mag_likelihood = -0.5*self._target_vector.dot(alpha) - np.log(np.diag(L)).sum() - L.shape[0] / 2. * np.log(2 * np.pi)
 
         if not derivative:
@@ -152,11 +149,17 @@ class GPRCalculator(MLCalculator):
         return log_mag_likelihood, d_log_mag_likelihood
 
     def _opt_routine(self, initial_hyper_parameter):
-
-        if self.opt_method == 'LBFGS_B':
+        if self.opt_method == 'L-BFGS-B':
             self._opt_flag = True
-            opt_hyper_parameter, value, opt_dict = sp_opt.fmin_l_bfgs_b(self.optimize, initial_hyper_parameter,
-                                                                    bounds=self.get_bounds())
+            opt_obj = minimize(self.optimize, initial_hyper_parameter,
+                method='L-BFGS-B', jac=True, bounds=self.get_bounds())
+            opt_hyper_parameter = opt_obj.x
+            value = opt_obj.fun
+        elif self.opt_method == 'LBFGS_B':
+            self._opt_flag = True
+            opt_hyper_parameter, value, opt_dict = sp_opt.fmin_l_bfgs_b(
+                self.optimize, initial_hyper_parameter,
+                bounds=self.get_bounds())
             if opt_dict["warnflag"] != 0:
                 warnings.warn("fmin_l_bfgs_b terminated abnormally with the state: %s" % opt_dict)
         elif self.opt_method == 'BFGS':
