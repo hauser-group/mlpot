@@ -165,7 +165,7 @@ class RBFKernel():
     @property
     def bounds(self):
         if np.ndim(self.length_scale_bounds) == 1:
-            return np.log(np.asarray[self.length_scale_bounds])
+            return np.log(np.asarray([self.length_scale_bounds]))
         elif np.ndim(self.length_scale_bounds) == 2:
             return np.log(self.length_scale_bounds)
         else:
