@@ -143,7 +143,7 @@ class KlemensInterface(object):
 
 class RBFKernel():
 
-    def __init__(self, constant=1.0, factor=1.0, length_scale=1.0,
+    def __init__(self, constant=0.0, factor=1.0, length_scale=1.0,
             length_scale_bounds=(1e-5, 1e5)):
         self.factor = factor
         self.constant = constant
@@ -274,7 +274,7 @@ class RBFKernel():
 
 class RBFKernel_with_factor():
 
-    def __init__(self, constant=1.0, factor=1.0, length_scale=1.0,
+    def __init__(self, constant=0.0, factor=1.0, length_scale=1.0,
             factor_bounds=(1e-5, 1e5), length_scale_bounds=(1e-5, 1e5)):
         self.factor = factor
         self.constant = constant
@@ -381,19 +381,6 @@ class RBFKernel_with_factor():
                             (2*delta_qs + 2*delta_ps - scaled_diff_s_squared)
                             )/self.length_scale
 
-                        #TODO: rewrite in full vector form:
-                        #for s in range(n_dim):
-                        #    delta_qs = np.zeros((n_dim, n_dim))
-                        #    delta_qs[s,:] = 1
-                        #    delta_ps = np.zeros((n_dim, n_dim))
-                        #    delta_ps[:,s] = 1
-                        #    K_gradient[da, db, 1+s] = exp_term*(
-                        #        np.diag(1./self.length_scale**2)*(
-                        #        scaled_diff[s]**2 - 2*delta_qs
-                        #        ) + np.outer(scaled_diff/self.length_scale,
-                        #        scaled_diff/self.length_scale)*(2*delta_qs +
-                        #        2*delta_ps - scaled_diff[s]**2)
-                        #        )/self.length_scale[s]
                     else: # isotropic
                         K_gradient[a, b, 1] = exp_term*(
                             inner_prod/self.length_scale)
