@@ -409,6 +409,112 @@ class RBFKernel_with_factor():
         else:
             return K, K_gradient
 
+class MaternKernel():
+
+    def __init__(self, constant=0.0, factor=1.0, length_scale=1.0,
+            length_scale_bounds=(1e-5, 1e5)):
+        self.factor = factor
+        self.constant = constant
+        self.length_scale = length_scale
+        self.length_scale_bounds = length_scale_bounds
+
+    @property
+    def anisotropic(self):
+        return np.iterable(self.length_scale) and len(self.length_scale) > 1
+
+    @property
+    def theta(self):
+        return np.log(self.length_scale)
+
+    @theta.setter
+    def theta(self, theta):
+        self.length_scale = np.exp(theta)
+
+    @property
+    def bounds(self):
+        if np.ndim(self.length_scale_bounds) == 1:
+            return np.log(np.asarray([self.length_scale_bounds]))
+        elif np.ndim(self.length_scale_bounds) == 2:
+            return np.log(self.length_scale_bounds)
+        else:
+            raise ValueError('Unexpected dimension of length_scale_bounds')
+
+    def __call__(self, atoms_X, atoms_Y, dx=False, dy=False, eval_gradient=False):
+        n = len(atoms_X)
+        m = len(atoms_Y)
+        n_dim = 3*len(atoms_X[0])
+
+        X = np.zeros((len(atoms_X), n_dim))
+        Y = np.zeros((len(atoms_Y), n_dim))
+        for i, atoms in enumerate(atoms_X):
+            X[i,:] = atoms.get_positions().flatten()
+        for i, atoms in enumerate(atoms_Y):
+            Y[i,:] = atoms.get_positions().flatten()
+
+        # The arguments dx and dy are deprecated and will be removed soon
+        if not (dx and dy):
+            raise NotImplementedError
+        # Initialize kernel matrix
+        K = np.zeros((n*(1+n_dim), m*(1+n_dim)))
+        if eval_gradient:
+            # Array to hold the derivatives with respect to the length_scale
+            if self.anisotropic:
+                K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim),
+                    self.length_scale.shape[0]))
+            else: # isotropic
+                K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim), 1))
+        for a, Xa in enumerate(X):
+            for b, Yb in enumerate(Y):
+                # Index ranges for the derivatives are given by the following
+                # slice objects:
+                da = slice(n+a*n_dim, n+(a+1)*n_dim, 1)
+                db = slice(m+b*n_dim, m+(b+1)*n_dim, 1)
+                # A few helpful quantities:
+                scaled_diff = (Xa-Yb)/self.length_scale
+                inner_prod = scaled_diff.dot(scaled_diff)
+                sqrt_sum = np.sqrt(5.*inner_prod)
+                outer_prod = np.outer(scaled_diff, scaled_diff)
+                outer_prod_over_l = np.outer(scaled_diff/self.length_scale,
+                    scaled_diff/self.length_scale)
+                exp_term = np.exp(-sqrt_sum)
+                # populate kernel matrix:
+                K[a, b] = (1. + sqrt_sum + 5./3.*inner_prod)*exp_term
+                K[da, b] = -5./3.*(
+                    1. + sqrt_sum)*scaled_diff/self.length_scale*exp_term
+                K[a, db] = 5./3.*(
+                    1. + sqrt_sum)*scaled_diff/self.length_scale*exp_term
+                K[da, db] = 5./3.*(np.eye(n_dim)/self.length_scale**2*(
+                    sqrt_sum + 1.0) - 5*outer_prod_over_l)*exp_term
+
+                # Gradient with respect to the length_scale
+                if eval_gradient:
+                    if self.anisotropic:
+                        raise NotImplementedError
+                    else: # isotropic
+                        K_gradient[a, b, 0] = 5./3.*(sqrt_sum + 1)*(
+                            inner_prod/self.length_scale)*exp_term
+                        K_gradient[da, b, 0] = 5./3.*(2. - 5.*inner_prod + 2.*
+                            sqrt_sum)*scaled_diff/self.length_scale**2*exp_term
+                        K_gradient[a, db, 0] = -5./3.*(2. - 5.*inner_prod + 2.*
+                            sqrt_sum)*scaled_diff/self.length_scale**2*exp_term
+                        K_gradient[da, db, 0] = 5./3.*(np.eye(n_dim)*(
+                            5.*inner_prod - 2.*sqrt_sum - 2.) + 5.*outer_prod*(
+                            4. - sqrt_sum))/self.length_scale**3*exp_term
+
+        if eval_gradient:
+            # Multiply gradient with respect to the length_scale by factor
+            K_gradient *= self.factor
+
+        # Multiply by factor
+        K *= self.factor
+        # Add constant term only on non-derivative block
+        K[:n,:m] += self.constant
+
+        if not eval_gradient:
+            return K
+        else:
+            return K, K_gradient
+
 class SFSKernel():
     def __init__(self, descriptor_set, factor=1.0, constant=1.0,
             kernel='dot_product'):
