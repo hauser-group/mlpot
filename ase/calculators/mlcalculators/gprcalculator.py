@@ -10,7 +10,7 @@ class GPRCalculator(MLCalculator):
     def __init__(self, restart=None, ignore_bad_restart_file=False,
                  label=None, atoms=None, C1=1.0, C2=1.0,
                  kernel=None,  opt_method='L-BFGS-B',
-                 opt_restarts=0, normalize_y=True, **kwargs):
+                 opt_restarts=0, normalize_y=False, **kwargs):
         MLCalculator.__init__(self, restart, ignore_bad_restart_file, label,
                             atoms, C1, C2, **kwargs)
 
@@ -37,23 +37,32 @@ class GPRCalculator(MLCalculator):
         self.n_samples_force = len(atoms_list)
         self.F_train = self.F_train.flatten()#('F')
 
-        if self.normalize_y:
-            self.E_mean = np.mean(self.E_train)
+        if self.normalize_y == 'mean':
+            self._intercept = np.mean(self.E_train)
+        elif self.normalize_y == 'min':
+            self._intercept = np.min(self.E_train)
+        elif self.normalize_y == False or self.normalize_y == None:
+            self.self._intercept = 0.
         else:
-            self.E_mean = 0.
+            raise NotImplementedError('Unknown option: %s'%self.normalize_y)
         self._target_vector = np.concatenate(
-            [self.E_train - self.E_mean, -self.F_train])
+            [self.E_train - self._intercept, -self.F_train])
 
         if self.opt_restarts > 0:
             # TODO: Maybe it would be better to start from the same
-            # initial_hyper_parameters every time...
+            # initial_hyper_parameters (given at kernel initialization),
+            # every time...
 
             # Lists to hold the results of the hyperparameter optimizations
             opt_hyper_parameter = []
+            # List of values of the marginal log likelihood
             value = []
             for ii in range(self.opt_restarts):
+                # First run: start from the current hyperparameters
                 if ii == 0:
                     initial_hyper_parameters = self.get_hyper_parameter()
+                # else: draw from log uniform distribution (drawing from
+                # uniform but get and set hyper_parameter work with log values)
                 else:
                     bounds = self.kernel.bounds
                     initial_hyper_parameters = np.zeros(len(bounds))
@@ -88,8 +97,6 @@ class GPRCalculator(MLCalculator):
         self.alpha = alpha
         self._alpha = alpha[:self.n_samples]
         self._beta = alpha[self.n_samples:].reshape(self.n_dim, -1).T
-
-        self._intercept = self.E_mean
 
     def _cholesky(self, kernel):
         """
