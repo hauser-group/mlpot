@@ -42,7 +42,7 @@ class GPRCalculator(MLCalculator):
         elif self.normalize_y == 'min':
             self._intercept = np.min(self.E_train)
         elif self.normalize_y == False or self.normalize_y == None:
-            self.self._intercept = 0.
+            self._intercept = 0.
         else:
             raise NotImplementedError('Unknown option: %s'%self.normalize_y)
         self._target_vector = np.concatenate(
