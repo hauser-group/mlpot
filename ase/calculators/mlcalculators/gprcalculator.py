@@ -182,7 +182,6 @@ class GPRCalculator(MLCalculator):
         return opt_hyper_parameter, value
 
     def predict(self, atoms):
-        x = atoms.get_positions().reshape((1,-1))
         # Prediction
         y = self.alpha.dot(self.kernel(self.atoms_train, [atoms], dx=True, dy=True))
         E = y[0] + self._intercept
