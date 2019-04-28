@@ -181,19 +181,6 @@ class GPRCalculator(MLCalculator):
 
         return opt_hyper_parameter, value
 
-    def predict_old(self, atoms):
-        x = atoms.get_positions().reshape((1,-1))
-
-        E = self._alpha.dot(self.kernel(self.x_train, x)) + self._intercept \
-            + sum(self._beta[:, ii].dot(self.kernel(self.x_train, x, dx=ii + 1))
-                for ii in range(self.n_dim))
-        F = np.zeros((len(x), self.n_dim))
-        for ii in range(self.n_dim):
-            F[:, ii] = self._alpha.dot(self.kernel(self.x_train, x, dy=ii + 1)) \
-                + sum([self._beta[:, jj].dot(self.kernel(self.x_train, x,
-                dy=ii + 1, dx=jj + 1)) for jj in range(self.n_dim)])
-        return E, -F.reshape((-1,3))
-
     def predict(self, atoms):
         x = atoms.get_positions().reshape((1,-1))
         # Prediction
