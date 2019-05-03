@@ -19,34 +19,39 @@ class GPRCalculator(MLCalculator):
         self.opt_restarts = opt_restarts
         self.normalize_y = normalize_y
 
-    def fit(self, atoms_list):
-        print('Fit called with %d geometries.'%len(atoms_list))
-        # TODO check if all atoms objects have same size!
-        self.n_dim = 3*len(atoms_list[0])
-        self.x_train = np.zeros((len(atoms_list), self.n_dim))
-        self.atoms_train = atoms_list
-        self.E_train = np.zeros(len(atoms_list))
-        self.F_train = np.zeros((len(atoms_list), self.n_dim))
+    def add_data(self, atoms):
+        # If the trainings set is empty: setup the numpy arrays
+        if not self.atoms_train:
+            self.n_dim = 3*len(atoms)
+            self.x_train = np.zeros((0, self.n_dim))
+            self.E_train = np.zeros(0)
+            self.F_train = np.zeros((0, self.n_dim))
+        # else: check if the new atoms object has the same length as previous
+        else:
+            if not 3*len(atoms) == self.n_dim:
+                raise ValueError('New data does not have the same number of '
+                    'atoms as previously added data.')
 
-        for i, atoms in enumerate(atoms_list):
-            self.x_train[i,:] = atoms.get_positions().flatten()
-            self.E_train[i] = atoms.get_potential_energy()
-            self.F_train[i,:] = atoms.get_forces().flatten()
+        # Call the super class routine after checking for empty trainings set!
+        MLCalculator.add_data(self, atoms)
+        self.x_train = np.append(self.x_train, atoms.get_positions.flatten())
+        self.E_train = np.append(self.E_train, atoms.get_potential_energy())
+        self.F_train = np.append(self.F_train, atoms.get_forces().flatten())
 
-        self.n_samples = len(atoms_list)
-        self.n_samples_force = len(atoms_list)
-        self.F_train = self.F_train.flatten()#('F')
+    def fit(self):
+        print('Fit called with %d geometries.'%len(self.atoms_train))
+        self.n_samples = len(self.atoms_train)
 
         if self.normalize_y == 'mean':
-            self._intercept = np.mean(self.E_train)
+            self.intercept = np.mean(self.E_train)
         elif self.normalize_y == 'min':
-            self._intercept = np.min(self.E_train)
+            self.intercept = np.min(self.E_train)
         elif self.normalize_y == False or self.normalize_y == None:
-            self._intercept = 0.
+            self.intercept = 0.
         else:
             raise NotImplementedError('Unknown option: %s'%self.normalize_y)
         self._target_vector = np.concatenate(
-            [self.E_train - self._intercept, -self.F_train])
+            [self.E_train - self.intercept, -self.F_train.flatten()])
 
         if self.opt_restarts > 0:
             # TODO: Maybe it would be better to start from the same
@@ -60,23 +65,23 @@ class GPRCalculator(MLCalculator):
             for ii in range(self.opt_restarts):
                 # First run: start from the current hyperparameters
                 if ii == 0:
-                    initial_hyper_parameters = self.get_hyper_parameter()
+                    initial_hyper_parameters = self.kernel.theta
                 # else: draw from log uniform distribution (drawing from
                 # uniform but get and set hyper_parameter work with log values)
                 else:
                     bounds = self.kernel.bounds
                     initial_hyper_parameters = np.zeros(len(bounds))
-                    for bi, element in enumerate(bounds):
+                    for bi, (lower_bound, upper_bound) in enumerate(bounds):
                         initial_hyper_parameters[bi] = np.random.uniform(
-                            element[0], element[1], 1)
+                            lower_bound, upper_bound, 1)
                 print('Starting optimization %d/%d'%(ii+1, self.opt_restarts),
                     'with parameters: ', initial_hyper_parameters)
                 try:
-                    opt = self._opt_routine(initial_hyper_parameters)
-                    opt_hyper_parameter.append(opt[0])
-                    value.append(opt[1])
-                    print('Finished with value:', opt[1],
-                        ' and parameters:', opt[0])
+                    opt_x, val = self._opt_routine(initial_hyper_parameters)
+                    opt_hyper_parameter.append(opt_x)
+                    value.append(val)
+                    print('Finished with value:', val,
+                        ' and parameters:', opt_x)
                 except np.linalg.LinAlgError:
                     print('Cholesky factorization failed')
 
@@ -84,19 +89,16 @@ class GPRCalculator(MLCalculator):
                 raise ValueError('No successful optimization')
             # Find the optimum among all runs:
             min_idx = np.argmin(value)
-            self.set_hyper_parameter(opt_hyper_parameter[min_idx])
+            self.kernel.theta = opt_hyper_parameter[min_idx]
 
-        k_mat = self.kernel(
-            self.atoms_train, self.atoms_train, dx=True, dy=True)
+        k_mat = self.build_kernel_matrix()
         k_mat[:self.n_samples, :self.n_samples] += np.eye(
             self.n_samples)/self.C1
         k_mat[self.n_samples:, self.n_samples:] += np.eye(
-            self.n_samples_force * self.n_dim)/self.C2
+            self.n_samples * self.n_dim)/self.C2
 
         self.L, alpha = self._cholesky(k_mat)
         self.alpha = alpha
-        self._alpha = alpha[:self.n_samples]
-        self._beta = alpha[self.n_samples:].reshape(self.n_dim, -1).T
 
     def _cholesky(self, kernel):
         """
@@ -108,133 +110,91 @@ class GPRCalculator(MLCalculator):
         alpha = cho_solve((L, True), self._target_vector)
         return L, alpha
 
-    def get_hyper_parameter(self):
-        return self.kernel.theta
+    def _opt_routine(self, initial_hyper_parameter):
+        if self.opt_method == 'L-BFGS-B':
+            opt_obj = minimize(self._opt_fun, initial_hyper_parameter,
+                method='L-BFGS-B', jac=True, bounds=self.kernel.bounds)
+            opt_hyper_parameter = opt_obj.x
+            value = opt_obj.fun
+        elif self.opt_method == 'LBFGS_B':
+            opt_hyper_parameter, value, opt_dict = sp_opt.fmin_l_bfgs_b(
+                self._opt_fun, initial_hyper_parameter,
+                bounds=self.kernel.bounds)
+            if opt_dict['warnflag'] != 0:
+                warnings.warn('fmin_l_bfgs_b terminated abnormally with the '
+                    'state: %s' % opt_dict)
+        else:
+            raise NotImplementedError(
+                'Method is not implemented use method=L-BFGS-B.')
 
-    def set_hyper_parameter(self, hyper_parameter):
-        self.kernel.theta = hyper_parameter
+        return opt_hyper_parameter, value
 
-    def get_bounds(self):
-        return self.kernel.bounds
-
-    def optimize(self, hyper_parameter):
+    def _opt_fun(self, hyper_parameter):
         """
         Function to optimize kernels hyper parameters
         :param hyper_parameter: new kernel hyper parameters
         :return: negative log marignal likelihood, derivative of the negative
                 log marignal likelihood
         """
-        self.set_hyper_parameter(hyper_parameter)
-        log_marginal_likelihood, d_log_marginal_likelihood = self.log_marginal_likelihood(
-            derivative=self._opt_flag)
+        self.kernel.theta = hyper_parameter
+        log_marginal_likelihood, d_log_marginal_likelihood = (
+            self.log_marginal_likelihood())
 
         return -log_marginal_likelihood, -d_log_marginal_likelihood
 
     def log_marginal_likelihood(self, derivative=False):
         """
         calculate the log marignal likelihood
-        :param derivative: determines if the derivative to the log marignal likelihood should be evaluated. default False
-        :return: log marinal likelihood, derivative of the log marignal likelihood
+        :return: log marinal likelihood,
+            derivative of the log marignal likelihood w.r.t. the hyperparameters
         """
         # gives vale of log marginal likelihood with the gradient
-        k_mat, k_grad = self.kernel(self.atoms_train, self.atoms_train,
-            dx=True, dy=True, eval_gradient=True)
-        k_mat[:self.n_samples, :self.n_samples] += np.eye(self.n_samples)/self.C1
-        k_mat[self.n_samples:, self.n_samples:] += np.eye(self.n_samples_force*self.n_dim)/self.C2
+        k_mat, k_grad = self.build_kernel_matrix(eval_gradient=True)
+        k_mat[:self.n_samples, :self.n_samples] += np.eye(
+            self.n_samples)/self.C1
+        k_mat[self.n_samples:, self.n_samples:] += np.eye(
+            self.n_samples*self.n_dim)/self.C2
         L, alpha = self._cholesky(k_mat)
         # Following Rasmussen Algorithm 2.1 the determinant in 2.30 can be
         # expressed as a sum over the Cholesky decomposition L
-        log_mag_likelihood = -0.5*self._target_vector.dot(alpha) - np.log(np.diag(L)).sum() - L.shape[0] / 2. * np.log(2 * np.pi)
+        log_mag_likelihood = (-0.5*self._target_vector.dot(alpha) -
+            np.log(np.diag(L)).sum() - L.shape[0] / 2. * np.log(2 * np.pi))
 
-        if not derivative:
-            return log_mag_likelihood
         # summation inspired form scikit-learn Gaussian process regression
-        temp = (np.multiply.outer(alpha, alpha) - cho_solve((L, True), np.eye(L.shape[0])))[:, :, np.newaxis]
+        temp = (np.multiply.outer(alpha, alpha) -
+            cho_solve((L, True), np.eye(L.shape[0])))[:, :, np.newaxis]
         d_log_mag_likelihood = 0.5 * np.einsum("ijl,ijk->kl", temp, k_grad)
         d_log_mag_likelihood = d_log_mag_likelihood.sum(-1)
 
         return log_mag_likelihood, d_log_mag_likelihood
 
-    def _opt_routine(self, initial_hyper_parameter):
-        if self.opt_method == 'L-BFGS-B':
-            self._opt_flag = True
-            opt_obj = minimize(self.optimize, initial_hyper_parameter,
-                method='L-BFGS-B', jac=True, bounds=self.get_bounds())
-            opt_hyper_parameter = opt_obj.x
-            value = opt_obj.fun
-        elif self.opt_method == 'LBFGS_B':
-            self._opt_flag = True
-            opt_hyper_parameter, value, opt_dict = sp_opt.fmin_l_bfgs_b(
-                self.optimize, initial_hyper_parameter,
-                bounds=self.get_bounds())
-            if opt_dict["warnflag"] != 0:
-                warnings.warn("fmin_l_bfgs_b terminated abnormally with the state: %s" % opt_dict)
-        elif self.opt_method == 'BFGS':
-            raise NotImplementedError('Implementation is not finished.')
-            # TODO return function value
-            # TODO implementation
-            self._opt_flag = False
-            opt_hyper_parameter = sp_opt.fmin_bfgs(self.optimize, initial_hyper_parameter)
-            value = 0
-        else:
-            raise NotImplementedError('Method is not implemented use method=LBFGS_B.')
-
-        return opt_hyper_parameter, value
-
     def predict(self, atoms):
         # Prediction
-        y = self.alpha.dot(self.kernel(self.atoms_train, [atoms], dx=True, dy=True))
-        E = y[0] + self._intercept
+        y = self.alpha.dot(self.build_kernel_matrix(X_star=atoms))
+        E = y[0] + self.intercept
         F = -y[1:].reshape((-1,3))
         return E, F
 
     def get_params(self):
-        return {'x_train':self.x_train, 'atoms_train':self.atoms_train,
-            'alpha':self.alpha, '_alpha':self._alpha, '_beta':self._beta,
-            'intercept':self._intercept,
-            'hyper_parameters':self.get_hyper_parameter()}
+        return {'atoms_train':self.atoms_train, 'x_train':self.x_train,
+            'alpha':self.alpha, 'intercept':self.intercept,
+            'hyper_parameters':self.kernel.theta}
 
     def set_params(self, **params):
-        self.x_train = params['x_train']
         self.atoms_train = params['atoms_train']
+        self.x_train = params['x_train']
         self.n_dim = self.x_train.shape[1]
         self.alpha = params['alpha']
-        self._alpha = params['_alpha']
-        self._beta = params['_beta']
-        self._intercept = params['intercept']
-        self.set_hyper_parameter(params['hyper_parameters'])
+        self.intercept = params['intercept']
+        self.kernel.theta = params['hyper_parameters']
 
-def create_mat(kernel, x1, x2, dx_max=0, dy_max=0, eval_gradient=False):
-    """
-    creates the kernel matrix with respect to the derivatives.
-    :param kernel: given kernel like RBF
-    :param x1: training points shape (n_samples, n_features)
-    :param x2: training or prediction points (n_samples, n_features)
-    :param dx_max: maximum derivative in x1_prime
-    :param dy_max: maximum derivative in x2_prime
-    :param eval_gradient: flag if kernels derivative have to be evaluated. default False
-    :return: kernel matrix, derivative of the kernel matrix
-    """
-    # creates the kernel matrix
-    # if x1_prime is None then no derivative elements are calculated.
-    # derivative elements are given in the manner of [dx1, dx2, dx3, ...., dxn]
-    n, d = x1.shape
-    m, f = x2.shape
-    if not eval_gradient:
-        kernel_mat = np.zeros([n * (1 + d), m * (1 + f)])
-        for ii in range(dx_max + 1):
-            for jj in range(dy_max + 1):
-                kernel_mat[n * ii:n * (ii + 1), m * jj:m * (jj + 1)] = kernel(
-                    x1, x2, dx=ii, dy=jj, eval_gradient=False)
-        return kernel_mat
-    else:
-        num_theta = len(kernel.theta)
-        kernel_derivative = np.zeros([n * (1 + d), m * (1 + f), num_theta])
-        kernel_mat = np.zeros([n * (1 + d), m * (1 + f)])
-        for ii in range(dx_max + 1):
-            for jj in range(dy_max + 1):
-                k_mat, deriv_mat = kernel(x1, x2, dx=ii, dy=jj, eval_gradient=True)
-
-                kernel_mat[n * ii:n * (ii + 1), m * jj:m * (jj + 1)] = k_mat
-                kernel_derivative[n * ii:n * (ii + 1), m * jj:m * (jj + 1), :] = deriv_mat
-    return kernel_mat, kernel_derivative
+    def build_kernel_matrix(self, X_star=None, eval_gradient=False):
+        """Builds the kernel matrix K(X,X*) of the trainings_examples and
+        X_star. If X_star==None the kernel of the trainings_examples with
+        themselves K(X,X)."""
+        if not X_star == None:
+            x_star = [X_star.get_positions()]
+        else:
+            x_star = self.x_train
+        return self.kernel(self.x_train, x_star, dx=True, dy=True,
+            eval_gradient=eval_gradient)
