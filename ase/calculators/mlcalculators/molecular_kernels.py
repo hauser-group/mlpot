@@ -299,17 +299,10 @@ class RBFKernel_with_factor():
             return np.log(np.asarray(
                 [self.factor_bounds]+self.length_scale_bounds))
 
-    def __call__(self, atoms_X, atoms_Y, dx=False, dy=False, eval_gradient=False):
-        n = len(atoms_X)
-        m = len(atoms_Y)
-        n_dim = 3*len(atoms_X[0])
-
-        X = np.zeros((len(atoms_X), n_dim))
-        Y = np.zeros((len(atoms_Y), n_dim))
-        for i, atoms in enumerate(atoms_X):
-            X[i,:] = atoms.get_positions().flatten()
-        for i, atoms in enumerate(atoms_Y):
-            Y[i,:] = atoms.get_positions().flatten()
+    def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
+        n = X.shape[0]
+        m = Y.shape[0]
+        n_dim = X.shape[1]
 
         # The arguments dx and dy are deprecated and will be removed soon
         if not (dx and dy):
@@ -434,17 +427,10 @@ class MaternKernel():
         else:
             raise ValueError('Unexpected dimension of length_scale_bounds')
 
-    def __call__(self, atoms_X, atoms_Y, dx=False, dy=False, eval_gradient=False):
-        n = len(atoms_X)
-        m = len(atoms_Y)
-        n_dim = 3*len(atoms_X[0])
-
-        X = np.zeros((len(atoms_X), n_dim))
-        Y = np.zeros((len(atoms_Y), n_dim))
-        for i, atoms in enumerate(atoms_X):
-            X[i,:] = atoms.get_positions().flatten()
-        for i, atoms in enumerate(atoms_Y):
-            Y[i,:] = atoms.get_positions().flatten()
+    def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
+        n = X.shape[0]
+        m = Y.shape[0]
+        n_dim = X.shape[1]
 
         # The arguments dx and dy are deprecated and will be removed soon
         if not (dx and dy):
@@ -575,7 +561,7 @@ class SFSKernel():
                                         exp_mat = np.exp(-np.sum((Gi-Gj)**2)/2)
                                         kernel_mat[i,j] += exp_mat
                                         K = -exp_mat*(Gi-Gj)
-                                        K_prime = -exp_mat*(Gj-Gi)
+                                        K_prime = exp_mat*(Gi-Gj)
                                         J = exp_mat*(np.eye(descrip_dim) - np.outer(Gi,Gi) + np.outer(Gi,Gj) +
                                             np.outer(Gj,Gi) - np.outer(Gj,Gj))
                                     else:
