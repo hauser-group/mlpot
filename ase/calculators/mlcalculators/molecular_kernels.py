@@ -137,6 +137,58 @@ class KlemensInterface(object):
                         kernel_derivative[(n+ii-1)::dx_max, (m+jj-1)::dy_max] = deriv_mat
         return kernel_mat, kernel_derivative
 
+class DotProductKernel():
+
+    def __init__(self, constant=0.0, exponent=2):
+        self.constant = constant
+        self.exponent = exponent
+
+    @property
+    def theta(self):
+        return np.empty(0)
+
+    @theta.setter
+    def theta(self, theta):
+        pass
+
+    @property
+    def bounds(self):
+        return np.empty((0,2))
+
+    @jit(nopython=True)
+    def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
+        n = X.shape[0]
+        m = Y.shape[0]
+        n_dim = X.shape[1]
+
+        # The arguments dx and dy are deprecated and will be removed soon
+        if not (dx and dy):
+            raise NotImplementedError
+        # Initialize kernel matrix
+        K = np.zeros((n*(1+n_dim), m*(1+n_dim)))
+        if eval_gradient:
+            K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim), 1))
+        for a in range(n):
+            for b in range(m):
+                # Index ranges for the derivatives are given by the following
+                # slice objects:
+                da = slice(n+a*n_dim, n+(a+1)*n_dim, 1)
+                db = slice(m+b*n_dim, m+(b+1)*n_dim, 1)
+
+                dot_plus_c = X[a,:].dot(Y[b,:]) + self.constant
+                K[a, b] = (dot_plus_c)**self.exponent
+
+                K[da, b] = dot_plus_c**(self.exponent - 1)*self.exponent*YY[b,:]
+                K[a, db] = dot_plus_c**(self.exponent - 1)*self.exponent*X[a,:]
+                K[da, db] = self.exponent*dot_plus_c**(self.exponent - 2)*(
+                    (self.exponent - 1)*np.outer(Y[b,:],X[a,:]) +
+                    np.eye(n_dim)*dot_plus_c)
+
+        if not eval_gradient:
+            return K
+        else:
+            return K, K_gradient
+
 class RBFKernel():
 
     def __init__(self, constant=0.0, factor=1.0, length_scale=1.0,
