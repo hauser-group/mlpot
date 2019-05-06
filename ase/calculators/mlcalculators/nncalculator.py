@@ -37,7 +37,7 @@ class NNCalculator(MLCalculator):
         self.normalize_input = normalize_input
         # Depending on the type of input normalization these dicts hold
         # different values, for example the mean and the std for "mean" norm
-        # or the minimum and the maximum-minumum difference for "min_max"
+        # or the minimum and the maximum-minimum difference for "min_max"
         self.Gs_norm1 = {}
         self.Gs_norm2 = {}
         for t in self.atomtypes:
