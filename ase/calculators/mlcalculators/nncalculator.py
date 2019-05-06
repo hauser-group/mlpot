@@ -31,13 +31,19 @@ class NNCalculator(MLCalculator):
         self.reset_fit = reset_fit
 
         self.model_dir = model_dir
+        if not normalize_input in ['mean', 'min_max', False]:
+            raise NotImplementedError(
+                'Unknown input normalization %s'%normalize_input)
         self.normalize_input = normalize_input
-        self.Gs_mean = {}
-        self.Gs_std = {}
+        # Depending on the type of input normalization these dicts hold
+        # different values, for example the mean and the std for "mean" norm
+        # or the minimum and the maximum-minumum difference for "min_max"
+        self.Gs_norm1 = {}
+        self.Gs_norm2 = {}
         for t in self.atomtypes:
-            self.Gs_mean[t] = np.zeros(self.descriptor_set.num_Gs[
+            self.Gs_norm1[t] = np.zeros(self.descriptor_set.num_Gs[
                 self.descriptor_set.type_dict[t]])
-            self.Gs_std[t] = np.ones(self.descriptor_set.num_Gs[
+            self.Gs_norm2[t] = np.ones(self.descriptor_set.num_Gs[
                 self.descriptor_set.type_dict[t]])
 
         self.graph = tf.Graph()
@@ -97,22 +103,32 @@ class NNCalculator(MLCalculator):
         ann_inputs, indices, ann_derivs = calculate_bp_indices(
             len(self.atomtypes), self.Gs, self.int_types, dGs=self.dGs)
 
-        if self.normalize_input:
+        if self.normalize_input == 'mean':
             for i, t in enumerate(self.atomtypes):
-                self.Gs_mean[t] = np.mean(ann_inputs[i], axis=0)
+                Gs_t = np.array([Gi for Gs in self.Gs for Gi in Gs[t]])
+                print(Gs_t.shape)
+                self.Gs_norm1[t] = np.mean(Gs_t, axis=0)
                 # Small offset for numerical stability
-                self.Gs_std[t] = np.std(ann_inputs[i], axis=0) + 1E-6
+                self.Gs_norm2[t] = np.std(Gs_t, axis=0) + 1E-6
+        elif self.normalize_input == 'min_max':
+            for i, t in enumerate(self.atomtypes):
+                Gs_t = np.array([Gi for Gs in self.Gs for Gi in Gs[t]])
+                print(Gs_t.shape)
+                self.Gs_norm1[t] = np.min(Gs_t, axis=0)
+                # Small offset for numerical stability
+                self.Gs_norm2[t] = (
+                    np.max(Gs_t, axis=0) - np.min(Gs_t, axis=0) + 1E-6) + 1E-6
 
         self.train_dict = {self.pot.target: self.E_train,
             self.pot.target_forces: self.F_train,
             self.pot.error_weights: np.ones(len(self.atoms_train))}
         for i, t in enumerate(self.atomtypes):
             self.train_dict[self.pot.atomic_contributions[t].input] = (
-                ann_inputs[i]-self.Gs_mean[t])/self.Gs_std[t]
+                ann_inputs[i]-self.Gs_norm1[t])/self.Gs_norm2[t]
             self.train_dict[self.pot.atom_indices[t]] = indices[i]
             self.train_dict[
                 self.pot.atomic_contributions[t].derivatives_input
-                ] = np.einsum('ijkl,j->ijkl', ann_derivs[i], 1.0/self.Gs_std[t])
+                ] = np.einsum('ijkl,j->ijkl', ann_derivs[i], 1.0/self.Gs_norm2[t])
 
         # Start with large minimum loss value
         min_loss_value = 1E20
@@ -153,11 +169,11 @@ class NNCalculator(MLCalculator):
             self.pot.target_forces: np.zeros((1, len(atoms), 3))}
         for i, t in enumerate(self.atomtypes):
             eval_dict[self.pot.atomic_contributions[t].input] = (
-                ann_inputs[i]-self.Gs_mean[t])/self.Gs_std[t]
+                ann_inputs[i]-self.Gs_norm1[t])/self.Gs_norm2[t]
             eval_dict[self.pot.atom_indices[t]] = indices[i]
             eval_dict[
                 self.pot.atomic_contributions[t].derivatives_input
-                ] = np.einsum('ijkl,j->ijkl', ann_derivs[i], 1.0/self.Gs_std[t])
+                ] = np.einsum('ijkl,j->ijkl', ann_derivs[i], 1.0/self.Gs_norm2[t])
 
         E = self.session.run(self.pot.E_predict, eval_dict)[0]
         F = self.session.run(self.pot.F_predict, eval_dict)[0]
@@ -165,15 +181,15 @@ class NNCalculator(MLCalculator):
 
     def get_params(self):
         params = {'normalize_input':self.normalize_input,
-            'Gs_mean':self.Gs_mean, 'Gs_std':self.Gs_std,
+            'Gs_norm1':self.Gs_norm1, 'Gs_norm2':self.Gs_norm2,
             'model_dir':self.pot.saver.save(
                 self.session, self.model_dir+'model.ckpt')}
         return params
 
     def set_params(self, **params):
         self.normalize_input = params['normalize_input']
-        self.Gs_mean = params['Gs_mean']
-        self.Gs_std = params['Gs_std']
+        self.Gs_norm1 = params['Gs_norm1']
+        self.Gs_norm2 = params['Gs_norm2']
         self.pot.saver.restore(self.session, params['model_dir'])
 
     def close(self):
