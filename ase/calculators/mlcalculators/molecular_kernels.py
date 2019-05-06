@@ -1,142 +1,6 @@
 import numpy as np
 from numba import jit
 
-class KlemensInterface(object):
-    def __init__(self, kernel):
-        self.kernel = kernel
-
-    @property
-    def bounds(self):
-        return self.kernel.bounds
-
-    @property
-    def theta(self):
-        return self.kernel.theta
-
-    @theta.setter
-    def theta(self, value):
-        self.kernel.theta = value
-
-    def __call__(self, atoms_X, atoms_Y, dx=False, dy=False, eval_gradient=False,
-            order='new'):
-        n_dim = 3*len(atoms_X[0])
-        X = np.zeros((len(atoms_X), n_dim))
-        Y = np.zeros((len(atoms_Y), n_dim))
-        for i, atoms in enumerate(atoms_X):
-            X[i,:] = atoms.get_positions().flatten()
-        for i, atoms in enumerate(atoms_Y):
-            Y[i,:] = atoms.get_positions().flatten()
-        if order=='old':
-            mat = self.create_mat
-        elif order=='new':
-            mat = self.create_mat_new
-
-        if not dx and not dy:
-            return mat(self.kernel, X, Y, dx_max=0, dy_max=0,
-                eval_gradient=eval_gradient)
-        elif dx and not dy:
-            return mat(self.kernel, X, Y, dx_max=n_dim, dy_max=0,
-                eval_gradient=eval_gradient)
-        elif not dx and dy:
-            return mat(self.kernel, X, Y, dx_max=0, dy_max=n_dim,
-                eval_gradient=eval_gradient)
-        elif dx and dy:
-            return mat(self.kernel, X, Y,
-                dx_max=n_dim, dy_max=n_dim, eval_gradient=eval_gradient)
-
-    def create_mat(self, kernel, x1, x2, dx_max=0, dy_max=0, eval_gradient=False):
-        """
-        creates the kernel matrix with respect to the derivatives.
-        :param kernel: given kernel like RBF
-        :param x1: training points shape (n_samples, n_features)
-        :param x2: training or prediction points (n_samples, n_features)
-        :param dx_max: maximum derivative in x1_prime
-        :param dy_max: maximum derivative in x2_prime
-        :param eval_gradient: flag if kernels derivative have to be evaluated. default False
-        :return: kernel matrix, derivative of the kernel matrix
-        """
-        # creates the kernel matrix
-        # if x1_prime is None then no derivative elements are calculated.
-        # derivative elements are given in the manner of [dx1, dx2, dx3, ...., dxn]
-        n, d = x1.shape
-        m, f = x2.shape
-        if not eval_gradient:
-            kernel_mat = np.zeros([n * (1 + dx_max), m * (1 + dy_max)])
-            for ii in range(dx_max + 1):
-                for jj in range(dy_max + 1):
-                    kernel_mat[n * ii:n * (ii + 1), m * jj:m * (jj + 1)] = kernel(
-                        x1, x2, dx=ii, dy=jj, eval_gradient=False)
-            return kernel_mat
-        else:
-            num_theta = len(kernel.theta)
-            kernel_derivative = np.zeros([n * (1 + dx_max), m * (1 + dy_max),
-                num_theta])
-            kernel_mat = np.zeros([n * (1 + dx_max), m * (1 + dy_max)])
-            for ii in range(dx_max + 1):
-                for jj in range(dy_max + 1):
-                    k_mat, deriv_mat = kernel(x1, x2, dx=ii, dy=jj, eval_gradient=True)
-                    kernel_mat[n * ii:n * (ii + 1), m * jj:m * (jj + 1)] = k_mat
-                    kernel_derivative[n * ii:n * (ii + 1), m * jj:m * (jj + 1), :] = deriv_mat
-        return kernel_mat, kernel_derivative
-
-    def create_mat_new(self, kernel, x1, x2, dx_max=0, dy_max=0, eval_gradient=False):
-        """
-        creates the kernel matrix with respect to the derivatives.
-        :param kernel: given kernel like RBF
-        :param x1: training points shape (n_samples, n_features)
-        :param x2: training or prediction points (n_samples, n_features)
-        :param dx_max: maximum derivative in x1_prime
-        :param dy_max: maximum derivative in x2_prime
-        :param eval_gradient: flag if kernels derivative have to be evaluated. default False
-        :return: kernel matrix, derivative of the kernel matrix
-        """
-        # creates the kernel matrix
-        # if x1_prime is None then no derivative elements are calculated.
-        # derivative elements are given in the manner of [dx1, dx2, dx3, ...., dxn]
-        n, d = x1.shape
-        m, f = x2.shape
-        if not eval_gradient:
-            kernel_mat = np.zeros([n * (1 + dx_max), m * (1 + dy_max)])
-            #kernel_mat[0:n, 0:m] = kernel(x1, x2, dx=0, dy=0, eval_gradient=False)
-            for ii in range(dx_max + 1):
-                for jj in range(dy_max + 1):
-                    if ii == 0 and jj == 0:
-                        kernel_mat[0:n, 0:m] = kernel(x1, x2, dx=0, dy=0,
-                            eval_gradient=False)
-                    elif ii == 0:
-                        kernel_mat[0:n, (m+jj-1)::dy_max] = kernel(
-                            x1, x2, dx=0, dy=jj, eval_gradient=False)
-                    elif jj == 0:
-                        kernel_mat[(n+ii-1)::dx_max, 0:m] = kernel(
-                            x1, x2, dx=ii, dy=0, eval_gradient=False)
-                    #kernel_mat[(n+ii)::dx_max, (m+jj)::dy_max] = kernel(
-                    #    x1, x2, dx=ii+1, dy=jj+1, eval_gradient=False)
-                    else:
-                        kernel_mat[(n+ii-1)::dx_max, (m+jj-1)::dy_max] = kernel(
-                            x1, x2, dx=ii, dy=jj, eval_gradient=False)
-            return kernel_mat
-        else:
-            num_theta = len(kernel.theta)
-            kernel_derivative = np.zeros([n * (1 + dx_max), m * (1 + dy_max),
-                num_theta])
-            kernel_mat = np.zeros([n * (1 + dx_max), m * (1 + dy_max)])
-            for ii in range(dx_max + 1):
-                for jj in range(dy_max + 1):
-                    k_mat, deriv_mat = kernel(x1, x2, dx=ii, dy=jj, eval_gradient=True)
-                    if ii==0 and jj==0:
-                        kernel_mat[0:n, 0:m] = k_mat
-                        kernel_derivative[0:n, 0:m] = deriv_mat
-                    elif ii==0:
-                        kernel_mat[0:n, (m+jj-1)::dy_max] = k_mat
-                        kernel_derivative[0:n, (m+jj-1)::dy_max] = deriv_mat
-                    elif jj==0:
-                        kernel_mat[(n+ii-1)::dx_max, 0:m] = k_mat
-                        kernel_derivative[(n+ii-1)::dx_max, 0:m] = deriv_mat
-                    else:
-                        kernel_mat[(n+ii-1)::dx_max, (m+jj-1)::dy_max] = k_mat
-                        kernel_derivative[(n+ii-1)::dx_max, (m+jj-1)::dy_max] = deriv_mat
-        return kernel_mat, kernel_derivative
-
 class DotProductKernel():
 
     def __init__(self, constant=0.0, exponent=2):
@@ -744,3 +608,139 @@ class SFSKernel_new():
                 raise NotImplementedError
         else:
             raise NotImplementedError
+
+class KlemensInterface(object):
+    def __init__(self, kernel):
+        self.kernel = kernel
+
+    @property
+    def bounds(self):
+        return self.kernel.bounds
+
+    @property
+    def theta(self):
+        return self.kernel.theta
+
+    @theta.setter
+    def theta(self, value):
+        self.kernel.theta = value
+
+    def __call__(self, atoms_X, atoms_Y, dx=False, dy=False, eval_gradient=False,
+            order='new'):
+        n_dim = 3*len(atoms_X[0])
+        X = np.zeros((len(atoms_X), n_dim))
+        Y = np.zeros((len(atoms_Y), n_dim))
+        for i, atoms in enumerate(atoms_X):
+            X[i,:] = atoms.get_positions().flatten()
+        for i, atoms in enumerate(atoms_Y):
+            Y[i,:] = atoms.get_positions().flatten()
+        if order=='old':
+            mat = self.create_mat
+        elif order=='new':
+            mat = self.create_mat_new
+
+        if not dx and not dy:
+            return mat(self.kernel, X, Y, dx_max=0, dy_max=0,
+                eval_gradient=eval_gradient)
+        elif dx and not dy:
+            return mat(self.kernel, X, Y, dx_max=n_dim, dy_max=0,
+                eval_gradient=eval_gradient)
+        elif not dx and dy:
+            return mat(self.kernel, X, Y, dx_max=0, dy_max=n_dim,
+                eval_gradient=eval_gradient)
+        elif dx and dy:
+            return mat(self.kernel, X, Y,
+                dx_max=n_dim, dy_max=n_dim, eval_gradient=eval_gradient)
+
+    def create_mat(self, kernel, x1, x2, dx_max=0, dy_max=0, eval_gradient=False):
+        """
+        creates the kernel matrix with respect to the derivatives.
+        :param kernel: given kernel like RBF
+        :param x1: training points shape (n_samples, n_features)
+        :param x2: training or prediction points (n_samples, n_features)
+        :param dx_max: maximum derivative in x1_prime
+        :param dy_max: maximum derivative in x2_prime
+        :param eval_gradient: flag if kernels derivative have to be evaluated. default False
+        :return: kernel matrix, derivative of the kernel matrix
+        """
+        # creates the kernel matrix
+        # if x1_prime is None then no derivative elements are calculated.
+        # derivative elements are given in the manner of [dx1, dx2, dx3, ...., dxn]
+        n, d = x1.shape
+        m, f = x2.shape
+        if not eval_gradient:
+            kernel_mat = np.zeros([n * (1 + dx_max), m * (1 + dy_max)])
+            for ii in range(dx_max + 1):
+                for jj in range(dy_max + 1):
+                    kernel_mat[n * ii:n * (ii + 1), m * jj:m * (jj + 1)] = kernel(
+                        x1, x2, dx=ii, dy=jj, eval_gradient=False)
+            return kernel_mat
+        else:
+            num_theta = len(kernel.theta)
+            kernel_derivative = np.zeros([n * (1 + dx_max), m * (1 + dy_max),
+                num_theta])
+            kernel_mat = np.zeros([n * (1 + dx_max), m * (1 + dy_max)])
+            for ii in range(dx_max + 1):
+                for jj in range(dy_max + 1):
+                    k_mat, deriv_mat = kernel(x1, x2, dx=ii, dy=jj, eval_gradient=True)
+                    kernel_mat[n * ii:n * (ii + 1), m * jj:m * (jj + 1)] = k_mat
+                    kernel_derivative[n * ii:n * (ii + 1), m * jj:m * (jj + 1), :] = deriv_mat
+        return kernel_mat, kernel_derivative
+
+    def create_mat_new(self, kernel, x1, x2, dx_max=0, dy_max=0, eval_gradient=False):
+        """
+        creates the kernel matrix with respect to the derivatives.
+        :param kernel: given kernel like RBF
+        :param x1: training points shape (n_samples, n_features)
+        :param x2: training or prediction points (n_samples, n_features)
+        :param dx_max: maximum derivative in x1_prime
+        :param dy_max: maximum derivative in x2_prime
+        :param eval_gradient: flag if kernels derivative have to be evaluated. default False
+        :return: kernel matrix, derivative of the kernel matrix
+        """
+        # creates the kernel matrix
+        # if x1_prime is None then no derivative elements are calculated.
+        # derivative elements are given in the manner of [dx1, dx2, dx3, ...., dxn]
+        n, d = x1.shape
+        m, f = x2.shape
+        if not eval_gradient:
+            kernel_mat = np.zeros([n * (1 + dx_max), m * (1 + dy_max)])
+            #kernel_mat[0:n, 0:m] = kernel(x1, x2, dx=0, dy=0, eval_gradient=False)
+            for ii in range(dx_max + 1):
+                for jj in range(dy_max + 1):
+                    if ii == 0 and jj == 0:
+                        kernel_mat[0:n, 0:m] = kernel(x1, x2, dx=0, dy=0,
+                            eval_gradient=False)
+                    elif ii == 0:
+                        kernel_mat[0:n, (m+jj-1)::dy_max] = kernel(
+                            x1, x2, dx=0, dy=jj, eval_gradient=False)
+                    elif jj == 0:
+                        kernel_mat[(n+ii-1)::dx_max, 0:m] = kernel(
+                            x1, x2, dx=ii, dy=0, eval_gradient=False)
+                    #kernel_mat[(n+ii)::dx_max, (m+jj)::dy_max] = kernel(
+                    #    x1, x2, dx=ii+1, dy=jj+1, eval_gradient=False)
+                    else:
+                        kernel_mat[(n+ii-1)::dx_max, (m+jj-1)::dy_max] = kernel(
+                            x1, x2, dx=ii, dy=jj, eval_gradient=False)
+            return kernel_mat
+        else:
+            num_theta = len(kernel.theta)
+            kernel_derivative = np.zeros([n * (1 + dx_max), m * (1 + dy_max),
+                num_theta])
+            kernel_mat = np.zeros([n * (1 + dx_max), m * (1 + dy_max)])
+            for ii in range(dx_max + 1):
+                for jj in range(dy_max + 1):
+                    k_mat, deriv_mat = kernel(x1, x2, dx=ii, dy=jj, eval_gradient=True)
+                    if ii==0 and jj==0:
+                        kernel_mat[0:n, 0:m] = k_mat
+                        kernel_derivative[0:n, 0:m] = deriv_mat
+                    elif ii==0:
+                        kernel_mat[0:n, (m+jj-1)::dy_max] = k_mat
+                        kernel_derivative[0:n, (m+jj-1)::dy_max] = deriv_mat
+                    elif jj==0:
+                        kernel_mat[(n+ii-1)::dx_max, 0:m] = k_mat
+                        kernel_derivative[(n+ii-1)::dx_max, 0:m] = deriv_mat
+                    else:
+                        kernel_mat[(n+ii-1)::dx_max, (m+jj-1)::dy_max] = k_mat
+                        kernel_derivative[(n+ii-1)::dx_max, (m+jj-1)::dy_max] = deriv_mat
+        return kernel_mat, kernel_derivative
