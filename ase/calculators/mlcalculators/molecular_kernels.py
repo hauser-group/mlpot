@@ -155,7 +155,6 @@ class DotProductKernel():
     def bounds(self):
         return np.empty((0,2))
 
-    @jit(nopython=True)
     def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
         n = X.shape[0]
         m = Y.shape[0]
@@ -178,7 +177,7 @@ class DotProductKernel():
                 dot_plus_c = X[a,:].dot(Y[b,:]) + self.constant
                 K[a, b] = (dot_plus_c)**self.exponent
 
-                K[da, b] = dot_plus_c**(self.exponent - 1)*self.exponent*YY[b,:]
+                K[da, b] = dot_plus_c**(self.exponent - 1)*self.exponent*Y[b,:]
                 K[a, db] = dot_plus_c**(self.exponent - 1)*self.exponent*X[a,:]
                 K[da, db] = self.exponent*dot_plus_c**(self.exponent - 2)*(
                     (self.exponent - 1)*np.outer(Y[b,:],X[a,:]) +
@@ -191,7 +190,7 @@ class DotProductKernel():
 
 class RBFKernel():
 
-    def __init__(self, constant=0.0, factor=1.0, length_scale=1.0,
+    def __init__(self, constant=0.0, factor=1.0, length_scale=np.array([1.0]),
             length_scale_bounds=(1e-5, 1e5)):
         self.factor = factor
         self.constant = constant
@@ -220,7 +219,7 @@ class RBFKernel():
             raise ValueError('Unexpected dimension of length_scale_bounds')
 
     def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
-        return self._eval(X, Y, self.anisotropic, self.length_scale, self.factor,
+        return self._eval_old(X, Y, self.anisotropic, self.length_scale, self.factor,
             self.constant, dx=dx, dy=dy, eval_gradient=eval_gradient)
 
     @staticmethod
