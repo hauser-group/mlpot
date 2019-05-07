@@ -106,19 +106,15 @@ class NNCalculator(MLCalculator):
 
         if self.normalize_input == 'mean':
             for i, t in enumerate(self.atomtypes):
-                Gs_t = np.array([Gi for Gs in self.Gs for Gi in Gs[t]])
-                print(Gs_t.shape)
-                self.Gs_norm1[t] = np.mean(Gs_t, axis=0)
+                self.Gs_norm1[t] = np.mean(ann_inputs[i], axis=0)
                 # Small offset for numerical stability
-                self.Gs_norm2[t] = np.std(Gs_t, axis=0) + 1E-6
+                self.Gs_norm2[t] = np.std(ann_inputs[i], axis=0) + 1E-6
         elif self.normalize_input == 'min_max':
             for i, t in enumerate(self.atomtypes):
-                Gs_t = np.array([Gi for Gs in self.Gs for Gi in Gs[t]])
-                print(Gs_t.shape)
-                self.Gs_norm1[t] = np.min(Gs_t, axis=0)
+                self.Gs_norm1[t] =  np.min(ann_inputs[i], axis=0)
                 # Small offset for numerical stability
-                self.Gs_norm2[t] = (
-                    np.max(Gs_t, axis=0) - np.min(Gs_t, axis=0) + 1E-6) + 1E-6
+                self.Gs_norm2[t] = (np.max(ann_inputs[i], axis=0) -
+                    np.min(ann_inputs[i], axis=0) + 1E-6)
 
         self.train_dict = {self.pot.target: self.E_train,
             self.pot.target_forces: self.F_train,
