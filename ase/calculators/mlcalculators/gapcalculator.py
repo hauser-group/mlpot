@@ -41,7 +41,7 @@ class GAPCalculator(GPRCalculator):
         if not self.atoms_train:
             self.n_dim = 3*len(atoms)
             self.E_train = np.zeros(0)
-            self.F_train = np.zeros((0, self.n_dim))
+            self.F_train = np.zeros(0)
             self.Gs = []
             self.dGs = []
         # else: check if the new atoms object has the same length as previous

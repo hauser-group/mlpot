@@ -25,7 +25,7 @@ class GPRCalculator(MLCalculator):
             self.n_dim = 3*len(atoms)
             self.x_train = np.zeros((0, self.n_dim))
             self.E_train = np.zeros(0)
-            self.F_train = np.zeros((0, self.n_dim))
+            self.F_train = np.zeros(0)
         # else: check if the new atoms object has the same length as previous
         else:
             if not 3*len(atoms) == self.n_dim:
@@ -34,7 +34,8 @@ class GPRCalculator(MLCalculator):
 
         # Call the super class routine after checking for empty trainings set!
         MLCalculator.add_data(self, atoms)
-        self.x_train = np.append(self.x_train, atoms.get_positions.flatten())
+        self.x_train = np.append(
+            self.x_train, atoms.get_positions().reshape((1,self.n_dim)), axis=0)
         self.E_train = np.append(self.E_train, atoms.get_potential_energy())
         self.F_train = np.append(self.F_train, atoms.get_forces().flatten())
 
@@ -193,7 +194,7 @@ class GPRCalculator(MLCalculator):
         X_star. If X_star==None the kernel of the trainings_examples with
         themselves K(X,X)."""
         if not X_star == None:
-            x_star = [X_star.get_positions()]
+            x_star = np.array([X_star.get_positions().flatten()])
         else:
             x_star = self.x_train
         return self.kernel(self.x_train, x_star, dx=True, dy=True,
