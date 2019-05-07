@@ -42,8 +42,8 @@ class GAPCalculator(GPRCalculator):
             self.n_dim = 3*len(atoms)
             self.E_train = np.zeros(0)
             self.F_train = np.zeros(0)
-            self.Gs = []
-            self.dGs = []
+            self.Gs = {t:[] for t in self.atomtypes}
+            self.dGs = {t:[] for t in self.atomtypes}
         # else: check if the new atoms object has the same length as previous
         else:
             if not 3*len(atoms) == self.n_dim:
@@ -61,29 +61,27 @@ class GAPCalculator(GPRCalculator):
         dGs_by_type = {t:[] for t in self.atomtypes}
         for Gi, dGi, ti in zip(Gs, dGs, types):
             Gs_by_type[ti].append(Gi)
-            dGs_by_type[ti].append(dGi)
+            dGs_by_type[ti].append(dGi.reshape((-1, self.n_dim)))
         for t in self.atomtypes:
-            Gs_by_type[t] = np.array(Gs_by_type[t])
-            dGs_by_type[t] = np.array(dGs_by_type[t])
-        self.Gs.append(Gs_by_type)
-        self.dGs.append(dGs_by_type)
+            self.Gs[t].append(np.array(Gs_by_type[t]))
+            self.dGs[t].append(np.array(dGs_by_type[t]))
 
     def fit(self):
         if self.normalize_input == 'mean':
             for i, t in enumerate(self.atomtypes):
-                Gs_t = np.array([Gi for Gs in self.Gs for Gi in Gs[t]])
+                Gs_t = np.array(self.Gs[t])
                 print(Gs_t.shape)
-                self.Gs_norm1[t] = np.mean(Gs_t, axis=0)
+                self.Gs_norm1[t] = np.mean(Gs_t, axis=(0,1))
                 # Small offset for numerical stability
-                self.Gs_norm2[t] = np.std(Gs_t, axis=0) + 1E-6
+                self.Gs_norm2[t] = np.std(Gs_t, axis=(0,1)) + 1E-6
         elif self.normalize_input == 'min_max':
             for i, t in enumerate(self.atomtypes):
-                Gs_t = np.array([Gi for Gs in self.Gs for Gi in Gs[t]])
+                Gs_t = np.array(self.Gs[t])
                 print(Gs_t.shape)
-                self.Gs_norm1[t] = np.min(Gs_t, axis=0)
+                self.Gs_norm1[t] = np.min(Gs_t, axis=(0,1))
                 # Small offset for numerical stability
                 self.Gs_norm2[t] = (
-                    np.max(Gs_t, axis=0) - np.min(Gs_t, axis=0) + 1E-6)
+                    np.max(Gs_t, axis=(0,1)) - np.min(Gs_t, axis=(0,1)) + 1E-6)
 
         GPRCalculator.fit(self)
 
@@ -106,58 +104,87 @@ class GAPCalculator(GPRCalculator):
         X_star. If X_star==None the kernel of the trainings_examples with
         themselves K(X,X)."""
         N = len(self.atoms_train)
-        Gs_X = self.Gs
-        dGs_X = self.dGs
+        Gs_X = {t:[] for t in self.atomtypes}
+        dGs_X = {t:[] for t in self.atomtypes}
+        for t in self.atomtypes:
+            for Gsi, dGsi in zip(self.Gs[t], self.dGs[t]):
+                Gs_X[t].append((Gsi-self.Gs_norm1[t])/self.Gs_norm2[t])
+                #print(dGsi.shape, self.Gs_norm1[t].shape, self.Gs_norm2[t].shape)
+                dGs_X[t].append(np.einsum('ijk,j->ijk', dGsi,
+                    1.0/self.Gs_norm2[t]).reshape((-1, self.n_dim)))
         if not X_star == None:
             M = 1
             types = X_star.get_chemical_symbols()
             Gs, dGs = self.descriptor_set.eval_ase(X_star, derivatives=True)
+            Gs_Y = {t:[] for t in self.atomtypes}
+            dGs_Y = {t:[] for t in self.atomtypes}
             Gs_by_type = {t:[] for t in self.atomtypes}
             dGs_by_type = {t:[] for t in self.atomtypes}
             for Gi, dGi, ti in zip(Gs, dGs, types):
                 Gs_by_type[ti].append(Gi)
-                dGs_by_type[ti].append(dGi)
+                dGs_by_type[ti].append(dGi.reshape((-1, self.n_dim)))
             for t in self.atomtypes:
-                Gs_by_type[t] = np.array(Gs_by_type[t])
-                dGs_by_type[t] = np.array(dGs_by_type[t])
-            Gs_Y = [Gs_by_type]
-            dGs_Y = [dGs_by_type]
+                Gs_Y[t].append(
+                    (np.array(Gs_by_type[t]-self.Gs_norm1[t])/self.Gs_norm2[t]))
+                dGs_Y[t].append(np.einsum('ijk,j->ijk',
+                        np.array(dGs_by_type[t]), 1.0/self.Gs_norm2[t]
+                    ).reshape((-1, self.n_dim)))
         else:
             M = N
-            Gs_Y = self.Gs
-            dGs_Y = self.dGs
-        if not eval_gradient:
-            kernel_mat = np.zeros((N*(1+self.n_dim), M*(1+self.n_dim)))
-            for i, (Gsi, dGsi) in enumerate(zip(Gs_X, dGs_X)):
-                for j, (Gsj, dGsj) in enumerate(zip(Gs_Y, dGs_Y)):
-                    for t in self.atomtypes:
-                        # TODO: At this point normalize the descriptor vectors
-                        Gsi_t = (Gsi[t]-self.Gs_norm1[t])/self.Gs_norm2[t]
-                        Gsj_t = (Gsj[t]-self.Gs_norm1[t])/self.Gs_norm2[t]
-                        dGsi_t = np.einsum('ijkl,j->ijkl', dGsi[t],
-                            1.0/self.Gs_norm2[t]).reshape((-1, self.n_dim))
-                        dGsj_t = np.einsum('ijkl,j->ijkl', dGsj[t],
-                            1.0/self.Gs_norm2[t]).reshape((-1, self.n_dim))
+            Gs_Y = Gs_X
+            dGs_Y = dGs_X
 
-                        n_t = Gsi_t.shape[0]
-                        m_t = Gsj_t.shape[0]
-                        # Index range for the derivatives of geometry i and j
-                        # w.r.t. the cartesian coordinates:
-                        di = slice(N+i*self.n_dim, N+(i+1)*self.n_dim, 1)
-                        dj = slice(M+j*self.n_dim, M+(j+1)*self.n_dim, 1)
-                        # Calculate the kernel matrix of between atoms of type
-                        # t in geometry i and j. Shape
-                        # (n_t+n_t*num_Gs_t, m_t+m_t*num_Gs_t)
+        if eval_gradient:
+            kernel_grad = np.zeros(
+                (N*(1+self.n_dim), M*(1+self.n_dim),len(self.kernel.theta)))
+        kernel_mat = np.zeros((N*(1+self.n_dim), M*(1+self.n_dim)))
+        for t in self.atomtypes:
+            for i, (Gsi_t, dGsi_t) in enumerate(zip(Gs_X[t], dGs_X[t])):
+                for j, (Gsj_t, dGsj_t) in enumerate(zip(Gs_Y[t], dGs_Y[t])):
+
+                    # TODO: Not a great point to do the normalization...
+                    #Gsi_t = (Gsi[t]-self.Gs_norm1[t])/self.Gs_norm2[t]
+                    #Gsj_t = (Gsj[t]-self.Gs_norm1[t])/self.Gs_norm2[t]
+                    #dGsi_t = np.einsum('ijkl,j->ijkl', dGsi[t],
+                    #    1.0/self.Gs_norm2[t]).reshape((-1, self.n_dim))
+                    #dGsj_t = np.einsum('ijkl,j->ijkl', dGsj[t],
+                    #    1.0/self.Gs_norm2[t]).reshape((-1, self.n_dim))
+                    #dGsi_t = dGsi_t.reshape((-1, self.n_dim))
+                    #dGsj_t = dGsj_t.reshape((-1, self.n_dim))
+
+                    n_t = Gsi_t.shape[0]
+                    m_t = Gsj_t.shape[0]
+                    # Index range for the derivatives of geometry i and j
+                    # w.r.t. the cartesian coordinates:
+                    di = slice(N+i*self.n_dim, N+(i+1)*self.n_dim, 1)
+                    dj = slice(M+j*self.n_dim, M+(j+1)*self.n_dim, 1)
+                    # Calculate the kernel matrix of between atoms of type
+                    # t in geometry i and j. Shape
+                    # (n_t+n_t*num_Gs_t, m_t+m_t*num_Gs_t)
+                    if eval_gradient:
+                        K, dK = self.kernel(Gsi_t, Gsj_t, dx=True, dy=True,
+                            eval_gradient=True)
+                    else:
                         K = self.kernel(Gsi_t, Gsj_t, dx=True, dy=True)
-                        # Sum over atoms in n_t and m_t
-                        kernel_mat[i, j] += np.sum(K[:n_t, :m_t])
-                        # dGsi original shape = (n_t, num_Gs_t, num_atoms_i, 3)
-                        kernel_mat[di, j] += np.sum(K[n_t:, :m_t].T.dot(
-                            dGsi_t), axis=0)
-                        kernel_mat[i, dj] += np.sum(K[:n_t, m_t:].dot(
-                            dGsj_t), axis=0)
-                        kernel_mat[di, dj] += (dGsi_t.T.dot(K[n_t:, m_t:]).dot(
-                            dGsj_t.reshape((-1, self.n_dim))))
+                    # Sum over atoms in n_t and m_t
+                    kernel_mat[i, j] += np.sum(K[:n_t, :m_t])
+                    # dGsi original shape = (n_t, num_Gs_t, num_atoms_i, 3)
+
+                    kernel_mat[di, j] += np.einsum('ij,il->l',
+                        K[n_t:, :m_t], dGsi_t)
+                    kernel_mat[i, dj] += np.einsum('ij,jl->l',
+                        K[:n_t, m_t:], dGsj_t)
+                    kernel_mat[di, dj] += (dGsi_t.T.dot(K[n_t:, m_t:]).dot(
+                        dGsj_t))
+                    if eval_gradient:
+                        kernel_grad[i,j,:] += np.sum(dK[:n_t,:m_t,:])
+                        kernel_grad[di,j,:] += np.einsum('ijk,il->lk',
+                            dK[n_t:,:m_t,:], dGsi_t)
+                        kernel_grad[i,dj,:] += np.einsum('ijk,jl->lk',
+                            dK[:n_t,m_t:,:], dGsj_t)
+                        kernel_grad[di,dj,:] += np.einsum('il,ijk,jm->lmk',
+                            dGsi_t, dK[n_t:,m_t:,:], dGsj_t)
+        if eval_gradient:
+            return kernel_mat, kernel_grad
         else:
-            raise NotImplementedError
-        return kernel_mat
+            return kernel_mat
