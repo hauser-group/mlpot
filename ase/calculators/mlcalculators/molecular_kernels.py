@@ -3,7 +3,7 @@ from numba import jit
 
 class DotProductKernel():
 
-    def __init__(self, constant=0.0, exponent=2):
+    def __init__(self, constant=1.0, exponent=2):
         self.constant = constant
         self.exponent = exponent
 
@@ -58,7 +58,12 @@ class RBFKernel():
             length_scale_bounds=(1e-5, 1e5)):
         self.factor = factor
         self.constant = constant
-        self.length_scale = length_scale
+        if np.ndim(length_scale) == 0:
+            self.length_scale = np.array([length_scale])
+        elif np.ndim(length_scale) == 1:
+            self.length_scale = np.array(length_scale)
+        else:
+            raise ValueError('Unexpected dimension of length_scale')
         self.length_scale_bounds = length_scale_bounds
 
     @property
@@ -126,6 +131,7 @@ class RBFKernel():
 
         return K
 
+    @staticmethod
     def _eval_old(X, Y, anisotropic, length_scale, factor, constant,
         dx=False, dy=False, eval_gradient=False):
         n = X.shape[0]
@@ -151,7 +157,7 @@ class RBFKernel():
                 da = slice(n+a*n_dim, n+(a+1)*n_dim, 1)
                 db = slice(m+b*n_dim, m+(b+1)*n_dim, 1)
                 # A few helpful quantities:
-                scaled_diff = (X[a,:]-Y[b,:])/length_scale
+                scaled_diff = ((X[a,:]-Y[b,:])/length_scale)
                 inner_prod = scaled_diff.dot(scaled_diff)
                 outer_prod = np.outer(scaled_diff, scaled_diff)
                 outer_prod_over_l = np.outer(scaled_diff/length_scale,
@@ -352,12 +358,16 @@ class RBFKernel_with_factor():
             return K, K_gradient
 
 class MaternKernel():
-
-    def __init__(self, constant=0.0, factor=1.0, length_scale=1.0,
+    def __init__(self, constant=0.0, factor=1.0, length_scale=np.array([1.0]),
             length_scale_bounds=(1e-5, 1e5)):
         self.factor = factor
         self.constant = constant
-        self.length_scale = length_scale
+        if np.ndim(length_scale) == 0:
+            self.length_scale = np.array([length_scale])
+        elif np.ndim(length_scale) == 1:
+            self.length_scale = np.array([length_scale])
+        else:
+            raise ValueError('Unexpected dimension of length_scale')
         self.length_scale_bounds = length_scale_bounds
 
     @property
