@@ -21,7 +21,7 @@ class GAPCalculator(GPRCalculator):
             self.descriptor_set = descriptor_set
 
         self.atomtypes = self.descriptor_set.atomtypes
-        if not normalize_input in ['mean', 'min_max', False]:
+        if not normalize_input in ['mean', 'min_max', 'norm', False]:
             raise NotImplementedError(
                 'Unknown input normalization %s'%normalize_input)
         self.normalize_input = normalize_input
@@ -108,10 +108,19 @@ class GAPCalculator(GPRCalculator):
         dGs_X = {t:[] for t in self.atomtypes}
         for t in self.atomtypes:
             for Gsi, dGsi in zip(self.Gs[t], self.dGs[t]):
-                Gs_X[t].append((Gsi-self.Gs_norm1[t])/self.Gs_norm2[t])
-                #print(dGsi.shape, self.Gs_norm1[t].shape, self.Gs_norm2[t].shape)
-                dGs_X[t].append(np.einsum('ijk,j->ijk', dGsi,
-                    1.0/self.Gs_norm2[t]).reshape((-1, self.n_dim)))
+                if (self.normalize_input == 'mean' or
+                        self.normalize_input == 'min_max'):
+                    Gs_X[t].append((Gsi-self.Gs_norm1[t])/self.Gs_norm2[t])
+                    dGs_X[t].append(np.einsum('ijk,j->ijk', dGsi,
+                        1.0/self.Gs_norm2[t]).reshape((-1, self.n_dim)))
+                elif self.normalize_input == 'norm':
+                    norm_i = np.linalg.norm(Gsi, axis=1)
+                    Gs_X[t].append(Gsi/norm_i[:,np.newaxis])
+                    dGs_X[t].append(np.einsum('ijk,i->ijk', dGsi,
+                        1.0/norm_i).reshape((-1, self.n_dim)))
+                elif not self.normalize_input:
+                    Gs_X[t].append(Gsi)
+                    dGs_X[t].append(dGsi.reshape((-1, self.n_dim)))
         if not X_star == None:
             M = 1
             types = X_star.get_chemical_symbols()
@@ -124,11 +133,21 @@ class GAPCalculator(GPRCalculator):
                 Gs_by_type[ti].append(Gi)
                 dGs_by_type[ti].append(dGi.reshape((-1, self.n_dim)))
             for t in self.atomtypes:
-                Gs_Y[t].append(
-                    (np.array(Gs_by_type[t]-self.Gs_norm1[t])/self.Gs_norm2[t]))
-                dGs_Y[t].append(np.einsum('ijk,j->ijk',
-                        np.array(dGs_by_type[t]), 1.0/self.Gs_norm2[t]
-                    ).reshape((-1, self.n_dim)))
+                Gsi = np.array(Gs_by_type[t])
+                dGsi = np.array(dGs_by_type[t])
+                if (self.normalize_input == 'mean' or
+                        self.normalize_input == 'min_max'):
+                    Gs_Y[t].append((Gsi-self.Gs_norm1[t])/self.Gs_norm2[t])
+                    dGs_Y[t].append(np.einsum('ijk,j->ijk', dGsi,
+                        1.0/self.Gs_norm2[t]).reshape((-1, self.n_dim)))
+                elif self.normalize_input == 'norm':
+                    norm_i = np.linalg.norm(Gsi, axis=1)
+                    Gs_Y[t].append(Gsi/norm_i[:,np.newaxis])
+                    dGs_Y[t].append(np.einsum('ijk,i->ijk', dGsi,
+                        1.0/norm_i).reshape((-1, self.n_dim)))
+                elif not self.normalize_input:
+                    Gs_Y[t].append(Gsi)
+                    dGs_Y[t].append(dGsi.reshape((-1, self.n_dim)))
         else:
             M = N
             Gs_Y = Gs_X
