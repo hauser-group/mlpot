@@ -113,7 +113,6 @@ class RBFKernel():
                 # A few helpful quantities:
                 scaled_diff = (X[a,:]-Y[b,:])/length_scale
                 inner_prod = scaled_diff.dot(scaled_diff)
-                outer_prod = np.outer(scaled_diff, scaled_diff)
                 outer_prod_over_l = np.outer(scaled_diff/length_scale,
                     scaled_diff/length_scale)
                 exp_term = np.exp(-.5*inner_prod)
