@@ -1,7 +1,7 @@
 import numpy as np
 try:
     from numba import jit
-except:
+except ImportError:
     print("Could not import numba!")
 
 class DotProductKernel():
