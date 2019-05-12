@@ -1,6 +1,8 @@
 import numpy as np
 try:
     from numba import jit
+except:
+    print("Could not import numba!")
 
 class DotProductKernel():
 
