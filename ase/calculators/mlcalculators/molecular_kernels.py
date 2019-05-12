@@ -1,5 +1,6 @@
 import numpy as np
-from numba import jit
+try:
+    from numba import jit
 
 class DotProductKernel():
 
