@@ -9,7 +9,7 @@ class NNCalculator(MLCalculator):
     def __init__(self, restart=None, ignore_bad_restart_file=False,
                  label=None, atoms=None, C1=1.0, C2=1.0, lamb=1.0,
                  descriptor_set=None, layers=None, offsets=None,
-                 normalize_input=False, model_dir=None, config=None
+                 normalize_input=False, model_dir=None, config=None,
                  opt_restarts=1, reset_fit=True, opt_method='BFGS',
                  opt_options={'maxiter':1000, 'disp':True, 'gtol':1E-10},
                  **kwargs):
