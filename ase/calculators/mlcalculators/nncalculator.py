@@ -120,7 +120,6 @@ class NNCalculator(MLCalculator):
             self.pot.target_forces: self.F_train,
             self.pot.error_weights: np.ones(len(self.atoms_train))}
         for i, t in enumerate(self.atomtypes):
-            print(ann_inputs[i].shape, ann_derivs[i].shape)
             self.train_dict[self.pot.atom_indices[t]] = indices[i]
             if self.normalize_input == 'norm':
                 norm_i = np.linalg.norm(ann_inputs[i], axis=1)
