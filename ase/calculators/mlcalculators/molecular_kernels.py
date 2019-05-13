@@ -2,7 +2,15 @@ import numpy as np
 try:
     from numba import jit
 except ImportError:
-    print("Could not import numba!")
+    import warnings
+    warnings.warn("Could not import numba!")
+    # Dummy jit decorator
+    def jit(nopython=True):
+        def jit_decorator(func):
+            def wrapper():
+                return func()
+            return wrapper
+        return jit_decorator
 
 class DotProductKernel():
 
