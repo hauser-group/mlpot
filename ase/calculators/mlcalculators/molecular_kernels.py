@@ -98,9 +98,17 @@ class RBFKernel():
         else:
             raise ValueError('Unexpected dimension of length_scale_bounds')
 
-    def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
-        return self._eval_old(X, Y, self.anisotropic, self.length_scale, self.factor,
-            self.constant, dx=dx, dy=dy, eval_gradient=eval_gradient)
+    def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False, method='old'):
+        if method == 'old':
+            return self._eval_old(X, Y, self.anisotropic, self.length_scale, self.factor,
+                self.constant, dx=dx, dy=dy, eval_gradient=eval_gradient)
+        elif method == 'new':
+            if eval_gradient:
+                return self._eval_with_gradient(X, Y, self.anisotropic,
+                    self.length_scale, self.factor, self.constant, dx=dx, dy=dy)
+            else:
+                return self._eval(X, Y, self.anisotropic, self.length_scale,
+                    self.factor, self.constant, dx=dx, dy=dy)
 
     @staticmethod
     @jit(nopython=True)
@@ -124,22 +132,109 @@ class RBFKernel():
                 # A few helpful quantities:
                 scaled_diff = (X[a,:]-Y[b,:])/length_scale
                 inner_prod = scaled_diff.dot(scaled_diff)
+                outer_prod = np.outer(scaled_diff, scaled_diff)
                 outer_prod_over_l = np.outer(scaled_diff/length_scale,
                     scaled_diff/length_scale)
                 exp_term = np.exp(-.5*inner_prod)
+                delta_qp = np.eye(n_dim)
                 # populate kernel matrix:
                 K[a, b] = exp_term
                 K[da, b] = -exp_term*scaled_diff/length_scale
                 K[a, db] = exp_term*scaled_diff/length_scale
                 K[da, db] = exp_term*(
-                    np.eye(n_dim)/length_scale**2 - outer_prod_over_l)
+                    delta_qp/length_scale**2 - outer_prod_over_l)
+
+        # Multiply by factor
+        K *= factor
+        # Add constant term only on non-derivative block
+        K[:n,:m] += constant
+        return K
+
+    @staticmethod
+    @jit(nopython=True)
+    def _eval_with_gradient(X, Y, anisotropic, length_scale, factor, constant,
+        dx=False, dy=False):
+        n = X.shape[0]
+        m = Y.shape[0]
+        n_dim = X.shape[1]
+
+        # The arguments dx and dy are deprecated and will be removed soon
+        if not (dx and dy):
+            raise NotImplementedError
+        # Initialize kernel matrix
+        K = np.zeros((n*(1+n_dim), m*(1+n_dim)))
+
+        # Array to hold the derivatives with respect to the length_scale
+        if anisotropic:
+            K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim),
+                length_scale.shape[0]))
+        else: # isotropic
+            K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim), 1))
+        for a in range(n):
+            for b in range(m):
+                # Index ranges for the derivatives are given by the following
+                # slice objects:
+                da = slice(n+a*n_dim, n+(a+1)*n_dim, 1)
+                db = slice(m+b*n_dim, m+(b+1)*n_dim, 1)
+                # A few helpful quantities:
+                scaled_diff = (X[a,:]-Y[b,:])/length_scale
+                inner_prod = scaled_diff.dot(scaled_diff)
+                outer_prod = np.outer(scaled_diff, scaled_diff)
+                outer_prod_over_l = np.outer(scaled_diff/length_scale,
+                    scaled_diff/length_scale)
+                exp_term = np.exp(-.5*inner_prod)
+                delta_qp = np.eye(n_dim)
+                # populate kernel matrix:
+                K[a, b] = exp_term
+                K[da, b] = -exp_term*scaled_diff/length_scale
+                K[a, db] = exp_term*scaled_diff/length_scale
+                K[da, db] = exp_term*(
+                    delta_qp/length_scale**2 - outer_prod_over_l)
+
+                if anisotropic:
+                    # Following the accompaning latex documents the
+                    # three matrix dimensions are refered to as q, p and s.
+                    K_gradient[a, b, :] = exp_term*(
+                        scaled_diff**2/length_scale)
+                    K_gradient[da, b, :] = exp_term*(
+                        2*np.diag(scaled_diff/length_scale**2) -
+                        np.outer(scaled_diff/length_scale,
+                        scaled_diff**2/length_scale))
+                    K_gradient[a, db, :] = -exp_term*(
+                        2*np.diag(scaled_diff/length_scale**2) -
+                        np.outer(scaled_diff/length_scale,
+                        scaled_diff**2/length_scale))
+                    for s in range(n_dim):
+                        delta_qs = np.zeros((n_dim, n_dim))
+                        delta_qs[s,:] = 1.0
+                        delta_ps = np.zeros((n_dim, n_dim))
+                        delta_ps[:,s] = 1.0
+                        K_gradient[da, db, s] = exp_term*(
+                            delta_qp*(scaled_diff[s]**2 - 2*delta_qs) +
+                            outer_prod*(2*delta_qs+2*delta_ps - scaled_diff[s]**2)
+                        )/(length_scale[s]*np.outer(length_scale, length_scale))
+                else: # isotropic
+                    K_gradient[a, b, 0] = exp_term*(
+                        inner_prod/length_scale[0])
+                    K_gradient[da, b, 0] = exp_term*(
+                        scaled_diff*(2 - inner_prod)/length_scale**2)
+                    K_gradient[a, db, 0] = -exp_term*(
+                        scaled_diff*(2 - inner_prod)
+                        /length_scale**2)
+                    K_gradient[da, db, 0] = exp_term*(
+                        delta_qp*(inner_prod - 2) +
+                        outer_prod*(4 - inner_prod))/length_scale**3
+
+
+        # Multiply gradient with respect to the length_scale by factor
+        K_gradient *= factor
 
         # Multiply by factor
         K *= factor
         # Add constant term only on non-derivative block
         K[:n,:m] += constant
 
-        return K
+        return K, K_gradient
 
     @staticmethod
     def _eval_old(X, Y, anisotropic, length_scale, factor, constant,
