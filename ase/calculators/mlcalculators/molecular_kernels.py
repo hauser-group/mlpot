@@ -132,7 +132,6 @@ class RBFKernel():
                 # A few helpful quantities:
                 scaled_diff = (X[a,:]-Y[b,:])/length_scale
                 inner_prod = scaled_diff.dot(scaled_diff)
-                outer_prod = np.outer(scaled_diff, scaled_diff)
                 outer_prod_over_l = np.outer(scaled_diff/length_scale,
                     scaled_diff/length_scale)
                 exp_term = np.exp(-.5*inner_prod)
@@ -264,7 +263,6 @@ class RBFKernel():
                 # A few helpful quantities:
                 scaled_diff = ((X[a,:]-Y[b,:])/length_scale)
                 inner_prod = scaled_diff.dot(scaled_diff)
-                outer_prod = np.outer(scaled_diff, scaled_diff)
                 outer_prod_over_l = np.outer(scaled_diff/length_scale,
                     scaled_diff/length_scale)
                 exp_term = np.exp(-.5*inner_prod)
@@ -307,6 +305,7 @@ class RBFKernel():
                             (2*delta_qs + 2*delta_ps - scaled_diff_s_squared)
                             )/length_scale
                     else: # isotropic
+                        outer_prod = np.outer(scaled_diff, scaled_diff)
                         K_gradient[a, b, 0] = exp_term*(
                             inner_prod/length_scale)
                         K_gradient[da, b, 0] = exp_term*(
@@ -391,7 +390,6 @@ class RBFKernel_with_factor():
                 # A few helpful quantities:
                 scaled_diff = (Xa-Yb)/self.length_scale
                 inner_prod = scaled_diff.dot(scaled_diff)
-                outer_prod = np.outer(scaled_diff, scaled_diff)
                 outer_prod_over_l = np.outer(scaled_diff/self.length_scale,
                     scaled_diff/self.length_scale)
                 exp_term = np.exp(-.5*inner_prod)
@@ -435,6 +433,7 @@ class RBFKernel_with_factor():
                             )/self.length_scale
 
                     else: # isotropic
+                        outer_prod = np.outer(scaled_diff, scaled_diff)
                         K_gradient[a, b, 1] = exp_term*(
                             inner_prod/self.length_scale)
                         K_gradient[da, b, 1] = exp_term*(
@@ -523,7 +522,6 @@ class MaternKernel():
                 scaled_diff = (Xa-Yb)/self.length_scale
                 inner_prod = scaled_diff.dot(scaled_diff)
                 sqrt_sum = np.sqrt(5.*inner_prod)
-                outer_prod = np.outer(scaled_diff, scaled_diff)
                 outer_prod_over_l = np.outer(scaled_diff/self.length_scale,
                     scaled_diff/self.length_scale)
                 exp_term = np.exp(-sqrt_sum)
@@ -541,6 +539,7 @@ class MaternKernel():
                     if self.anisotropic:
                         raise NotImplementedError
                     else: # isotropic
+                        outer_prod = np.outer(scaled_diff, scaled_diff)
                         K_gradient[a, b, 0] = 5./3.*(sqrt_sum + 1)*(
                             inner_prod/self.length_scale)*exp_term
                         K_gradient[da, b, 0] = 5./3.*(2. - 5.*inner_prod + 2.*
