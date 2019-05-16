@@ -108,7 +108,8 @@ class GPRCalculator(MLCalculator):
         E = y[:self.n_samples] + self.intercept
         F = -y[self.n_samples:]
         print('Fit finished. Final RMSE energy = %f, RMSE force = %f.'%(
-            np.mean((E - self.E_train)**2), np.mean((F - self.F_train)**2)))
+            np.sqrt(np.mean((E - self.E_train)**2)),
+            np.sqrt(np.mean((F - self.F_train)**2))))
 
     def _cholesky(self, kernel):
         """
