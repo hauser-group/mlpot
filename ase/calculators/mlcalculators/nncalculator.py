@@ -65,10 +65,9 @@ class NNCalculator(MLCalculator):
                     (self.pot.target-self.pot.E_predict)**2)
                 self.sum_squared_error_force = tf.reduce_sum(
                     (self.pot.target_forces-self.pot.F_predict)**2)
-                self.loss = tf.add(.5*self.sum_squared_error,
-                    .5*self.sum_squared_error_force*(self.C2/self.C1)
-                    + reg_term/self.C1,
-                    name='Loss')
+                self.loss = tf.add(.5*self.mse,
+                    .5*self.mse_forces*(self.C2/self.C1)
+                    + reg_term/self.C1, name='Loss')
                 self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(
                     self.loss, method=opt_method, options=opt_options,
                     var_list = self.pot.variables)#[v for v in self.pot.variables if not 'b:' in v.name])
