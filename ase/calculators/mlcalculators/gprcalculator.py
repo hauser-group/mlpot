@@ -93,6 +93,9 @@ class GPRCalculator(MLCalculator):
             self.kernel.theta = opt_hyper_parameter[min_idx]
 
         k_mat = self.build_kernel_matrix()
+        # Copy original k_mat (without regularization) for later calculation of
+        # trainings error
+        pure_k_mat = k_mat.copy()
         k_mat[:self.n_samples, :self.n_samples] += np.eye(
             self.n_samples)/self.C1
         k_mat[self.n_samples:, self.n_samples:] += np.eye(
@@ -100,6 +103,12 @@ class GPRCalculator(MLCalculator):
 
         self.L, alpha = self._cholesky(k_mat)
         self.alpha = alpha
+
+        y = self.alpha.dot(pure_k_mat)
+        E = y[:self.n_samples] + self.intercept
+        F = -y[self.n_samples:]
+        print('Fit finished. Final RMSE energy = %f, RMSE force = %f.'%(
+            np.mean((E - self.E_train)**2), np.mean((F - self.F_train)**2)))
 
     def _cholesky(self, kernel):
         """
