@@ -70,14 +70,12 @@ class GAPCalculator(GPRCalculator):
         if self.normalize_input == 'mean':
             for i, t in enumerate(self.atomtypes):
                 Gs_t = np.array(self.Gs[t])
-                print(Gs_t.shape)
                 self.Gs_norm1[t] = np.mean(Gs_t, axis=(0,1))
                 # Small offset for numerical stability
                 self.Gs_norm2[t] = np.std(Gs_t, axis=(0,1)) + 1E-6
         elif self.normalize_input == 'min_max':
             for i, t in enumerate(self.atomtypes):
                 Gs_t = np.array(self.Gs[t])
-                print(Gs_t.shape)
                 self.Gs_norm1[t] = np.min(Gs_t, axis=(0,1))
                 # Small offset for numerical stability
                 self.Gs_norm2[t] = (
