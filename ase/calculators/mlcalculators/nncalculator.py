@@ -71,8 +71,12 @@ class NNCalculator(MLCalculator):
                 self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(
                     self.loss, method=opt_method, options=opt_options,
                     var_list = self.pot.variables)#[v for v in self.pot.variables if not 'b:' in v.name])
+                self.AdamOpt = tf.train.AdamOptimizer()
+                self.train = self.AdamOpt.minimize(self.loss)
+                self.init_adam = tf.initializers.variables(self.AdamOpt.variables())
         self.session = tf.Session(config=config, graph=self.graph)
         self.session.run(tf.initializers.variables(self.pot.variables))
+        self.session.run(self.init_adam)
 
     def add_data(self, atoms):
         # If the trainings set is empty: setup the numpy arrays
@@ -141,6 +145,18 @@ class NNCalculator(MLCalculator):
             if (i > 0 or self.reset_fit or
                   (self.opt_restarts == 1 and self.reset_fit)):
                 self.session.run(tf.initializers.variables(self.pot.variables))
+
+            # Do a few steps of ADAM optimization to start off:
+            self.session.run(self.init_adam)
+            for _ in range(1000):
+                self.session.run(self.train, self.train_dict)
+            loss_value, e_rmse, f_rmse = self.session.run(
+                [self.loss, self.pot.rmse, self.pot.rmse_forces],
+                self.train_dict)
+            print('Finished Adam optimization'
+                'Total loss = %f, RMSE energy = %f, RMSE forces = %f.'%(
+                    loss_value, e_rmse, f_rmse))
+
             # Optimize weights using scipy.minimize
             self.optimizer.minimize(self.session, self.train_dict)
 
