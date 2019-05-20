@@ -31,6 +31,7 @@ class NNCalculator(MLCalculator):
 
         self.opt_restarts = opt_restarts
         self.reset_fit = reset_fit
+        self.opt_options = opt_options
 
         self.model_dir = model_dir
         if not normalize_input in ['mean', 'min_max', 'norm', False]:
@@ -148,12 +149,12 @@ class NNCalculator(MLCalculator):
 
             # Do a few steps of ADAM optimization to start off:
             self.session.run(self.init_adam)
-            for _ in range(1000):
+            for _ in range(self.opt_options['maxiter']):
                 self.session.run(self.train, self.train_dict)
             loss_value, e_rmse, f_rmse = self.session.run(
                 [self.loss, self.pot.rmse, self.pot.rmse_forces],
                 self.train_dict)
-            print('Finished Adam optimization'
+            print('Finished Adam optimization. '
                 'Total loss = %f, RMSE energy = %f, RMSE forces = %f.'%(
                     loss_value, e_rmse, f_rmse))
 
