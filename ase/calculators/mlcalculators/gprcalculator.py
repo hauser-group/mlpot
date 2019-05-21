@@ -83,8 +83,10 @@ class GPRCalculator(MLCalculator):
                     value.append(val)
                     print('Finished with value:', val,
                         ' and parameters:', opt_x)
-                except np.linalg.LinAlgError:
-                    print('Cholesky factorization failed')
+                except np.linalg.LinAlgError as E:
+                    print('Cholesky factorization failed for parameters:',
+                        self.kernel.theta)
+                    print(E)
 
             if len(value) == 0:
                 raise ValueError('No successful optimization')
@@ -122,21 +124,15 @@ class GPRCalculator(MLCalculator):
         return L, alpha
 
     def _opt_routine(self, initial_hyper_parameter):
-        if self.opt_method == 'L-BFGS-B':
+        if self.opt_method in ['L-BFGS-B', 'SLSQP', 'TNC']:
             opt_obj = minimize(self._opt_fun, initial_hyper_parameter,
-                method='L-BFGS-B', jac=True, bounds=self.kernel.bounds)
+                method=self.opt_method, jac=True, bounds=self.kernel.bounds)
             opt_hyper_parameter = opt_obj.x
             value = opt_obj.fun
-        elif self.opt_method == 'LBFGS_B':
-            opt_hyper_parameter, value, opt_dict = sp_opt.fmin_l_bfgs_b(
-                self._opt_fun, initial_hyper_parameter,
-                bounds=self.kernel.bounds)
-            if opt_dict['warnflag'] != 0:
-                warnings.warn('fmin_l_bfgs_b terminated abnormally with the '
-                    'state: %s' % opt_dict)
         else:
             raise NotImplementedError(
-                'Method is not implemented use method=L-BFGS-B.')
+                'Method is not implemented or does not support the use of'
+                'bounds use method=L-BFGS-B.')
 
         return opt_hyper_parameter, value
 
