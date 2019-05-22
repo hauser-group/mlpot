@@ -154,7 +154,7 @@ class GAPCalculator(GPRCalculator):
         Gs_X = self.Gs_norm
         dGs_X = self.dGs_norm
 
-        if X_star == None:
+        if X_star is None:
             M = N
             Gs_Y = Gs_X
             dGs_Y = dGs_X

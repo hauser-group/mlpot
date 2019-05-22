@@ -206,9 +206,9 @@ class GPRCalculator(MLCalculator):
         """Builds the kernel matrix K(X,X*) of the trainings_examples and
         X_star. If X_star==None the kernel of the trainings_examples with
         themselves K(X,X)."""
-        if X_star == None:
+        if X_star is None:
             return self.kernel(self.x_train, self.x_train, dx=True, dy=True,
                 eval_gradient=eval_gradient)
         else:
-            return self.kernel(self.x_train, x_star, dx=True, dy=True,
+            return self.kernel(self.x_train, X_star, dx=True, dy=True,
                 eval_gradient=eval_gradient)
