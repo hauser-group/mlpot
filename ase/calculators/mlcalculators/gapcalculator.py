@@ -37,6 +37,8 @@ class GAPCalculator(GPRCalculator):
                 self.descriptor_set.type_dict[t]])
 
     def add_data(self, atoms):
+        """The data structure for the descriptors is somewhat complicated.
+        Needs a more extensive description!!!"""
         # If the trainings set is empty: setup the numpy arrays
         if not self.atoms_train:
             self.n_dim = 3*len(atoms)
@@ -55,6 +57,12 @@ class GAPCalculator(GPRCalculator):
         self.E_train = np.append(self.E_train, atoms.get_potential_energy())
         self.F_train = np.append(self.F_train, atoms.get_forces().flatten())
 
+        Gs_by_type, dGs_by_type = self._transform_input(atoms)
+        for t in self.atomtypes:
+            self.Gs[t].append(np.array(Gs_by_type[t]))
+            self.dGs[t].append(np.array(dGs_by_type[t]))
+
+    def _transform_input(self, atoms):
         types = atoms.get_chemical_symbols()
         Gs, dGs = self.descriptor_set.eval_ase(atoms, derivatives=True)
         Gs_by_type = {t:[] for t in self.atomtypes}
@@ -62,9 +70,30 @@ class GAPCalculator(GPRCalculator):
         for Gi, dGi, ti in zip(Gs, dGs, types):
             Gs_by_type[ti].append(Gi)
             dGs_by_type[ti].append(dGi.reshape((-1, self.n_dim)))
+        return Gs_by_type, dGs_by_type
+
+    def _normalize_input(self, (Gs, dGs)):
+        Gs_norm = copy.deepcopy(Gs)
+        dGs_norm = copy.deepcopy(dGs)
+        # Iterate over atomtypes
         for t in self.atomtypes:
-            self.Gs[t].append(np.array(Gs_by_type[t]))
-            self.dGs[t].append(np.array(dGs_by_type[t]))
+            # Iterate over number of data points
+            for i in range(len(Gs[t])):
+                if (self.normalize_input == 'mean' or
+                        self.normalize_input == 'min_max'):
+                    Gs_norm[t][i] = (
+                        Gs_norm[t][i]-self.Gs_norm1[t])/self.Gs_norm2[t])
+                    dGs_norm[t][i] = (np.einsum('ijk,j->ijk', dGs_norm[t][i],
+                        1.0/self.Gs_norm2[t])
+                elif self.normalize_input == 'norm':
+                    norm_i = np.linalg.norm(Gs_norm[t][i], axis=1)
+                    Gs_norm[t][i] = (Gs_norm[t][i]/norm_i[:,np.newaxis])
+                    dGs_norm[t][i] = (np.einsum('ijk,i->ijk', dGs_norm[t][i],
+                        1.0/norm_i)
+                # Reshaping can only be done here as the separate descriptor
+                # dimension is needed for normalization
+                dGs_norm[t][i] = dGs_norm[t][i].reshape((-1, self.n_dim))
+        return Gs_norm, dGs_norm
 
     def fit(self):
         if self.normalize_input == 'mean':
@@ -81,10 +110,12 @@ class GAPCalculator(GPRCalculator):
                 self.Gs_norm2[t] = (
                     np.max(Gs_t, axis=(0,1)) - np.min(Gs_t, axis=(0,1)) + 1E-6)
 
+        self.Gs_norm, self.dGs_norm = self._normalize_input((self.Gs, self.dGs))
         GPRCalculator.fit(self)
 
     def get_params(self):
         return {'atoms_train':self.atoms_train, 'Gs':self.Gs, 'dGs':self.dGs,
+            'Gs_norm':self.Gs_norm, 'dGs_norm':self.dGs_norm,
             'alpha':self.alpha, 'intercept':self.intercept,
             'hyper_parameters':self.kernel.theta}
 
@@ -92,6 +123,8 @@ class GAPCalculator(GPRCalculator):
         self.atoms_train = params['atoms_train']
         self.Gs = params['Gs']
         self.dGs = params['dGs']
+        self.Gs_norm = params['Gs_norm']
+        self.dGs_norm = params['dGs_norm']
         self.n_dim = 3*len(self.atoms_train[0])
         self.alpha = params['alpha']
         self.intercept = params['intercept']
@@ -102,54 +135,17 @@ class GAPCalculator(GPRCalculator):
         X_star. If X_star==None the kernel of the trainings_examples with
         themselves K(X,X)."""
         N = len(self.atoms_train)
-        Gs_X = {t:[] for t in self.atomtypes}
-        dGs_X = {t:[] for t in self.atomtypes}
-        for t in self.atomtypes:
-            for Gsi, dGsi in zip(self.Gs[t], self.dGs[t]):
-                if (self.normalize_input == 'mean' or
-                        self.normalize_input == 'min_max'):
-                    Gs_X[t].append((Gsi-self.Gs_norm1[t])/self.Gs_norm2[t])
-                    dGs_X[t].append(np.einsum('ijk,j->ijk', dGsi,
-                        1.0/self.Gs_norm2[t]).reshape((-1, self.n_dim)))
-                elif self.normalize_input == 'norm':
-                    norm_i = np.linalg.norm(Gsi, axis=1)
-                    Gs_X[t].append(Gsi/norm_i[:,np.newaxis])
-                    dGs_X[t].append(np.einsum('ijk,i->ijk', dGsi,
-                        1.0/norm_i).reshape((-1, self.n_dim)))
-                elif not self.normalize_input:
-                    Gs_X[t].append(Gsi)
-                    dGs_X[t].append(dGsi.reshape((-1, self.n_dim)))
-        if not X_star == None:
-            M = 1
-            types = X_star.get_chemical_symbols()
-            Gs, dGs = self.descriptor_set.eval_ase(X_star, derivatives=True)
-            Gs_Y = {t:[] for t in self.atomtypes}
-            dGs_Y = {t:[] for t in self.atomtypes}
-            Gs_by_type = {t:[] for t in self.atomtypes}
-            dGs_by_type = {t:[] for t in self.atomtypes}
-            for Gi, dGi, ti in zip(Gs, dGs, types):
-                Gs_by_type[ti].append(Gi)
-                dGs_by_type[ti].append(dGi.reshape((-1, self.n_dim)))
-            for t in self.atomtypes:
-                Gsi = np.array(Gs_by_type[t])
-                dGsi = np.array(dGs_by_type[t])
-                if (self.normalize_input == 'mean' or
-                        self.normalize_input == 'min_max'):
-                    Gs_Y[t].append((Gsi-self.Gs_norm1[t])/self.Gs_norm2[t])
-                    dGs_Y[t].append(np.einsum('ijk,j->ijk', dGsi,
-                        1.0/self.Gs_norm2[t]).reshape((-1, self.n_dim)))
-                elif self.normalize_input == 'norm':
-                    norm_i = np.linalg.norm(Gsi, axis=1)
-                    Gs_Y[t].append(Gsi/norm_i[:,np.newaxis])
-                    dGs_Y[t].append(np.einsum('ijk,i->ijk', dGsi,
-                        1.0/norm_i).reshape((-1, self.n_dim)))
-                elif not self.normalize_input:
-                    Gs_Y[t].append(Gsi)
-                    dGs_Y[t].append(dGsi.reshape((-1, self.n_dim)))
-        else:
+        Gs_X = self.Gs_norm
+        dGs_X = self.dGs_norm
+
+        if X_star == None:
             M = N
             Gs_Y = Gs_X
             dGs_Y = dGs_X
+        else:
+            M = 1
+            Gs_Y = X_star[0]
+            dGs_Y = X_star[1]
 
         if eval_gradient:
             kernel_grad = np.zeros(
@@ -158,16 +154,6 @@ class GAPCalculator(GPRCalculator):
         for t in self.atomtypes:
             for i, (Gsi_t, dGsi_t) in enumerate(zip(Gs_X[t], dGs_X[t])):
                 for j, (Gsj_t, dGsj_t) in enumerate(zip(Gs_Y[t], dGs_Y[t])):
-
-                    # TODO: Not a great point to do the normalization...
-                    #Gsi_t = (Gsi[t]-self.Gs_norm1[t])/self.Gs_norm2[t]
-                    #Gsj_t = (Gsj[t]-self.Gs_norm1[t])/self.Gs_norm2[t]
-                    #dGsi_t = np.einsum('ijkl,j->ijkl', dGsi[t],
-                    #    1.0/self.Gs_norm2[t]).reshape((-1, self.n_dim))
-                    #dGsj_t = np.einsum('ijkl,j->ijkl', dGsj[t],
-                    #    1.0/self.Gs_norm2[t]).reshape((-1, self.n_dim))
-                    #dGsi_t = dGsi_t.reshape((-1, self.n_dim))
-                    #dGsj_t = dGsj_t.reshape((-1, self.n_dim))
 
                     n_t = Gsi_t.shape[0]
                     m_t = Gsj_t.shape[0]

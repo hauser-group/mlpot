@@ -35,9 +35,15 @@ class GPRCalculator(MLCalculator):
         # Call the super class routine after checking for empty trainings set!
         MLCalculator.add_data(self, atoms)
         self.x_train = np.append(
-            self.x_train, atoms.get_positions().reshape((1,self.n_dim)), axis=0)
+            self.x_train, self._transform_input(atoms), axis=0)
         self.E_train = np.append(self.E_train, atoms.get_potential_energy())
         self.F_train = np.append(self.F_train, atoms.get_forces().flatten())
+
+    def _transform_input(self, atoms):
+        return atoms.get_positions().reshape((1,-1))
+
+    def _normalize_input(self, x):
+        return x
 
     def fit(self):
         print('Fit called with %d geometries.'%len(self.atoms_train))
@@ -177,7 +183,8 @@ class GPRCalculator(MLCalculator):
 
     def predict(self, atoms):
         # Prediction
-        y = self.alpha.dot(self.build_kernel_matrix(X_star=atoms))
+        X_star = self._normalize_input(self._transform_input(atoms))
+        y = self.alpha.dot(self.build_kernel_matrix(X_star=X_star))
         E = y[0] + self.intercept
         F = -y[1:].reshape((-1,3))
         return E, F
@@ -199,9 +206,9 @@ class GPRCalculator(MLCalculator):
         """Builds the kernel matrix K(X,X*) of the trainings_examples and
         X_star. If X_star==None the kernel of the trainings_examples with
         themselves K(X,X)."""
-        if not X_star == None:
-            x_star = np.array([X_star.get_positions().flatten()])
+        if X_star == None:
+            return self.kernel(self.x_train, self.x_train, dx=True, dy=True,
+                eval_gradient=eval_gradient)
         else:
-            x_star = self.x_train
-        return self.kernel(self.x_train, x_star, dx=True, dy=True,
-            eval_gradient=eval_gradient)
+            return self.kernel(self.x_train, x_star, dx=True, dy=True,
+                eval_gradient=eval_gradient)
