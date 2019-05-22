@@ -147,16 +147,16 @@ class NNCalculator(MLCalculator):
                   (self.opt_restarts == 1 and self.reset_fit)):
                 self.session.run(tf.initializers.variables(self.pot.variables))
 
-            # Do a few steps of ADAM optimization to start off:
-            self.session.run(self.init_adam)
-            for _ in range(self.opt_options['maxiter']):
-                self.session.run(self.train, self.train_dict)
-            loss_value, e_rmse, f_rmse = self.session.run(
-                [self.loss, self.pot.rmse, self.pot.rmse_forces],
-                self.train_dict)
-            print('Finished Adam optimization. '
-                'Total loss = %f, RMSE energy = %f, RMSE forces = %f.'%(
-                    loss_value, e_rmse, f_rmse))
+                # Do a few steps of ADAM optimization to start off:
+                self.session.run(self.init_adam)
+                for _ in range(self.opt_options['maxiter']):
+                    self.session.run(self.train, self.train_dict)
+                loss_value, e_rmse, f_rmse = self.session.run(
+                    [self.loss, self.pot.rmse, self.pot.rmse_forces],
+                    self.train_dict)
+                print('Finished Adam optimization. '
+                    'Total loss = %f, RMSE energy = %f, RMSE forces = %f.'%(
+                        loss_value, e_rmse, f_rmse))
 
             # Optimize weights using scipy.minimize
             self.optimizer.minimize(self.session, self.train_dict)
