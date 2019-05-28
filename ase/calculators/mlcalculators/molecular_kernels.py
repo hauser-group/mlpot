@@ -450,14 +450,14 @@ class RBFKernel_with_factor():
                     self.length_scale.shape[0]))
             else: # isotropic
                 K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim), 2))
-        for a, Xa in enumerate(X):
-            for b, Yb in enumerate(Y):
+        for a in range(n):
+            for b in range(m):
                 # Index ranges for the derivatives are given by the following
                 # slice objects:
                 da = slice(n+a*n_dim, n+(a+1)*n_dim, 1)
                 db = slice(m+b*n_dim, m+(b+1)*n_dim, 1)
                 # A few helpful quantities:
-                scaled_diff = (Xa-Yb)/self.length_scale
+                scaled_diff = (X[a,:]-Y[b,:])/self.length_scale
                 inner_prod = scaled_diff.dot(scaled_diff)
                 outer_prod_over_l = np.outer(scaled_diff/self.length_scale,
                     scaled_diff/self.length_scale)
@@ -581,14 +581,14 @@ class MaternKernel():
                     self.length_scale.shape[0]))
             else: # isotropic
                 K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim), 1))
-        for a, Xa in enumerate(X):
-            for b, Yb in enumerate(Y):
+        for a in range(n):
+            for b in range(m):
                 # Index ranges for the derivatives are given by the following
                 # slice objects:
                 da = slice(n+a*n_dim, n+(a+1)*n_dim, 1)
                 db = slice(m+b*n_dim, m+(b+1)*n_dim, 1)
                 # A few helpful quantities:
-                scaled_diff = (Xa-Yb)/self.length_scale
+                scaled_diff = (X[a,:]-Y[b,:])/self.length_scale
                 inner_prod = scaled_diff.dot(scaled_diff)
                 sqrt_sum = np.sqrt(5.*inner_prod)
                 outer_prod_over_l = np.outer(scaled_diff/self.length_scale,
