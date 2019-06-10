@@ -1,7 +1,7 @@
 import unittest
 from ase.atoms import Atoms
 import numpy as np
-from DescriptorLib.kernels import RBFKernel, RBFKernel_with_factor, MaternKernel, DotProductKernel, NormalizedDotProductKernel
+from mlpot.kernels import RBFKernel, RBFKernel_with_factor, MaternKernel, DotProductKernel, NormalizedDotProductKernel
 
 class KernelTest():
     class KernelTest(unittest.TestCase):

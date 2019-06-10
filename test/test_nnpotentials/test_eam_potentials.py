@@ -1,8 +1,8 @@
 import unittest
 import os
-from NNpotentials import (SMATBpotential, NNEpotential, NNRHOpotential,
+from mlpot.nnpotentials import (SMATBpotential, NNEpotential, NNRHOpotential,
     NNERHOpotential, NNVERHOpotential, NNfreeERHOpotential)
-from NNpotentials.utils import calculate_eam_maps
+from mlpot.nnpotentials.utils import calculate_eam_maps
 import numpy as np
 import tensorflow as tf
 import pickle

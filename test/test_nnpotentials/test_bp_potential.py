@@ -1,7 +1,7 @@
 import unittest
 import os
-from NNpotentials import BPpotential
-from NNpotentials.utils import calculate_bp_maps, calculate_bp_indices
+from mlpot.nnpotentials import BPpotential
+from mlpot.nnpotentials.utils import calculate_bp_maps, calculate_bp_indices
 import numpy as np
 import tensorflow as tf
 import pickle

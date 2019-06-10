@@ -1,5 +1,5 @@
 import unittest
-from DescriptorLib.SymmetryFunctionSet import SymmetryFunctionSet
+from mlpot.descriptors.SymmetryFunctionSet import SymmetryFunctionSet
 import numpy as np
 from itertools import product, combinations_with_replacement
 
