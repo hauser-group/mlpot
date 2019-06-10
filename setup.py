@@ -5,7 +5,7 @@ from setuptools import setup
 from subprocess import call
 
 base_path = os.path.dirname(os.path.abspath(__file__))
-lib_path = os.path.join(base_path, 'descriptors')
+lib_path = os.path.join(base_path, 'mlpot/descriptors')
 
 class CustomInstall(install):
     """
@@ -39,12 +39,12 @@ setup(
         'calculators'
     ],
     package_dir={
-        'descriptors': 'descriptors',
-        'descriptors.test': 'descriptors/test',
-        'nnpotentials': 'nnpotentials',
-        'nnpotentials.test': 'nnpotentials.test',
-        'kernels': 'kernels',
-        'calculators': 'calculators'
+        'descriptors': 'mlpot/descriptors',
+        'descriptors.test': 'mlpot/descriptors/test',
+        'nnpotentials': 'mlpot/nnpotentials',
+        'nnpotentials.test': 'mlpot/nnpotentials/test',
+        'kernels': 'mlpot/kernels',
+        'calculators': 'mlpot/calculators'
     },
     package_data={'descriptors': ['libSymFunSet.so']},
     include_package_data=True,
