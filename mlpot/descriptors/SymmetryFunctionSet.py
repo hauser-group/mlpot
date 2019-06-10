@@ -4,7 +4,7 @@ from itertools import product, combinations_with_replacement
 import numpy as _np
 import ctypes as _ct
 from scipy.spatial.distance import pdist, squareform
-from scipy.misc import comb
+from scipy.special import comb
 
 try:
 
