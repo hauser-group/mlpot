@@ -32,17 +32,13 @@ setup(
     description='Library for machine learning potentials',
     packages=[
         'descriptors',
-        'descriptors.test',
         'nnpotentials',
-        'nnpotentials.test',
         'kernels',
         'calculators'
     ],
     package_dir={
         'descriptors': 'mlpot/descriptors',
-        'descriptors.test': 'mlpot/descriptors/test',
         'nnpotentials': 'mlpot/nnpotentials',
-        'nnpotentials.test': 'mlpot/nnpotentials/test',
         'kernels': 'mlpot/kernels',
         'calculators': 'mlpot/calculators'
     },
