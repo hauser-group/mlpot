@@ -12,8 +12,7 @@ slab[15].symbol = 'Pt'
 add_adsorbate(slab, 'Au', 1.7, 'hollow')
 slab.center(axis=2, vacuum=4.0)
 
-# All substrate atoms. Varies from ASE example where only second and third
-# layer are fixed
+# Fix all substrate atoms. 
 mask = [atom.tag > 0 for atom in slab]
 #print(mask)
 slab.set_constraint(FixAtoms(mask=mask))
