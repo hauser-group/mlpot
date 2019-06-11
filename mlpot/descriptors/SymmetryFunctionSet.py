@@ -12,6 +12,7 @@ try:
     #    Better find a way to retrieve the main package's root path
     #    and use relative path from there.
     module_path = dirname(abspath(getsourcefile(lambda:0)))
+    print('Searching for lib in', module_path)
     lib = _ct.cdll.LoadLibrary(
         normpath(join(
             module_path,
@@ -62,7 +63,7 @@ try:
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim = 3, flags = "C_CONTIGUOUS"))
 except OSError as e:
     # Possibly switch to a python based implementation if loading the dll fails
-    raise OSError(e.message)
+    raise e
 
 class SymmetryFunctionSet(object):
     def __init__(self, atomtypes, cutoff = 7.0):
