@@ -30,19 +30,8 @@ setup(
     name='mlpot',
     version='0.1',
     description='Library for machine learning potentials',
-    packages=[
-        'descriptors',
-        'nnpotentials',
-        'kernels',
-        'calculators'
-    ],
-    package_dir={
-        'descriptors': 'mlpot/descriptors',
-        'nnpotentials': 'mlpot/nnpotentials',
-        'kernels': 'mlpot/kernels',
-        'calculators': 'mlpot/calculators'
-    },
-    package_data={'descriptors': ['libSymFunSet.so']},
+    packages=['mlpot'],
+    package_data={'mlpot': ['descriptors/libSymFunSet.so']},
     include_package_data=True,
     cmdclass={'install': CustomInstall, 'build_py': CustomBuild}
 )
