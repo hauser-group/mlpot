@@ -12,7 +12,7 @@ except ImportError:
             return wrapper
         return jit_decorator
 
-class DotProductKernel():
+class DotProductKernel(object):
 
     def __init__(self, constant=1.0, exponent=2):
         self.constant = constant
@@ -63,7 +63,7 @@ class DotProductKernel():
         else:
             return K, K_gradient
 
-class NormalizedDotProductKernel():
+class NormalizedDotProductKernel(object):
 
     def __init__(self, constant=1.0, exponent=2, additiv_constant=0.0):
         self.constant = constant
@@ -132,7 +132,7 @@ class NormalizedDotProductKernel():
             return K, K_gradient
 
 
-class RBFKernel():
+class RBFKernel(object):
 
     def __init__(self, constant=0.0, factor=1.0, length_scale=np.array([1.0]),
             length_scale_bounds=(1e-3, 1e3)):
@@ -400,7 +400,7 @@ class RBFKernel():
         else:
             return K, K_gradient
 
-class RBFKernel_with_factor():
+class RBFKernel_with_factor(object):
 
     def __init__(self, constant=0.0, factor=1.0, length_scale=1.0,
             factor_bounds=(1e-5, 1e5), length_scale_bounds=(1e-3, 1e3)):
@@ -530,7 +530,7 @@ class RBFKernel_with_factor():
         else:
             return K, K_gradient
 
-class MaternKernel():
+class MaternKernel(object):
     def __init__(self, constant=0.0, factor=1.0, length_scale=np.array([1.0]),
             length_scale_bounds=(1e-3, 1e3)):
         self.factor = factor
@@ -601,7 +601,7 @@ class MaternKernel():
                 K[a, db] = 5./3.*(
                     1. + sqrt_sum)*scaled_diff/self.length_scale*exp_term
                 K[da, db] = 5./3.*(np.eye(n_dim)/self.length_scale**2*(
-                    sqrt_sum + 1.0) - 5*outer_prod_over_l)*exp_term
+                    sqrt_sum + 1.0) - 5.*outer_prod_over_l)*exp_term
 
                 # Gradient with respect to the length_scale
                 if eval_gradient:
@@ -609,7 +609,7 @@ class MaternKernel():
                         raise NotImplementedError
                     else: # isotropic
                         outer_prod = np.outer(scaled_diff, scaled_diff)
-                        K_gradient[a, b, 0] = 5./3.*(sqrt_sum + 1)*(
+                        K_gradient[a, b, 0] = 5./3.*(sqrt_sum + 1.)*(
                             inner_prod/self.length_scale)*exp_term
                         K_gradient[da, b, 0] = 5./3.*(2. - 5.*inner_prod + 2.*
                             sqrt_sum)*scaled_diff/self.length_scale**2*exp_term
@@ -633,7 +633,7 @@ class MaternKernel():
         else:
             return K, K_gradient
 
-class SFSKernel():
+class SFSKernel(object):
     def __init__(self, descriptor_set, factor=1.0, constant=1.0,
             kernel='dot_product'):
         self.descriptor_set = descriptor_set
@@ -713,7 +713,7 @@ class SFSKernel():
         else:
             raise NotImplementedError
 
-class SFSKernel_new():
+class SFSKernel_new(object):
     def __init__(self, descriptor_set, factor=1.0, constant=1.0,
             kernel='dot_product'):
         self.descriptor_set = descriptor_set
