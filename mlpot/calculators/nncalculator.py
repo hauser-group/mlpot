@@ -4,6 +4,9 @@ from mlpot.nnpotentials.utils import calculate_bp_indices
 import numpy as np
 import tensorflow as tf
 
+class ConvergedNotAnError(Exception):
+    pass
+
 class NNCalculator(MLCalculator):
 
     def __init__(self, restart=None, ignore_bad_restart_file=False,
@@ -11,7 +14,7 @@ class NNCalculator(MLCalculator):
                  descriptor_set=None, layers=None, offsets=None,
                  normalize_input=False, model_dir=None, config=None,
                  opt_restarts=1, reset_fit=True, opt_method='L-BFGS-B',
-                 maxiter=5000, maxcor=200, adam_thresh=100,
+                 maxiter=5000, maxcor=200, e_tol=1e-3, f_tol=5e-2, adam_thresh=100,
                  adam_learning_rate=5e-3, adam_epsilon=1e-08,
                  adam_maxiter=10000, **kwargs):
         MLCalculator.__init__(self, restart, ignore_bad_restart_file, label,
@@ -33,6 +36,8 @@ class NNCalculator(MLCalculator):
         self.opt_restarts = opt_restarts
         self.reset_fit = reset_fit
         self.maxiter = maxiter
+        self.e_tol = e_tol
+        self.f_tol = f_tol
         self.adam_maxiter = adam_maxiter
         self.adam_thresh = adam_thresh
 
@@ -257,8 +262,30 @@ class NNCalculator(MLCalculator):
                                 loss_value, e_rmse, f_rmse))
                             break
 
+            eval_rmse = self.optimizer._make_eval_func(
+                [self.pot.rmse, self.pot.rmse_forces], self.session,
+                self.train_dict, [])
+
+            def step_callback(packed_vars):
+                rmse, rmse_forces = eval_rmse(packed_vars)
+                print('Step callback rmse %f and rmse forces %f'%(rmse, rmse_forces))
+                if rmse/self.N_atoms < self.e_tol and rmse_forces < self.f_tol:
+                    print('Converged with rmse %f and rmse forces %f'%(rmse, rmse_forces))
+                    var_vals = [packed_vars[packing_slice] for packing_slice in
+                        self.optimizer._packing_slices]
+                    self.session.run(
+                        self.optimizer._var_updates, feed_dict=dict(zip(
+                        self.optimizer._update_placeholders, var_vals))
+                    )
+                    raise ConvergedNotAnError()
+
             # Optimize weights using scipy.minimize
-            self.optimizer.minimize(self.session, self.train_dict)
+            try:
+                self.optimizer.minimize(self.session, self.train_dict,
+                    step_callback=step_callback)
+                print('Desired accuracy not reached after %d iterations'%self.maxiter)
+            except ConvergedNotAnError:
+                pass
 
             loss_value, e_rmse, f_rmse = self.session.run(
                 [self.loss, self.pot.rmse, self.pot.rmse_forces],
