@@ -1,6 +1,6 @@
-from ase.calculators.mlcalculators.mlcalculator import MLCalculator
-from NNpotentials import BPpotential
-from NNpotentials.utils import calculate_bp_indices
+from mlpot.calculators.mlcalculator import MLCalculator
+from mlpot.nnpotentials import BPpotential
+from mlpot.nnpotentials.utils import calculate_bp_indices
 import numpy as np
 import tensorflow as tf
 
