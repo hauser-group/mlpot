@@ -12,7 +12,6 @@ try:
     #    Better find a way to retrieve the main package's root path
     #    and use relative path from there.
     module_path = dirname(abspath(getsourcefile(lambda:0)))
-    print('Searching for lib in', module_path)
     lib = _ct.cdll.LoadLibrary(
         normpath(join(
             module_path,
@@ -206,7 +205,7 @@ class SymmetryFunctionSet(object):
         else:
             lib.SymmetryFunctionSet_eval_atomwise(
                 self.obj, len(atoms), types_ptr, atoms.get_positions(), Gs)
-            return [Gs[cum_Gs[i]:cum_Gs[i+1]] for i in range(len(atoms))]          
+            return [Gs[cum_Gs[i]:cum_Gs[i+1]] for i in range(len(atoms))]
 
     def eval_geometry(self, geo):
         types = [a[0] for a in geo]
