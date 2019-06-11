@@ -152,80 +152,6 @@ class NNCalculator(MLCalculator):
                 self.Gs_norm2[t] = (np.max(ann_inputs[i], axis=0) -
                     np.min(ann_inputs[i], axis=0) + 1E-6)
 
-        # batches = []
-        # ind = np.random.permutation(len(self.Gs))
-        # for i in range(0, len(self.Gs), self.batch_size):
-        #     ann_inputs, indices, ann_derivs = calculate_bp_indices(
-        #         len(self.atomtypes),
-        #         [self.Gs[j] for j in ind[i:(i+self.batch_size)]],
-        #         [self.int_types[j] for j in ind[i:(i+self.batch_size)]],
-        #         dGs=[self.dGs[j] for j in ind[i:(i+self.batch_size)]])
-        #     batch_dict = {self.pot.target: self.E_train[ind[i:(i+self.batch_size)]],
-        #         self.pot.target_forces: [self.F_train[i] for i in ind[i:(i+self.batch_size)]],
-        #         self.pot.error_weights: np.ones(self.batch_size)}
-        #     for i, t in enumerate(self.atomtypes):
-        #         batch_dict[self.pot.atom_indices[t]] = indices[i]
-        #         if self.normalize_input == 'norm':
-        #             norm_i = np.linalg.norm(ann_inputs[i], axis=1)
-        #             batch_dict[self.pot.atomic_contributions[t].input] = (
-        #                 ann_inputs[i])/norm_i[:,np.newaxis]
-        #             batch_dict[
-        #                 self.pot.atomic_contributions[t].derivatives_input
-        #                 ] = np.einsum('ijkl,i->ijkl', ann_derivs[i], 1.0/norm_i)
-        #         else:
-        #             batch_dict[self.pot.atomic_contributions[t].input] = (
-        #                 ann_inputs[i]-self.Gs_norm1[t])/self.Gs_norm2[t]
-        #             batch_dict[
-        #                 self.pot.atomic_contributions[t].derivatives_input
-        #                 ] = np.einsum('ijkl,j->ijkl', ann_derivs[i], 1.0/self.Gs_norm2[t])
-        #     batches.append(batch_dict)
-        # def gen():
-        #     ind = np.random.permutation(len(self.Gs))
-        #     for i in range(0, len(self.Gs), self.batch_size):
-        #         ann_inputs, indices, ann_derivs = calculate_bp_indices(
-        #             len(self.atomtypes),
-        #             [self.Gs[j] for j in ind[i:(i+self.batch_size)]],
-        #             [self.int_types[j] for j in ind[i:(i+self.batch_size)]],
-        #             dGs=[self.dGs[j] for j in ind[i:(i+self.batch_size)]]
-        #             )
-        #         out = {'error_weights':np.ones(self.batch_size)}
-        #         for i, t in enumerate(self.atomtypes):
-        #             out['%s_indices'%t] = indices[i]
-        #             if self.normalize_input == 'norm':
-        #                 norm_i = np.linalg.norm(ann_inputs[i], axis=1)
-        #                 out['%s_input'%t] = (
-        #                     ann_inputs[i])/norm_i[:,np.newaxis]
-        #                 out['%s_dervis'%t] = np.einsum(
-        #                     'ijkl,i->ijkl', ann_derivs[i], 1.0/norm_i)
-        #             else:
-        #                 out['%s_input'%t] = (
-        #                     ann_inputs[i]-self.Gs_norm1[t])/self.Gs_norm2[t]
-        #                 out['%s_dervis'%t] = np.einsum(
-        #                     'ijkl,j->ijkl', ann_derivs[i], 1.0/self.Gs_norm2[t])
-        #             out['%s_input'%t] = ann_inputs[i]
-        #             out['%s_dervis'%t] = ann_derivs[i]
-        #
-        #         yield(out, {'energy':self.E_train[ind[i:(i+self.batch_size)]],
-        #             'forces':[self.F_train[i] for i in ind[i:(i+self.batch_size)]]})
-        # input_types = {'error_weights':tf.float64}
-        # for i, t in enumerate(self.atomtypes):
-        #     input_types['%s_indices'%t] = tf.int32
-        #     input_types['%s_input'%t] = tf.float64
-        #     input_types['%s_dervis'%t] = tf.float64
-        # output_types = {'energy':tf.float64,
-        #     'forces':tf.float64}
-        # with self.graph.as_default():
-        #     batched_dataset = tf.data.Dataset.from_generator(gen,
-        #         (input_types, output_types))
-        #     init_train = self.pot.iterator.make_initializer(batched_dataset)
-        #dataset_train = tf.data.Dataset.from_generator(gen,
-        #    ({'Ag_input':tf.float32, 'Ag_indices':tf.int32, 'error_weights':tf.float32},
-        #    {'energy':tf.float32}),
-        #    ({'Ag_input':tf.TensorShape([None, len(Gs_train[0][0])]),
-        #    'Ag_indices':tf.TensorShape([None,1]),
-        #    'error_weights':tf.TensorShape([None])},
-        #    {'energy':tf.TensorShape([None,])}))
-
         # Start with large minimum loss value
         min_loss_value = 1E20
         for i in range(self.opt_restarts):
@@ -238,21 +164,11 @@ class NNCalculator(MLCalculator):
                     self.adam_maxiter))
                 self.session.run(self.init_adam)
                 for epoch in range(self.adam_maxiter):
-                    #self.session.run(init_train)
-                    #while True:
-                    #    try:
-                    #        self.session.run(self.train)
-                    #    except tf.errors.OutOfRangeError:
-                    #        break
-                    #for b in sample(batches, len(batches)):
-                    #    self.session.run(self.train, b)
                     self.session.run(self.train, self.train_dict)
                     if epoch%100 == 0:
                         loss_value, e_rmse, f_rmse = self.session.run(
                             [self.loss, self.pot.rmse, self.pot.rmse_forces],
                             self.train_dict)
-                        # if epoch%1000 == 0:
-                        #     print(epoch, loss_value, e_rmse, f_rmse)
                         # If ADAM converged to 10x convergence threshold, switch to
                         # scipy optimization
                         if (e_rmse/self.N_atoms < self.adam_thresh*0.001 and
@@ -262,15 +178,24 @@ class NNCalculator(MLCalculator):
                                 loss_value, e_rmse, f_rmse))
                             break
 
+            # Use tensorflow optimizer interface to create a function that
+            # returns both RMSEs given a vector of weights
             eval_rmse = self.optimizer._make_eval_func(
                 [self.pot.rmse, self.pot.rmse_forces], self.session,
                 self.train_dict, [])
 
+            # Callback function that takes a vector of weights and checks if
+            # the optimization is converged. Raises ConvergedNotAnError to stop
+            # the scipy optimization if convergence criteria are met.
             def step_callback(packed_vars):
                 rmse, rmse_forces = eval_rmse(packed_vars)
-                print('Step callback rmse %f and rmse forces %f'%(rmse, rmse_forces))
+                # Check for convergence
                 if rmse/self.N_atoms < self.e_tol and rmse_forces < self.f_tol:
-                    print('Converged with rmse %f and rmse forces %f'%(rmse, rmse_forces))
+                    # Copied straight from tensorflow optimizer interface.
+                    # Typically the variables in the graph are updated at the
+                    # end of the optimization. Since we are interupting the
+                    # optimization (by raising an Exception) the variables have
+                    # to be updated at this point.
                     var_vals = [packed_vars[packing_slice] for packing_slice in
                         self.optimizer._packing_slices]
                     self.session.run(
@@ -283,8 +208,8 @@ class NNCalculator(MLCalculator):
             try:
                 self.optimizer.minimize(self.session, self.train_dict,
                     step_callback=step_callback)
-                print('Desired accuracy not reached after %d iterations'%self.maxiter)
             except ConvergedNotAnError:
+                # This is actually the sucessful convergence of the optimization
                 pass
 
             loss_value, e_rmse, f_rmse = self.session.run(
@@ -293,48 +218,15 @@ class NNCalculator(MLCalculator):
             print('Finished optimization %d/%d. '%(i+1, self.opt_restarts) +
                  'Total loss = %f, RMSE energy = %f, RMSE forces = %f.'%(
                  loss_value, e_rmse, f_rmse))
+            # Save model parameters should this be a new minimum
             if loss_value < min_loss_value:
                 # save loss value and parameters to restore minimum later
                 min_loss_value = loss_value
                 self.pot.saver.save(self.session,
                     self.model_dir+'min_model.ckpt')
 
-            if e_rmse/self.N_atoms < 0.001 and f_rmse < 0.05:
-                converged = True
+            if e_rmse/self.N_atoms < self.e_tol and f_rmse < self.f_tol:
                 break
-
-
-        # for i in range(self.opt_restarts):
-        #     # Reset weights to random initialization:
-        #     if (i > 0 or self.reset_fit or
-        #           (self.opt_restarts == 1 and self.reset_fit)):
-        #         self.session.run(tf.initializers.variables(self.pot.variables))
-        #
-        #         # Do a few steps of ADAM optimization to start off:
-        #         self.session.run(self.init_adam)
-        #         for _ in range(self.opt_options['maxiter']):
-        #             self.session.run(self.train, self.train_dict)
-        #         loss_value, e_rmse, f_rmse = self.session.run(
-        #             [self.loss, self.pot.rmse, self.pot.rmse_forces],
-        #             self.train_dict)
-        #         print('Finished Adam optimization. '
-        #             'Total loss = %f, RMSE energy = %f, RMSE forces = %f.'%(
-        #                 loss_value, e_rmse, f_rmse))
-        #
-        #     # Optimize weights using scipy.minimize
-        #     self.optimizer.minimize(self.session, self.train_dict)
-        #
-        #     loss_value, e_rmse, f_rmse = self.session.run(
-        #         [self.loss, self.pot.rmse, self.pot.rmse_forces],
-        #         self.train_dict)
-        #     print('Finished optimization %d/%d. '%(i+1,self.opt_restarts) +
-        #         'Total loss = %f, RMSE energy = %f, RMSE forces = %f.'%(
-        #             loss_value, e_rmse, f_rmse))
-        #     if loss_value < min_loss_value:
-        #         # save loss value and parameters to restore minimum later
-        #         min_loss_value = loss_value
-        #         self.pot.saver.save(self.session,
-        #             self.model_dir+'min_model.ckpt')
 
         self.pot.saver.restore(self.session, self.model_dir+'min_model.ckpt')
         e_rmse, f_rmse = self.session.run(
