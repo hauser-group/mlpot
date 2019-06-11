@@ -1,18 +1,10 @@
 import os
-from setuptools.command.install import install
 from setuptools.command.build_py import build_py
-from setuptools import setup
+from setuptools import setup, find_packages
 from subprocess import call
 
 base_path = os.path.dirname(os.path.abspath(__file__))
 lib_path = os.path.join(base_path, 'mlpot/descriptors')
-
-class CustomInstall(install):
-    """
-    CustomInstall class
-    """
-    def run(self):
-        install.run(self)
 
 class CustomBuild(build_py):
     """
@@ -30,8 +22,8 @@ setup(
     name='mlpot',
     version='0.1',
     description='Library for machine learning potentials',
-    packages=['mlpot'],
+    packages=find_packages(),
     package_data={'mlpot': ['descriptors/libSymFunSet.so']},
     include_package_data=True,
-    cmdclass={'install': CustomInstall, 'build_py': CustomBuild}
+    cmdclass={'build_py': CustomBuild}
 )
