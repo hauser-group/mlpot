@@ -7,4 +7,4 @@ install:
   - pip install -r requirements.txt
   - pip install . --verbose
 
-script: python -m unittest discover test 'test_*.py'
+script: test/run_tests.sh
