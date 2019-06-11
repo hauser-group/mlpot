@@ -4,9 +4,6 @@ from mlpot.nnpotentials.utils import calculate_bp_indices
 import numpy as np
 import tensorflow as tf
 
-class ConvergedNotAnError(Exception):
-    pass
-
 class NNCalculator(MLCalculator):
 
     def __init__(self, restart=None, ignore_bad_restart_file=False,
@@ -183,6 +180,10 @@ class NNCalculator(MLCalculator):
             eval_rmse = self.optimizer._make_eval_func(
                 [self.pot.rmse, self.pot.rmse_forces], self.session,
                 self.train_dict, [])
+
+            # Dummy Exception which is raised to exit a running scipy optimizer
+            class ConvergedNotAnError(Exception):
+                pass
 
             # Callback function that takes a vector of weights and checks if
             # the optimization is converged. Raises ConvergedNotAnError to stop
