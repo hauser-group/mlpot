@@ -6,6 +6,7 @@ Tutorials
 Collection of tutorials for the various modules in mlpot
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 3
 
-   mlneb/diffusion
+   mlaopt/mlaopt
+   mlneb/mlneb

@@ -1,4 +1,4 @@
-.. _diffusion tutorial:
+.. _diffusion:
 
 ===============================
 Diffusion benchmark by Peterson
