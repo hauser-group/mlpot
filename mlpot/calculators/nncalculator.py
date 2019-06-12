@@ -11,9 +11,7 @@ class NNCalculator(MLCalculator):
                  descriptor_set=None, layers=None, offsets=None,
                  normalize_input=False, model_dir=None, config=None,
                  opt_restarts=1, reset_fit=True, opt_method='L-BFGS-B',
-                 maxiter=5000, maxcor=200, e_tol=1e-3, f_tol=5e-2, adam_thresh=100,
-                 adam_learning_rate=5e-3, adam_epsilon=1e-08,
-                 adam_maxiter=10000, **kwargs):
+                 maxiter=5000, maxcor=200, e_tol=1e-3, f_tol=5e-2, **kwargs):
         MLCalculator.__init__(self, restart, ignore_bad_restart_file, label,
                             atoms, C1, C2, **kwargs)
 
@@ -35,8 +33,6 @@ class NNCalculator(MLCalculator):
         self.maxiter = maxiter
         self.e_tol = e_tol
         self.f_tol = f_tol
-        self.adam_maxiter = adam_maxiter
-        self.adam_thresh = adam_thresh
 
         self.model_dir = model_dir
         if not normalize_input in ['mean', 'min_max', 'norm', False]:
@@ -79,13 +75,8 @@ class NNCalculator(MLCalculator):
                     options={'maxiter':maxiter, 'disp':False, 'gtol':1e-10,
                         'maxcor':maxcor},
                     var_list = self.pot.variables)#[v for v in self.pot.variables if not 'b:' in v.name])
-                self.AdamOpt = tf.train.AdamOptimizer(
-                    learning_rate=adam_learning_rate, epsilon=adam_epsilon)
-                self.train = self.AdamOpt.minimize(self.loss)
-                self.init_adam = tf.initializers.variables(self.AdamOpt.variables())
         self.session = tf.Session(config=config, graph=self.graph)
         self.session.run(tf.initializers.variables(self.pot.variables))
-        self.session.run(self.init_adam)
 
     def add_data(self, atoms):
         # If the trainings set is empty: setup the numpy arrays
@@ -156,24 +147,6 @@ class NNCalculator(MLCalculator):
             if (i > 0 or self.reset_fit or
                     (self.opt_restarts == 1 and self.reset_fit)):
                 self.session.run(tf.initializers.variables(self.pot.variables))
-                # Do a few steps of ADAM optimization to start off:
-                print('Starting ADAM optimization for %d epochs'%(
-                    self.adam_maxiter))
-                self.session.run(self.init_adam)
-                for epoch in range(self.adam_maxiter):
-                    self.session.run(self.train, self.train_dict)
-                    if epoch%100 == 0:
-                        loss_value, e_rmse, f_rmse = self.session.run(
-                            [self.loss, self.pot.rmse, self.pot.rmse_forces],
-                            self.train_dict)
-                        # If ADAM converged to 10x convergence threshold, switch to
-                        # scipy optimization
-                        if (e_rmse/self.N_atoms < self.adam_thresh*0.001 and
-                                f_rmse < self.adam_thresh*0.05):
-                            print('Finished ADAM optimization after %d iterations.'%epoch,
-                                'Total loss = %f, RMSE energy = %f, RMSE forces = %f.'%(
-                                loss_value, e_rmse, f_rmse))
-                            break
 
             # Use tensorflow optimizer interface to create a function that
             # returns both RMSEs given a vector of weights
