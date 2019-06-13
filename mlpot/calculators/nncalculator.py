@@ -11,7 +11,8 @@ class NNCalculator(MLCalculator):
                  descriptor_set=None, layers=None, offsets=None,
                  normalize_input=False, model_dir=None, config=None,
                  opt_restarts=1, reset_fit=True, opt_method='L-BFGS-B',
-                 maxiter=5000, maxcor=200, e_tol=1e-3, f_tol=5e-2, **kwargs):
+                 maxiter=5000, maxcor=200, miniter=None,
+                 e_tol=1e-3, f_tol=5e-2, **kwargs):
         MLCalculator.__init__(self, restart, ignore_bad_restart_file, label,
                             atoms, C1, C2, **kwargs)
 
@@ -31,6 +32,7 @@ class NNCalculator(MLCalculator):
         self.opt_restarts = opt_restarts
         self.reset_fit = reset_fit
         self.maxiter = maxiter
+        self.miniter = miniter or maxcor
         self.e_tol = e_tol
         self.f_tol = f_tol
 
@@ -72,8 +74,8 @@ class NNCalculator(MLCalculator):
                     + reg_term/self.C1, name='Loss')
                 self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(
                     self.loss, method=opt_method,
-                    options={'maxiter':maxiter, 'disp':False, 'gtol':1e-10,
-                        'maxcor':maxcor},
+                    options={'maxiter':maxiter, 'disp':False, 'ftol':1e-14,
+                        'gtol':1e-14, 'maxcor':maxcor},
                     var_list = self.pot.variables)#[v for v in self.pot.variables if not 'b:' in v.name])
         self.session = tf.Session(config=config, graph=self.graph)
         self.session.run(tf.initializers.variables(self.pot.variables))
@@ -101,7 +103,6 @@ class NNCalculator(MLCalculator):
         self.dGs.append(dGi)
 
     def fit(self):
-        global opt_step
         print('Fit called with %d geometries.'%len(self.atoms_train))
         # TODO: This could be streamlined even more by not using the
         # calculate_bp_indices function on the whole set but simply appending
@@ -158,25 +159,29 @@ class NNCalculator(MLCalculator):
             class ConvergedNotAnError(Exception):
                 pass
 
+            self.opt_step = 0
             # Callback function that takes a vector of weights and checks if
             # the optimization is converged. Raises ConvergedNotAnError to stop
             # the scipy optimization if convergence criteria are met.
             def step_callback(packed_vars):
-                rmse, rmse_forces = eval_rmse(packed_vars)
-                # Check for convergence
-                if rmse/self.N_atoms < self.e_tol and rmse_forces < self.f_tol:
-                    # Copied straight from tensorflow optimizer interface.
-                    # Typically the variables in the graph are updated at the
-                    # end of the optimization. Since we are interupting the
-                    # optimization (by raising an Exception) the variables have
-                    # to be updated at this point.
-                    var_vals = [packed_vars[packing_slice] for packing_slice in
-                        self.optimizer._packing_slices]
-                    self.session.run(
-                        self.optimizer._var_updates, feed_dict=dict(zip(
-                        self.optimizer._update_placeholders, var_vals))
-                    )
-                    raise ConvergedNotAnError()
+                if self.opt_step > self.miniter:
+                    rmse, rmse_forces = eval_rmse(packed_vars)
+                    # Check for convergence
+                    if (rmse/self.N_atoms < self.e_tol
+                            and rmse_forces < self.f_tol):
+                        # Copied straight from tensorflow optimizer interface.
+                        # Typically the variables in the graph are updated at
+                        # the end of the optimization. Since we are interupting
+                        # the optimization (by raising an Exception) the
+                        # variables have to be updated at this point.
+                        var_vals = [packed_vars[packing_slice] for packing_slice
+                            in self.optimizer._packing_slices]
+                        self.session.run(
+                            self.optimizer._var_updates, feed_dict=dict(zip(
+                            self.optimizer._update_placeholders, var_vals))
+                        )
+                        raise ConvergedNotAnError()
+                self.opt_step = self.opt_step + 1
 
             # Optimize weights using scipy.minimize
             try:
@@ -184,14 +189,15 @@ class NNCalculator(MLCalculator):
                     step_callback=step_callback)
             except ConvergedNotAnError:
                 # This is actually the sucessful convergence of the optimization
-                pass
+                print('Converged after %d steps.'%self.opt_step)
 
             loss_value, e_rmse, f_rmse = self.session.run(
                 [self.loss, self.pot.rmse, self.pot.rmse_forces],
                 self.train_dict)
-            print('Finished optimization %d/%d. '%(i+1, self.opt_restarts) +
-                 'Total loss = %f, RMSE energy = %f, RMSE forces = %f.'%(
-                 loss_value, e_rmse, f_rmse))
+            print('Finished optimization %d/%d after %d steps. '%(
+                i+1, self.opt_restarts, self.opt_step) +
+                'Total loss = %f, RMSE energy = %f, RMSE forces = %f.'%(
+                loss_value, e_rmse, f_rmse))
             # Save model parameters should this be a new minimum
             if loss_value < min_loss_value:
                 # save loss value and parameters to restore minimum later
