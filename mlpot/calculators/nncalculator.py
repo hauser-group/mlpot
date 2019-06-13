@@ -10,8 +10,8 @@ class NNCalculator(MLCalculator):
                  label=None, atoms=None, C1=1.0, C2=1.0, lamb=1.0,
                  descriptor_set=None, layers=None, offsets=None,
                  normalize_input=False, model_dir=None, config=None,
-                 opt_restarts=1, reset_fit=True, opt_method='L-BFGS-B',
-                 maxiter=5000, maxcor=200, miniter=None,
+                 opt_restarts=1, reset_fit=False, opt_method='L-BFGS-B',
+                 maxiter=10000, maxcor=200, miniter=None,
                  e_tol=1e-3, f_tol=5e-2, **kwargs):
         MLCalculator.__init__(self, restart, ignore_bad_restart_file, label,
                             atoms, C1, C2, **kwargs)
