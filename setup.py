@@ -6,6 +6,7 @@ from subprocess import call
 base_path = os.path.dirname(os.path.abspath(__file__))
 lib_path = os.path.join(base_path, 'mlpot/descriptors')
 
+
 class CustomBuild(build_py):
     """
     CustomBuild class following the suggestion in:
@@ -17,6 +18,7 @@ class CustomBuild(build_py):
             call('make', cwd=lib_path)
         self.execute(compile_library, [],  'Compiling shared library')
         build_py.run(self)
+
 
 setup(
     name='mlpot',
