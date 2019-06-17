@@ -1,5 +1,5 @@
-from ase.calculators.calculator import (Calculator, all_changes)#,
-#    CalculatorSetupError)
+from ase.calculators.calculator import (Calculator, all_changes)
+
 
 class MLCalculator(Calculator):
     """Base class for all machine learning calculators"""
@@ -16,7 +16,7 @@ class MLCalculator(Calculator):
         self.atoms_train = []
 
     def calculate(self, atoms=None, properties=['energy', 'forces'],
-                                system_changes=all_changes):
+                  system_changes=all_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
         self.results['energy'], self.results['forces'] = self.predict(atoms)
 
