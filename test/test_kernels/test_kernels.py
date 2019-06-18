@@ -1,7 +1,8 @@
 import unittest
 import numpy as np
 from mlpot.kernels import (RBFKernel, RBFKernel_with_factor, MaternKernel,
-                           DotProductKernel, NormalizedDotProductKernel)
+                           DotProductKernel, NormalizedDotProductKernel,
+                           NormalizedDotProductKernelwithHyperparameter)
 
 
 class KernelTest():
@@ -190,6 +191,17 @@ class NormalizedDotProductKernelExp1Test(KernelTest.KernelTest):
 
 class NormalizedDotProductKernelExp4Test(KernelTest.KernelTest):
     kernel = NormalizedDotProductKernel
+    kwargs = {'constant': 1.234, 'exponent': 4}
+
+
+class NormalizedDotProductKernelwithHyperparameterTest(KernelTest.KernelTest):
+    kernel = NormalizedDotProductKernelwithHyperparameter
+    kwargs = {'constant': 1.234, 'exponent': 2}
+
+
+class NormalizedDotProductKernelwithHyperparameterExp4Test(
+        KernelTest.KernelTest):
+    kernel = NormalizedDotProductKernelwithHyperparameter
     kwargs = {'constant': 1.234, 'exponent': 4}
 
 
