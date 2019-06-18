@@ -1,9 +1,8 @@
 from ase.calculators.mlcalculators.mlcalculator import MLCalculator
 import numpy as np
 from scipy.linalg import cho_solve, cholesky
-import scipy.optimize as sp_opt
 from scipy.optimize import minimize
-import warnings
+
 
 class GPRCalculator(MLCalculator):
 
@@ -12,7 +11,7 @@ class GPRCalculator(MLCalculator):
                  kernel=None,  opt_method='L-BFGS-B',
                  opt_restarts=0, normalize_y=False, **kwargs):
         MLCalculator.__init__(self, restart, ignore_bad_restart_file, label,
-                            atoms, C1, C2, **kwargs)
+                              atoms, C1, C2, **kwargs)
 
         self.kernel = kernel
         self.opt_method = opt_method
@@ -30,7 +29,7 @@ class GPRCalculator(MLCalculator):
         else:
             if not 3*len(atoms) == self.n_dim:
                 raise ValueError('New data does not have the same number of '
-                    'atoms as previously added data.')
+                                 'atoms as previously added data.')
 
         # Call the super class routine after checking for empty trainings set!
         MLCalculator.add_data(self, atoms)
@@ -40,23 +39,23 @@ class GPRCalculator(MLCalculator):
         self.F_train = np.append(self.F_train, atoms.get_forces().flatten())
 
     def _transform_input(self, atoms):
-        return atoms.get_positions().reshape((1,-1))
+        return atoms.get_positions().reshape((1, -1))
 
     def _normalize_input(self, x):
         return x
 
     def fit(self):
-        print('Fit called with %d geometries.'%len(self.atoms_train))
+        print('Fit called with %d geometries.' % len(self.atoms_train))
         self.n_samples = len(self.atoms_train)
 
         if self.normalize_y == 'mean':
             self.intercept = np.mean(self.E_train)
         elif self.normalize_y == 'min':
             self.intercept = np.min(self.E_train)
-        elif self.normalize_y == False or self.normalize_y == None:
+        elif self.normalize_y is False or self.normalize_y is None:
             self.intercept = 0.
         else:
-            raise NotImplementedError('Unknown option: %s'%self.normalize_y)
+            raise NotImplementedError('Unknown option: %s' % self.normalize_y)
         self._target_vector = np.concatenate(
             [self.E_train - self.intercept, -self.F_train.flatten()])
 
@@ -81,17 +80,18 @@ class GPRCalculator(MLCalculator):
                     for bi, (lower_bound, upper_bound) in enumerate(bounds):
                         initial_hyper_parameters[bi] = np.random.uniform(
                             lower_bound, upper_bound, 1)
-                print('Starting optimization %d/%d'%(ii+1, self.opt_restarts),
-                    'with parameters: ', initial_hyper_parameters)
+                print('Starting optimization %d/%d' % (ii+1,
+                                                       self.opt_restarts),
+                      'with parameters: ', initial_hyper_parameters)
                 try:
                     opt_x, val = self._opt_routine(initial_hyper_parameters)
                     opt_hyper_parameter.append(opt_x)
                     value.append(val)
                     print('Finished with value:', val,
-                        ' and parameters:', opt_x)
+                          ' and parameters:', opt_x)
                 except np.linalg.LinAlgError as E:
                     print('Cholesky factorization failed for parameters:',
-                        self.kernel.theta)
+                          self.kernel.theta)
                     print(E)
 
             if len(value) == 0:
@@ -115,7 +115,7 @@ class GPRCalculator(MLCalculator):
         y = self.alpha.dot(pure_k_mat)
         E = y[:self.n_samples] + self.intercept
         F = -y[self.n_samples:]
-        print('Fit finished. Final RMSE energy = %f, RMSE force = %f.'%(
+        print('Fit finished. Final RMSE energy = %f, RMSE force = %f.' % (
             np.sqrt(np.mean((E - self.E_train)**2)),
             np.sqrt(np.mean((F - self.F_train)**2))))
 
@@ -132,7 +132,8 @@ class GPRCalculator(MLCalculator):
     def _opt_routine(self, initial_hyper_parameter):
         if self.opt_method in ['L-BFGS-B', 'SLSQP', 'TNC']:
             opt_obj = minimize(self._opt_fun, initial_hyper_parameter,
-                method=self.opt_method, jac=True, bounds=self.kernel.bounds)
+                               method=self.opt_method, jac=True,
+                               bounds=self.kernel.bounds)
             opt_hyper_parameter = opt_obj.x
             value = opt_obj.fun
         else:
@@ -158,8 +159,8 @@ class GPRCalculator(MLCalculator):
     def log_marginal_likelihood(self, derivative=False):
         """
         calculate the log marignal likelihood
-        :return: log marinal likelihood,
-            derivative of the log marignal likelihood w.r.t. the hyperparameters
+        :return: log marinal likelihood, derivative of the log marignal
+                 likelihood w.r.t. the hyperparameters
         """
         # gives vale of log marginal likelihood with the gradient
         k_mat, k_grad = self.build_kernel_matrix(eval_gradient=True)
@@ -171,11 +172,12 @@ class GPRCalculator(MLCalculator):
         # Following Rasmussen Algorithm 2.1 the determinant in 2.30 can be
         # expressed as a sum over the Cholesky decomposition L
         log_mag_likelihood = (-0.5*self._target_vector.dot(alpha) -
-            np.log(np.diag(L)).sum() - L.shape[0] / 2. * np.log(2 * np.pi))
+                              np.log(np.diag(L)).sum() -
+                              L.shape[0] / 2. * np.log(2 * np.pi))
 
         # summation inspired form scikit-learn Gaussian process regression
         temp = (np.multiply.outer(alpha, alpha) -
-            cho_solve((L, True), np.eye(L.shape[0])))[:, :, np.newaxis]
+                cho_solve((L, True), np.eye(L.shape[0])))[:, :, np.newaxis]
         d_log_mag_likelihood = 0.5 * np.einsum("ijl,ijk->kl", temp, k_grad)
         d_log_mag_likelihood = d_log_mag_likelihood.sum(-1)
 
@@ -186,13 +188,13 @@ class GPRCalculator(MLCalculator):
         X_star = self._normalize_input(self._transform_input(atoms))
         y = self.alpha.dot(self.build_kernel_matrix(X_star=X_star))
         E = y[0] + self.intercept
-        F = -y[1:].reshape((-1,3))
+        F = -y[1:].reshape((-1, 3))
         return E, F
 
     def get_params(self):
-        return {'atoms_train':self.atoms_train, 'x_train':self.x_train,
-            'alpha':self.alpha, 'intercept':self.intercept,
-            'hyper_parameters':self.kernel.theta}
+        return {'atoms_train': self.atoms_train, 'x_train': self.x_train,
+                'alpha': self.alpha, 'intercept': self.intercept,
+                'hyper_parameters': self.kernel.theta}
 
     def set_params(self, **params):
         self.atoms_train = params['atoms_train']
@@ -208,7 +210,7 @@ class GPRCalculator(MLCalculator):
         themselves K(X,X)."""
         if X_star is None:
             return self.kernel(self.x_train, self.x_train, dx=True, dy=True,
-                eval_gradient=eval_gradient)
+                               eval_gradient=eval_gradient)
         else:
             return self.kernel(self.x_train, X_star, dx=True, dy=True,
-                eval_gradient=eval_gradient)
+                               eval_gradient=eval_gradient)
