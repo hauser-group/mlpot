@@ -51,14 +51,14 @@ class DotProductKernel(object):
                 da = slice(n+a*n_dim, n+(a+1)*n_dim, 1)
                 db = slice(m+b*n_dim, m+(b+1)*n_dim, 1)
 
-                dot_plus_c = X[a, :].dot(Y[b, :]) + self.constant
+                xy_plus_c = X[a, :].dot(Y[b, :]) + self.constant
 
-                K[a, b] = dot_plus_c**self.exponent
-                K[da, b] = dot_plus_c**(self.exponent-1)*self.exponent*Y[b, :]
-                K[a, db] = dot_plus_c**(self.exponent-1)*self.exponent*X[a, :]
-                K[da, db] = self.exponent*dot_plus_c**(self.exponent - 2)*(
+                K[a, b] = xy_plus_c**self.exponent
+                K[da, b] = xy_plus_c**(self.exponent-1)*self.exponent*Y[b, :]
+                K[a, db] = xy_plus_c**(self.exponent-1)*self.exponent*X[a, :]
+                K[da, db] = self.exponent*xy_plus_c**(self.exponent - 2)*(
                     (self.exponent - 1)*np.outer(Y[b, :], X[a, :]) +
-                    np.eye(n_dim)*dot_plus_c)
+                    np.eye(n_dim)*xy_plus_c)
 
         if not eval_gradient:
             return K
@@ -104,27 +104,121 @@ class NormalizedDotProductKernel(object):
                 da = slice(n+a*n_dim, n+(a+1)*n_dim, 1)
                 db = slice(m+b*n_dim, m+(b+1)*n_dim, 1)
 
-                dot_plus_c = X[a, :].dot(Y[b, :]) + self.constant
+                xy_plus_c = X[a, :].dot(Y[b, :]) + self.constant
                 xx_plus_c = X[a, :].dot(X[a, :]) + self.constant
                 yy_plus_c = Y[b, :].dot(Y[b, :]) + self.constant
                 norm_xx = np.sqrt(xx_plus_c**self.exponent)
                 norm_yy = np.sqrt(yy_plus_c**self.exponent)
 
-                K[a, b] = dot_plus_c**self.exponent/(norm_xx*norm_yy)
-                K[da, b] = self.exponent*dot_plus_c**(self.exponent-1)*(
-                    xx_plus_c*Y[b, :] - dot_plus_c*X[a, :])/(
+                K[a, b] = xy_plus_c**self.exponent/(norm_xx*norm_yy)
+                K[da, b] = self.exponent*xy_plus_c**(self.exponent-1)*(
+                    xx_plus_c*Y[b, :] - xy_plus_c*X[a, :])/(
                     xx_plus_c*norm_xx*norm_yy)
-                K[a, db] = self.exponent*dot_plus_c**(self.exponent-1)*(
-                    yy_plus_c*X[a, :] - dot_plus_c*Y[b, :])/(
+                K[a, db] = self.exponent*xy_plus_c**(self.exponent-1)*(
+                    yy_plus_c*X[a, :] - xy_plus_c*Y[b, :])/(
                     yy_plus_c*norm_xx*norm_yy)
-                K[da, db] = self.exponent*dot_plus_c**(self.exponent-1)*(
+                K[da, db] = self.exponent*xy_plus_c**(self.exponent-1)*(
                     np.eye(n_dim) +
-                    (self.exponent - 1)*np.outer(Y[b, :], X[a, :])/dot_plus_c +
-                    self.exponent*np.outer(X[a, :], Y[b, :])*dot_plus_c/(
+                    (self.exponent - 1)*np.outer(Y[b, :], X[a, :])/xy_plus_c +
+                    self.exponent*np.outer(X[a, :], Y[b, :])*xy_plus_c/(
                         xx_plus_c*yy_plus_c) -
                     self.exponent*np.outer(X[a, :], X[a, :])/xx_plus_c -
                     self.exponent*np.outer(Y[b, :], Y[b, :])/yy_plus_c)/(
                     norm_xx*norm_yy)
+
+        # Add constant term only on non-derivative block
+        K[:n, :m] += self.additiv_constant
+
+        if not eval_gradient:
+            return K
+        else:
+            return K, K_gradient
+
+
+class NormalizedDotProductKernelwithHyperparameter(object):
+
+    def __init__(self, constant=1.0, constant_bounds=(1e-3, 1e3), exponent=2,
+                 additiv_constant=0.0):
+        if np.ndim(constant) == 0:
+            self.constant = np.array([constant])
+        elif np.ndim(constant) == 1:
+            self.constant = np.array(constant)
+        else:
+            raise ValueError('Unexpected dimension of constant')
+        self.constant_bounds = constant_bounds
+        self.exponent = exponent
+        self.additiv_constant = additiv_constant
+
+    @property
+    def theta(self):
+        return np.log(self.constant)
+
+    @theta.setter
+    def theta(self, theta):
+        self.constant = np.exp(theta)
+
+    @property
+    def bounds(self):
+        if np.ndim(self.constant_bounds) == 1:
+            return np.log(np.asarray([self.constant_bounds]))
+        elif np.ndim(self.constant_bounds) == 2:
+            return np.log(self.constant_bounds)
+        else:
+            raise ValueError('Unexpected dimension of constant_bounds')
+
+    def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
+        n = X.shape[0]
+        m = Y.shape[0]
+        n_dim = X.shape[1]
+
+        # The arguments dx and dy are deprecated and will be removed soon
+        if not (dx and dy):
+            raise NotImplementedError
+        # Initialize kernel matrix
+        K = np.zeros((n*(1+n_dim), m*(1+n_dim)))
+        if eval_gradient:
+            K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim), 1))
+        for a in range(n):
+            for b in range(m):
+                # Index ranges for the derivatives are given by the following
+                # slice objects:
+                da = slice(n+a*n_dim, n+(a+1)*n_dim, 1)
+                db = slice(m+b*n_dim, m+(b+1)*n_dim, 1)
+
+                xy_plus_c = X[a, :].dot(Y[b, :]) + self.constant
+                xx_plus_c = X[a, :].dot(X[a, :]) + self.constant
+                yy_plus_c = Y[b, :].dot(Y[b, :]) + self.constant
+                norm_xx = np.sqrt(xx_plus_c**self.exponent)
+                norm_yy = np.sqrt(yy_plus_c**self.exponent)
+
+                Zq = Y[b, :]/xy_plus_c - X[a, :]/xx_plus_c
+                Zp = X[a, :]/xy_plus_c - Y[b, :]/yy_plus_c
+                Zqp = (np.eye(n_dim)/xy_plus_c -
+                       np.outer(Y[b, :], X[a, :])/xy_plus_c**2)
+
+                K[a, b] = xy_plus_c**self.exponent/(norm_xx*norm_yy)
+                K[da, b] = self.exponent*K[a, b]*Zq
+                K[a, db] = self.exponent*K[a, b]*Zp
+                K[da, db] = self.exponent*K[a, b]*(
+                    self.exponent*np.outer(Zq, Zp) + Zqp)
+
+                if eval_gradient:
+                    dZq = (-Y[b, :]/xy_plus_c**2 + X[a, :]/xx_plus_c**2)
+                    dZp = (-X[a, :]/xy_plus_c**2 + Y[b, :]/yy_plus_c**2)
+                    K_gradient[a, b, 0] = self.exponent*K[a, b]*(
+                        1./xy_plus_c - 1./(2*xx_plus_c) - 1./(2*yy_plus_c))
+                    K_gradient[da, b, 0] = self.exponent*(
+                        Zq*K_gradient[a, b, 0] + K[a, b]*dZq)
+                    K_gradient[a, db, 0] = self.exponent*(
+                        Zp*K_gradient[a, b, 0] + K[a, b]*dZp)
+                    K_gradient[da, db, 0] = self.exponent*(
+                        K_gradient[a, b, 0]*(self.exponent*np.outer(Zq, Zp) +
+                                             Zqp) +
+                        K[a, b]*(self.exponent*np.outer(dZq, Zp) +
+                                 self.exponent*np.outer(Zq, dZp) +
+                                 (-np.eye(n_dim)/xy_plus_c**2 +
+                                  2*np.outer(Y[b, :], X[a, :])/xy_plus_c**3)
+                                 ))
 
         # Add constant term only on non-derivative block
         K[:n, :m] += self.additiv_constant
