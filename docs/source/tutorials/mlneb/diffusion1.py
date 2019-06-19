@@ -12,9 +12,9 @@ slab[15].symbol = 'Pt'
 add_adsorbate(slab, 'Au', 1.7, 'hollow')
 slab.center(axis=2, vacuum=4.0)
 
-# Fix all substrate atoms. 
+# Fix all substrate atoms.
 mask = [atom.tag > 0 for atom in slab]
-#print(mask)
+# print(mask)
 slab.set_constraint(FixAtoms(mask=mask))
 
 # Use EMT potential:

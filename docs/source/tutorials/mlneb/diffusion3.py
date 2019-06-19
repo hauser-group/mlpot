@@ -2,7 +2,6 @@ from ase.io import read, write
 from ase.constraints import FixAtoms
 from ase.calculators.emt import EMT
 from ase.neb import NEB
-from ase.optimize import BFGS
 from mlpot.mlneb import run_mla_neb
 from mlpot.calculators.gprcalculator import GPRCalculator
 from mlpot.kernels import RBFKernel
