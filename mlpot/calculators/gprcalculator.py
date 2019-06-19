@@ -80,15 +80,16 @@ class GPRCalculator(MLCalculator):
                     for bi, (lower_bound, upper_bound) in enumerate(bounds):
                         initial_hyper_parameters[bi] = np.random.uniform(
                             lower_bound, upper_bound, 1)
-                print('Starting optimization %d/%d' % (ii+1,
-                                                       self.opt_restarts),
+                print('Starting optimization %d/%d' % (
+                            ii+1, self.opt_restarts),
                       'with parameters: ', initial_hyper_parameters)
                 try:
-                    opt_x, val = self._opt_routine(initial_hyper_parameters)
-                    opt_hyper_parameter.append(opt_x)
-                    value.append(val)
-                    print('Finished with value:', val,
-                          ' and parameters:', opt_x)
+                    opt_res = self._opt_routine(initial_hyper_parameters)
+                    opt_hyper_parameter.append(opt_res.x)
+                    value.append(opt_res.fun)
+                    print('Finished after %d iterations' % opt_res.nit,
+                          ' with value: ', opt_res.fun,
+                          ' and parameters:', opt_res.x)
                 except np.linalg.LinAlgError as E:
                     print('Cholesky factorization failed for parameters:',
                           self.kernel.theta)
@@ -131,17 +132,15 @@ class GPRCalculator(MLCalculator):
 
     def _opt_routine(self, initial_hyper_parameter):
         if self.opt_method in ['L-BFGS-B', 'SLSQP', 'TNC']:
-            opt_obj = minimize(self._opt_fun, initial_hyper_parameter,
+            opt_res = minimize(self._opt_fun, initial_hyper_parameter,
                                method=self.opt_method, jac=True,
                                bounds=self.kernel.bounds)
-            opt_hyper_parameter = opt_obj.x
-            value = opt_obj.fun
         else:
             raise NotImplementedError(
                 'Method is not implemented or does not support the use of'
                 'bounds use method=L-BFGS-B.')
 
-        return opt_hyper_parameter, value
+        return opt_res
 
     def _opt_fun(self, hyper_parameter):
         """
