@@ -1,5 +1,5 @@
-from ase.calculators.mlcalculators.mlcalculator import MLCalculator
-from ase.calculators.mlcalculators.gprcalculator import GPRCalculator
+from mlpot.calculators.mlcalculator import MLCalculator
+from mlpot.calculators.gprcalculator import GPRCalculator
 import numpy as np
 import copy
 
@@ -174,7 +174,6 @@ class GAPCalculator(GPRCalculator):
         for t in self.atomtypes:
             for i, (Gsi_t, dGsi_t) in enumerate(zip(Gs_X[t], dGs_X[t])):
                 for j, (Gsj_t, dGsj_t) in enumerate(zip(Gs_Y[t], dGs_Y[t])):
-
                     n_t = Gsi_t.shape[0]
                     m_t = Gsj_t.shape[0]
                     # Index range for the derivatives of geometry i and j
@@ -192,13 +191,12 @@ class GAPCalculator(GPRCalculator):
                     # Sum over atoms in n_t and m_t
                     kernel_mat[i, j] += np.sum(K[:n_t, :m_t])
                     # dGsi original shape = (n_t, num_Gs_t, num_atoms_i, 3)
-
-                    kernel_mat[di, j] += np.einsum('ij,il->l',
-                                                   K[n_t:, :m_t], dGsi_t)
-                    kernel_mat[i, dj] += np.einsum('ij,jl->l',
-                                                   K[:n_t, m_t:], dGsj_t)
-                    kernel_mat[di, dj] += (dGsi_t.T.dot(K[n_t:, m_t:]).dot(
-                        dGsj_t))
+                    kernel_mat[di, j] += np.einsum(
+                        'ij,il->l', K[n_t:, :m_t], dGsi_t)
+                    kernel_mat[i, dj] += np.einsum(
+                        'ij,jl->l', K[:n_t, m_t:], dGsj_t)
+                    kernel_mat[di, dj] += (
+                        dGsi_t.T.dot(K[n_t:, m_t:]).dot(dGsj_t))
                     if eval_gradient:
                         kernel_grad[i, j, :] += np.sum(dK[:n_t, :m_t, :])
                         kernel_grad[di, j, :] += np.einsum(

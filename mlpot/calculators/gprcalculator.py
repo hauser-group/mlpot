@@ -1,4 +1,4 @@
-from ase.calculators.mlcalculators.mlcalculator import MLCalculator
+from mlpot.calculators.mlcalculator import MLCalculator
 import numpy as np
 from scipy.linalg import cho_solve, cholesky
 from scipy.optimize import minimize
