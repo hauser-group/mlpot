@@ -198,7 +198,8 @@ class GAPCalculator(GPRCalculator):
                     kernel_mat[di, dj] += (
                         dGsi_t.T.dot(K[n_t:, m_t:]).dot(dGsj_t))
                     if eval_gradient:
-                        kernel_grad[i, j, :] += np.sum(dK[:n_t, :m_t, :])
+                        kernel_grad[i, j, :] += np.sum(
+                            dK[:n_t, :m_t, :], axis=(0, 1))
                         kernel_grad[di, j, :] += np.einsum(
                             'ijk,il->lk', dK[n_t:, :m_t, :], dGsi_t)
                         kernel_grad[i, dj, :] += np.einsum(
