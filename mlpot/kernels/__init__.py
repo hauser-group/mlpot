@@ -1,1 +1,1 @@
-from .kernels import *
+from .kernels import *  # NOQA

@@ -208,7 +208,7 @@ with open("symmetryFunctions.cpp", "w") as fout:
                 deriv = _sp.simplify(
                     _sp.Derivative(parsed_symfun, rij).doit())
                 deriv = _sp.sympify(re.sub(
-                    "Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)",
+                    "Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)",  # NOQA
                     "dfcut(\g<arg>)", str(deriv))).doit()
                 fout.write(method_threeBody.format(
                     symfun[0], "drij", format_prms(symfun[1], _sp.ccode(
@@ -217,7 +217,7 @@ with open("symmetryFunctions.cpp", "w") as fout:
                 deriv = _sp.simplify(
                     _sp.Derivative(parsed_symfun, rik).doit())
                 deriv = _sp.sympify(re.sub(
-                    "Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)",
+                    "Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)",  # NOQA
                     "dfcut(\g<arg>)", str(deriv))).doit()
                 fout.write(method_threeBody.format(
                     symfun[0], "drik", format_prms(symfun[1], _sp.ccode(
@@ -226,7 +226,7 @@ with open("symmetryFunctions.cpp", "w") as fout:
                 deriv = _sp.simplify(
                     _sp.Derivative(parsed_symfun, costheta).doit())
                 deriv = _sp.sympify(re.sub(
-                    "Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)",
+                    "Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)",  # NOQA
                     "dfcut(\g<arg>)", str(deriv))).doit()
                 fout.write(method_threeBody.format(
                     symfun[0], "dcostheta", format_prms(symfun[1], _sp.ccode(
@@ -243,7 +243,7 @@ with open("symmetryFunctions.cpp", "w") as fout:
                 # redone.
                 results = [
                     _sp.sympify(re.sub(
-                        "Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)",
+                        "Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)",  # NOQA
                         "dfcut(\g<arg>)", str(result))).doit()
                     for result in results]
                 sub_exprs, simplified_results = _sp.cse(results)
