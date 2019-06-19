@@ -1,8 +1,8 @@
 from os.path import dirname, abspath, join, normpath
 from inspect import getsourcefile
 from itertools import product, combinations_with_replacement
-from mlpot.descriptors.SymmetryFunctions import (AngularSymmetryFunction,
-                                                 RadialSymmetryFunction)
+from .SymmetryFunctions import (AngularSymmetryFunction,
+                                RadialSymmetryFunction)
 import numpy as _np
 import ctypes as _ct
 from scipy.spatial.distance import pdist, squareform
