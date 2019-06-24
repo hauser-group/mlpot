@@ -204,9 +204,13 @@ class GAPCalculator(GPRCalculator):
                             'ijk,il->lk', dK[n_t:, :m_t, :], dGsi_t)
                         kernel_grad[i, dj, :] += np.einsum(
                             'ijk,jl->lk', dK[:n_t, m_t:, :], dGsj_t)
+                        # Numpys einsum is not optimized for three arguments by
+                        # default. The fix for now is to use the optimize flag.
+                        # Maybe check if this can be done using tensordot or
+                        # something similar and compare performance.
                         kernel_grad[di, dj, :] += np.einsum(
                             'il,ijk,jm->lmk', dGsi_t,
-                            dK[n_t:, m_t:, :], dGsj_t)
+                            dK[n_t:, m_t:, :], dGsj_t, optimize=True)
         if eval_gradient:
             return kernel_mat, kernel_grad
         else:
