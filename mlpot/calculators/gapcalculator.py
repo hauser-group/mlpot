@@ -133,18 +133,27 @@ class GAPCalculator(GPRCalculator):
         return E, F
 
     def get_params(self):
-        return {'atoms_train': self.atoms_train, 'Gs': self.Gs,
-                'dGs': self.dGs, 'Gs_norm': self.Gs_norm,
-                'dGs_norm': self.dGs_norm, 'alpha': self.alpha,
+        return {'atoms_train': self.atoms_train,
+                'normalize_input': self.normalize_input,
+                'Gs': self.Gs,
+                'dGs': self.dGs,
+                'Gs_norm': self.Gs_norm,
+                'dGs_norm': self.dGs_norm,
+                'Gs_norm1': self.Gs_norm1,
+                'Gs_norm2': self.Gs_norm2,
+                'alpha': self.alpha,
                 'intercept': self.intercept,
                 'hyper_parameters': self.kernel.theta}
 
     def set_params(self, **params):
         self.atoms_train = params['atoms_train']
+        self.normalize_input = params['normalize_input']
         self.Gs = params['Gs']
         self.dGs = params['dGs']
         self.Gs_norm = params['Gs_norm']
         self.dGs_norm = params['dGs_norm']
+        self.Gs_norm1 = params['Gs_norm1']
+        self.Gs_norm2 = params['Gs_norm2']
         self.n_dim = 3*len(self.atoms_train[0])
         self.alpha = params['alpha']
         self.intercept = params['intercept']
