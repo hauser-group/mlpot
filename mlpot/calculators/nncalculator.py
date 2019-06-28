@@ -94,6 +94,9 @@ class NNCalculator(MLCalculator):
             self.Gs = []
             self.dGs = []
             self.int_types = []
+            self.indices = {t: np.zeros((0, 1)) for t in self.atomtypes}
+            self.Gs_dict = {t: [] for t in self.atomtypes}
+            self.dGs_dict = {t: [] for t in self.atomtypes}
 
         # Call the super class routine after checking for empty trainings set!
         MLCalculator.add_data(self, atoms)
@@ -106,6 +109,25 @@ class NNCalculator(MLCalculator):
         self.Gs.append(Gi)
         self.dGs.append(dGi)
 
+        Gs_by_type, dGs_by_type = self._transform_input(atoms)
+        for t in self.atomtypes:
+            self.Gs_dict[t].extend(np.array(Gs_by_type[t]))
+            self.dGs_dict[t].extend(np.array(dGs_by_type[t]))
+            self.indices[t] = np.append(
+                self.indices[t],
+                (self.E_train.shape[0]-1) * np.ones((len(Gs_by_type[t]), 1)),
+                axis=0)
+
+    def _transform_input(self, atoms):
+        types = atoms.get_chemical_symbols()
+        Gs, dGs = self.descriptor_set.eval_ase(atoms, derivatives=True)
+        Gs_by_type = {t: [] for t in self.atomtypes}
+        dGs_by_type = {t: [] for t in self.atomtypes}
+        for Gi, dGi, ti in zip(Gs, dGs, types):
+            Gs_by_type[ti].append(Gi)
+            dGs_by_type[ti].append(dGi)
+        return Gs_by_type, dGs_by_type
+
     def fit(self):
         print('Fit called with %d geometries.' % len(self.atoms_train))
         # TODO: This could be streamlined even more by not using the
@@ -114,26 +136,11 @@ class NNCalculator(MLCalculator):
 
         ann_inputs, indices, ann_derivs = calculate_bp_indices(
             len(self.atomtypes), self.Gs, self.int_types, dGs=self.dGs)
-        self.train_dict = {
-            self.pot.target: self.E_train,
-            self.pot.target_forces: self.F_train,
-            self.pot.error_weights: np.ones(len(self.atoms_train))}
+
         for i, t in enumerate(self.atomtypes):
-            self.train_dict[self.pot.atom_indices[t]] = indices[i]
-            if self.normalize_input == 'norm':
-                norm_i = np.linalg.norm(ann_inputs[i], axis=1)
-                self.train_dict[self.pot.atomic_contributions[t].input] = (
-                    ann_inputs[i])/norm_i[:, np.newaxis]
-                self.train_dict[
-                    self.pot.atomic_contributions[t].derivatives_input
-                    ] = np.einsum('ijkl,i->ijkl', ann_derivs[i], 1.0/norm_i)
-            else:
-                self.train_dict[self.pot.atomic_contributions[t].input] = (
-                    ann_inputs[i]-self.Gs_norm1[t])/self.Gs_norm2[t]
-                self.train_dict[
-                    self.pot.atomic_contributions[t].derivatives_input
-                    ] = np.einsum('ijkl,j->ijkl', ann_derivs[i],
-                                  1.0/self.Gs_norm2[t])
+            np.testing.assert_equal(indices[i], self.indices[t])
+            np.testing.assert_allclose(ann_inputs[i], self.Gs_dict[t])
+            np.testing.assert_allclose(ann_derivs[i], self.dGs_dict[t])
 
         if self.normalize_input == 'mean':
             for i, t in enumerate(self.atomtypes):
@@ -146,6 +153,27 @@ class NNCalculator(MLCalculator):
                 # Small offset for numerical stability
                 self.Gs_norm2[t] = (np.max(ann_inputs[i], axis=0) -
                                     np.min(ann_inputs[i], axis=0) + 1E-6)
+
+        self.train_dict = {
+            self.pot.target: self.E_train,
+            self.pot.target_forces: self.F_train,
+            self.pot.error_weights: np.ones(len(self.atoms_train))}
+        for t in self.atomtypes:
+            self.train_dict[self.pot.atom_indices[t]] = self.indices[t]
+            if self.normalize_input == 'norm':
+                norm_i = np.linalg.norm(self.Gs_dict[t], axis=1)
+                self.train_dict[self.pot.atomic_contributions[t].input] = (
+                    self.Gs_dict[t])/norm_i[:, np.newaxis]
+                self.train_dict[
+                    self.pot.atomic_contributions[t].derivatives_input
+                    ] = np.einsum('ijkl,i->ijkl', self.dGs_dict[t], 1.0/norm_i)
+            else:
+                self.train_dict[self.pot.atomic_contributions[t].input] = (
+                    self.Gs_dict[t]-self.Gs_norm1[t])/self.Gs_norm2[t]
+                self.train_dict[
+                    self.pot.atomic_contributions[t].derivatives_input
+                    ] = np.einsum('ijkl,j->ijkl', self.dGs_dict[t],
+                                  1.0/self.Gs_norm2[t])
 
         # Start with large minimum loss value
         min_loss_value = 1E20
@@ -229,24 +257,30 @@ class NNCalculator(MLCalculator):
         Gs, dGs = self.descriptor_set.eval_ase(atoms, derivatives=True)
         ann_inputs, indices, ann_derivs = calculate_bp_indices(
             len(self.atomtypes), [Gs], [int_types], dGs=[dGs])
+        Gs, dGs = self._transform_input(atoms)
+        for i, t in enumerate(self.atomtypes):
+            np.testing.assert_equal(indices[i],
+                                    np.zeros((len(Gs[t]), 1)))
+            np.testing.assert_allclose(ann_inputs[i], Gs[t])
+            np.testing.assert_allclose(ann_derivs[i], dGs[t])
 
         eval_dict = {self.pot.target: np.zeros(1),
                      self.pot.target_forces: np.zeros((1, len(atoms), 3))}
-        for i, t in enumerate(self.atomtypes):
-            eval_dict[self.pot.atom_indices[t]] = indices[i]
+        for t in self.atomtypes:
+            eval_dict[self.pot.atom_indices[t]] = np.zeros((len(Gs[t]), 1))
             if self.normalize_input == 'norm':
-                norm_i = np.linalg.norm(ann_inputs[i], axis=1)
+                norm_i = np.linalg.norm(Gs[t], axis=1)
                 eval_dict[self.pot.atomic_contributions[t].input] = (
-                    ann_inputs[i])/norm_i[:, np.newaxis]
+                    Gs[t])/norm_i[:, np.newaxis]
                 eval_dict[
                     self.pot.atomic_contributions[t].derivatives_input
-                    ] = np.einsum('ijkl,i->ijkl', ann_derivs[i], 1.0/norm_i)
+                    ] = np.einsum('ijkl,i->ijkl', dGs[t], 1.0/norm_i)
             else:
                 eval_dict[self.pot.atomic_contributions[t].input] = (
-                    ann_inputs[i]-self.Gs_norm1[t])/self.Gs_norm2[t]
+                    Gs[t]-self.Gs_norm1[t])/self.Gs_norm2[t]
                 eval_dict[
                     self.pot.atomic_contributions[t].derivatives_input
-                    ] = np.einsum('ijkl,j->ijkl', ann_derivs[i],
+                    ] = np.einsum('ijkl,j->ijkl', dGs[t],
                                   1.0/self.Gs_norm2[t])
 
         E = self.session.run(self.pot.E_predict, eval_dict)[0]
@@ -254,16 +288,27 @@ class NNCalculator(MLCalculator):
         return E, F
 
     def get_params(self):
-        params = {'normalize_input': self.normalize_input,
-                  'Gs_norm1': self.Gs_norm1, 'Gs_norm2': self.Gs_norm2,
-                  'model_dir': self.pot.saver.save(
+        return {'atoms_train': self.atoms_train,
+                'normalize_input': self.normalize_input,
+                'Gs': self.Gs,
+                'dGs': self.dGs,
+                'Gs_norm': self.Gs_norm,
+                'dGs_norm': self.dGs_norm,
+                'Gs_norm1': self.Gs_norm1,
+                'Gs_norm2': self.Gs_norm2,
+                'model_dir': self.pot.saver.save(
                     self.session, self.model_dir+'model.ckpt')}
-        return params
 
     def set_params(self, **params):
+        self.atoms_train = params['atoms_train']
         self.normalize_input = params['normalize_input']
+        self.Gs = params['Gs']
+        self.dGs = params['dGs']
+        self.Gs_norm = params['Gs_norm']
+        self.dGs_norm = params['dGs_norm']
         self.Gs_norm1 = params['Gs_norm1']
         self.Gs_norm2 = params['Gs_norm2']
+        self.n_dim = 3*len(self.atoms_train[0])
         self.pot.saver.restore(self.session, params['model_dir'])
 
     def close(self):
