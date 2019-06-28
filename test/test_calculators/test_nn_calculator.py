@@ -47,15 +47,17 @@ class NNCalculatorTest(unittest.TestCase):
                                     ti, tj, tk, "BehlerG3",
                                     [lamb, zeta, eta], cuttype='cos')
 
-            tf.random.set_random_seed(1234)
+            # TODO: Find solution for setting the random seed. Since
+            # NNCalculator builds a custom graph this does not work:
+            tf.set_random_seed(1234)
             calc = NNCalculator(descriptor_set=sfs, C1=1e8, C2=1e8,
                                 layers=[[5], [5]], model_dir='./.tmp/')
 
-            [calc.add_data(image) for image in images_train]
+            [calc.add_data(im) for im in images_train]
             calc.fit()
             np.testing.assert_allclose(
                 energies_train,
-                [calc.predict(image)[0] for image in images_train],
+                [calc.predict(im)[0] for im in images_train],
                 rtol=1e-3)
 
 
