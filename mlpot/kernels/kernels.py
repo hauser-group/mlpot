@@ -43,7 +43,7 @@ class DotProductKernel(object):
         # Initialize kernel matrix
         K = np.zeros((n*(1+n_dim), m*(1+n_dim)))
         if eval_gradient:
-            K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim), 1))
+            K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim), 0))
         for a in range(n):
             for b in range(m):
                 # Index ranges for the derivatives are given by the following
@@ -96,7 +96,7 @@ class NormalizedDotProductKernel(object):
         # Initialize kernel matrix
         K = np.zeros((n*(1+n_dim), m*(1+n_dim)))
         if eval_gradient:
-            K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim), 1))
+            K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim), 0))
         for a in range(n):
             for b in range(m):
                 # Index ranges for the derivatives are given by the following
