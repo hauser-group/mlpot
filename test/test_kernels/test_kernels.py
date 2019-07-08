@@ -148,7 +148,11 @@ class MaternKernelTest(KernelTest.KernelTest):
         np.testing.assert_allclose(K1[:N, N:], -K2[:N, N:])
         np.testing.assert_allclose(K1[N:, :N], -K2[N:, :N])
 
-# TODO: Still missing: Matern Anisotropic
+
+class MaternKernelAnisoTest(KernelTest.KernelTest):
+    kernel = MaternKernel
+    kwargs = {'constant': 23.4, 'factor': 1.234,
+              'length_scale': np.array([1.321]*12)}
 
 
 class DotProductKernelTest(KernelTest.KernelTest):

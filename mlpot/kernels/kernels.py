@@ -708,7 +708,34 @@ class MaternKernel(object):
                 # Gradient with respect to the length_scale
                 if eval_gradient:
                     if self.anisotropic:
+                        # Following the accompaning latex documents the
+                        # three matrix dimensions are refered to as q, p and s.
                         raise NotImplementedError
+                        K_gradient[a, b, :] = 5./3.*exp_term*(
+                            sqrt_sum + 1.)*scaled_diff**2/self.length_scale
+                        K_gradient[da, b, :] = 5./3.*exp_term*np.outer(
+                            scaled_diff/self.length_scale, 1./self.length_scale
+                            )*(2*np.eye(n_dim)*(sqrt_sum + 1) -
+                               5*scaled_diff**2[np.newaxis, :])
+                        K_gradient[a, db, :] = 5./3.*exp_term*np.outer(
+                            scaled_diff/self.length_scale, 1./self.length_scale
+                            )*(5*scaled_diff**2[np.newaxis, :] -
+                               2*np.eye(n_dim)*(sqrt_sum + 1))
+                        K_gradient[da, db, :] = 5./3*exp_term*(
+                            - 2*(1+sqrt_sum)*np.einsum(
+                                'sp,sq->qps', np.eye(n_dim), np.eye(n_dim)) +
+                            (2*np.einsum('qs,p->qps', np.eye(n_dim),
+                                         scaled_diff/self.length_scale) +
+                             2*np.einsum('ps,q->qps', np.eye(n_dim),
+                                         scaled_diff/self.length_scale) +
+                             np.einsum('qp,s->qps',
+                                       np.eye(n_dim)/self.length_scale**2,
+                                       (X[a, :]-Y[b, :])) -
+                             5*np.einsum('q,p,s->qps',
+                                         scaled_diff/self.length_scale,
+                                         scaled_diff/self.length_scale,
+                                         (X[a, :]-Y[b, :])/sqrt_sum)
+                             )*5*(X[a, :]-Y[b, :]))/self.length_scale**3
                     else:  # isotropic
                         outer_prod = np.outer(scaled_diff, scaled_diff)
                         K_gradient[a, b, 0] = 5./3.*(sqrt_sum + 1.)*(
