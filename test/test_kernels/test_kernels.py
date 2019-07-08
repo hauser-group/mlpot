@@ -153,14 +153,14 @@ class MaternKernelTest(KernelTest.KernelTest):
 
 class DotProductKernelTest(KernelTest.KernelTest):
     kernel = DotProductKernel
-    kwargs = {'constant': 23.4}
+    kwargs = {'sigma0': 23.4}
 
     def test_symmetry(self):
         atomsX = np.random.randn(1, 12)
         atomsY = np.random.randn(1, 12)
 
-        constant = 23.4
-        kernel = DotProductKernel(constant=constant)
+        sigma0 = 23.4
+        kernel = DotProductKernel(sigma0=sigma0)
 
         K1 = kernel(atomsX, atomsY, dx=True, dy=True)
         K2 = kernel(atomsY, atomsX, dx=True, dy=True)
@@ -171,38 +171,38 @@ class DotProductKernelTest(KernelTest.KernelTest):
 
 class DotProductKernelExp1Test(KernelTest.KernelTest):
     kernel = DotProductKernel
-    kwargs = {'constant': 23.4, 'exponent': 1}
+    kwargs = {'sigma0': 23.4, 'exponent': 1}
 
 
 class DotProductKernelExp4Test(KernelTest.KernelTest):
     kernel = DotProductKernel
-    kwargs = {'constant': 23.4, 'exponent': 4}
+    kwargs = {'sigma0': 23.4, 'exponent': 4}
 
 
 class NormalizedDotProductKernelTest(KernelTest.KernelTest):
     kernel = NormalizedDotProductKernel
-    kwargs = {'constant': 1.234}
+    kwargs = {'sigma0': 4.321, 'constant': 1.234}
 
 
 class NormalizedDotProductKernelExp1Test(KernelTest.KernelTest):
     kernel = NormalizedDotProductKernel
-    kwargs = {'constant': 1.234, 'exponent': 1}
+    kwargs = {'sigma0': 4.321, 'constant': 1.234, 'exponent': 1}
 
 
 class NormalizedDotProductKernelExp4Test(KernelTest.KernelTest):
     kernel = NormalizedDotProductKernel
-    kwargs = {'constant': 1.234, 'exponent': 4}
+    kwargs = {'sigma0': 4.321, 'constant': 1.234, 'exponent': 4}
 
 
 class NormalizedDotProductKernelwithHyperparameterTest(KernelTest.KernelTest):
     kernel = NormalizedDotProductKernelwithHyperparameter
-    kwargs = {'constant': 1.234, 'exponent': 2}
+    kwargs = {'sigma0': 4.321, 'exponent': 2, 'constant': 1.234}
 
 
 class NormalizedDotProductKernelwithHyperparameterExp4Test(
         KernelTest.KernelTest):
     kernel = NormalizedDotProductKernelwithHyperparameter
-    kwargs = {'constant': 1.234, 'exponent': 4}
+    kwargs = {'sigma0': 4.321, 'exponent': 4, 'constant': 1.234}
 
 
 if __name__ == '__main__':
