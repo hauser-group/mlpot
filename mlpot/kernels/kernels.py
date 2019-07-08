@@ -641,7 +641,7 @@ class MaternKernel(object):
         if np.ndim(length_scale) == 0:
             self.length_scale = np.array([length_scale])
         elif np.ndim(length_scale) == 1:
-            self.length_scale = np.array([length_scale])
+            self.length_scale = np.array(length_scale)
         else:
             raise ValueError('Unexpected dimension of length_scale')
         self.length_scale_bounds = length_scale_bounds
@@ -711,16 +711,15 @@ class MaternKernel(object):
                     if self.anisotropic:
                         # Following the accompaning latex documents the
                         # three matrix dimensions are refered to as q, p and s.
-                        raise NotImplementedError
                         K_gradient[a, b, :] = 5./3.*exp_term*(
                             sqrt_sum + 1.)*scaled_diff**2/self.length_scale
                         K_gradient[da, b, :] = 5./3.*exp_term*np.outer(
                             scaled_diff/self.length_scale, 1./self.length_scale
                             )*(2*np.eye(n_dim)*(sqrt_sum + 1) -
-                               5*scaled_diff**2[np.newaxis, :])
+                               (5*scaled_diff**2)[np.newaxis, :])
                         K_gradient[a, db, :] = 5./3.*exp_term*np.outer(
                             scaled_diff/self.length_scale, 1./self.length_scale
-                            )*(5*scaled_diff**2[np.newaxis, :] -
+                            )*((5*scaled_diff**2)[np.newaxis, :] -
                                2*np.eye(n_dim)*(sqrt_sum + 1))
                         K_gradient[da, db, :] = 5./3*exp_term*(
                             - 2*(1+sqrt_sum)*np.einsum(
