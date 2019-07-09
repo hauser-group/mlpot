@@ -91,6 +91,14 @@ class KernelTest():
 
             np.testing.assert_allclose(dK, dK_num, atol=1E-8)
 
+        def test_symmetry(self):
+            kernel = self.kernel(**self.kwargs)
+            atomsX = np.random.randn(1, 12)
+
+            K = kernel(atomsX, atomsX, dx=True, dy=True)
+
+            np.testing.assert_allclose(K, K.T)
+
 
 class RBFKernelTest(KernelTest.KernelTest):
     kernel = RBFKernel
