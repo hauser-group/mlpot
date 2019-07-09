@@ -62,6 +62,35 @@ class KernelTest():
 
             np.testing.assert_allclose(dK, dK_num, atol=1E-8)
 
+        def test_hyperparameter_gradient_XisY(self):
+            """ In theory the gradient with respect to the hyperparameters
+            should only ever be needed when the kernel is called with the same
+            arguments. At least that is how scikit-learn implements kernels.
+            """
+            kernel = self.kernel(**self.kwargs)
+            atomsX = np.random.randn(5, 12)
+
+            K, dK = kernel(atomsX, atomsX, dx=True, dy=True,
+                           eval_gradient=True)
+            dK_num = np.zeros_like(dK)
+
+            # Derivative with respect to the hyperparameters:
+            dt = 1e-6
+            # Hyperparameters live on an exponential scale!!!
+            for i in range(len(kernel.theta)):
+                dti = np.zeros(len(kernel.theta))
+                dti[i] = dt
+                kernel.theta = np.log(np.exp(kernel.theta) + dti)
+                K_plus = kernel(atomsX, atomsX, dx=True, dy=True,
+                                eval_gradient=False)
+                kernel.theta = np.log(np.exp(kernel.theta) - 2*dti)
+                K_minus = kernel(atomsX, atomsX, dx=True, dy=True,
+                                 eval_gradient=False)
+                kernel.theta = np.log(np.exp(kernel.theta) + dti)
+                dK_num[:, :, i] = (K_plus - K_minus)/(2*dt)
+
+            np.testing.assert_allclose(dK, dK_num, atol=1E-8)
+
 
 class RBFKernelTest(KernelTest.KernelTest):
     kernel = RBFKernel
