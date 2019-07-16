@@ -80,14 +80,15 @@ class GPRCalculator(MLCalculator):
                     for bi, (lower_bound, upper_bound) in enumerate(bounds):
                         initial_hyper_parameters[bi] = np.random.uniform(
                             lower_bound, upper_bound, 1)
-                print('Starting optimization %d/%d' % (
+                print('Starting hyperparameter optimization %d/%d' % (
                             ii+1, self.opt_restarts),
                       'with parameters: ', initial_hyper_parameters)
                 try:
                     opt_res = self._opt_routine(initial_hyper_parameters)
                     opt_hyper_parameter.append(opt_res.x)
                     value.append(opt_res.fun)
-                    print('Finished after %d iterations' % opt_res.nit,
+                    print('Finished hyperparameter optimization after',
+                          '%d iterations' % opt_res.nit,
                           ' with value: ', opt_res.fun,
                           ' and parameters:', opt_res.x)
                 except np.linalg.LinAlgError as E:
