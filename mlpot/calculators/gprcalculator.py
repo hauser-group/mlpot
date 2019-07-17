@@ -1,6 +1,6 @@
 from mlpot.calculators.mlcalculator import MLCalculator
 import numpy as np
-from scipy.linalg import cho_solve, cholesky
+from scipy.linalg import cho_solve, cholesky, solve_triangular
 from scipy.optimize import minimize
 
 
@@ -191,9 +191,23 @@ class GPRCalculator(MLCalculator):
         F = -y[1:].reshape((-1, 3))
         return E, F
 
+    def predict_var(self, atoms):
+        X_star = self._normalize_input(self._transform_input(atoms))
+        K_star = self.build_kernel_matrix(X_star=X_star)
+
+        # Shamelessly copied from scikit-learn:
+        L_inv = solve_triangular(self.L.T, np.eye(self.L.shape[0]))
+        K_inv = L_inv.dot(L_inv.T)
+        y_var = self.build_kernel_diagonal(X_star)
+        y_var -= np.einsum('ij,ij->j', K_star, K_inv.dot(K_star))
+
+        E_var = y_var[0]
+        F_var = -y_var[1:].reshape((-1, 3))
+        return E_var, F_var
+
     def get_params(self):
         return {'atoms_train': self.atoms_train, 'x_train': self.x_train,
-                'alpha': self.alpha, 'intercept': self.intercept,
+                'alpha': self.alpha, 'L': self.L, 'intercept': self.intercept,
                 'hyper_parameters': self.kernel.theta}
 
     def set_params(self, **params):
@@ -201,6 +215,7 @@ class GPRCalculator(MLCalculator):
         self.x_train = params['x_train']
         self.n_dim = self.x_train.shape[1]
         self.alpha = params['alpha']
+        self.L = params['L']
         self.intercept = params['intercept']
         self.kernel.theta = params['hyper_parameters']
 
@@ -214,3 +229,10 @@ class GPRCalculator(MLCalculator):
         else:
             return self.kernel(self.x_train, X_star, dx=True, dy=True,
                                eval_gradient=eval_gradient)
+
+    def build_kernel_diagonal(self, X_star):
+        """Evaluates the diagonal of the kernel matrix which can be done
+        significantly faster than evaluating the whole matrix and is needed for
+        the uncertainty prediction
+        """
+        return self.kernel.diag(X_star)
