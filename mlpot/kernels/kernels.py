@@ -44,9 +44,17 @@ class KernelOperator(Kernel):
 
     @theta.setter
     def theta(self, theta):
-        k1_dims = self.theta.shape[0]
+        k1_dims = self.k1.theta.shape[0]
         self.k1.theta = theta[:k1_dims]
         self.k2.theta = theta[k1_dims:]
+
+    @property
+    def bounds(self):
+        if self.k1.bounds.size == 0:
+            return self.k2.bounds
+        if self.k2.bounds.size == 0:
+            return self.k1.bounds
+        return np.vstack((self.k1.bounds, self.k2.bounds))
 
 
 class Sum(KernelOperator):
