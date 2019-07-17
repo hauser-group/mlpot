@@ -154,7 +154,7 @@ class DotProductKernel(Kernel):
                 da = slice(n+a*n_dim, n+(a+1)*n_dim, 1)
                 db = slice(m+b*n_dim, m+(b+1)*n_dim, 1)
 
-                xy_plus_c = X[a, :].dot(Y[b, :]) + self.sigma0
+                xy_plus_c = X[a, :].dot(Y[b, :]) + self.sigma0**2
 
                 K[a, b] = xy_plus_c**self.exponent
                 K[da, b] = xy_plus_c**(self.exponent-1)*self.exponent*Y[b, :]
