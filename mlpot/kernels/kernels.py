@@ -71,8 +71,7 @@ class Sum(KernelOperator):
             K1, dK1 = self.k1(X, Y, dx=dx, dy=dy, eval_gradient=True)
             K2, dK2 = self.k2(X, Y, dx=dx, dy=dy, eval_gradient=True)
             return K1 + K2, np.dstack([dK1, dK2])
-        else:
-            return self.k1(X, Y, dx=dx, dy=dy) + self.k2(X, Y, dx=dx, dy=dy)
+        return self.k1(X, Y, dx=dx, dy=dy) + self.k2(X, Y, dx=dx, dy=dy)
 
     def diag(self, X):
         return self.k1.diag(X) + self.k2.diag(X)
@@ -121,8 +120,7 @@ class ConstantKernel(Kernel):
             K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim), 1))
             K_gradient[:n, :m] = 1.0
             return K, K_gradient
-        else:
-            return K
+        return K
 
     def diag(self, X):
         diag = np.zeros(X.shape[0] * (1 + X.shape[1]))
@@ -176,10 +174,9 @@ class DotProductKernel(Kernel):
                     (self.exponent - 1)*np.outer(Y[b, :], X[a, :]) +
                     np.eye(n_dim)*xy_plus_c)
 
-        if not eval_gradient:
-            return K
-        else:
+        if eval_gradient:
             return K, K_gradient
+        return K
 
     def diag(self, X):
         diag = np.zeros(X.shape[0] * (1 + X.shape[1]))
@@ -255,10 +252,9 @@ class NormalizedDotProductKernel(Kernel):
         # Add constant term only on non-derivative block
         K[:n, :m] += self.constant
 
-        if not eval_gradient:
-            return K
-        else:
+        if eval_gradient:
             return K, K_gradient
+        return K
 
     def diag(self, X):
         diag = np.zeros(X.shape[0] * (1 + X.shape[1]))
@@ -359,10 +355,9 @@ class NormalizedDotProductKernelwithHyperparameter(Kernel):
         # Add constant term only on non-derivative block
         K[:n, :m] += self.constant
 
-        if not eval_gradient:
-            return K
-        else:
+        if eval_gradient:
             return K, K_gradient
+        return K
 
     def diag(self, X):
         diag = np.zeros(X.shape[0] * (1 + X.shape[1]))
@@ -640,10 +635,9 @@ class RBFKernel(Kernel):
         # Add constant term only on non-derivative block
         K[:n, :m] += constant
 
-        if not eval_gradient:
-            return K
-        else:
+        if eval_gradient:
             return K, K_gradient
+        return K
 
     def diag(self, X):
         diag = np.zeros(X.shape[0] * (1 + X.shape[1]))
@@ -778,10 +772,9 @@ class RBFKernel_with_factor(Kernel):
         # Add constant term only on non-derivative block
         K[:n, :m] += self.constant
 
-        if not eval_gradient:
-            return K
-        else:
+        if eval_gradient:
             return K, K_gradient
+        return K
 
     def diag(self, X):
         diag = np.zeros(X.shape[0] * (1 + X.shape[1]))
@@ -930,10 +923,9 @@ class MaternKernel(Kernel):
         # Add constant term only on non-derivative block
         K[:n, :m] += self.constant
 
-        if not eval_gradient:
-            return K
-        else:
+        if eval_gradient:
             return K, K_gradient
+        return K
 
     def diag(self, X):
         diag = np.zeros(X.shape[0] * (1 + X.shape[1]))
