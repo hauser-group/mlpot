@@ -51,6 +51,22 @@ class SumTest(unittest.TestCase):
         np.testing.assert_allclose(dK_sum[:, :, :1], dK_ref1)
         np.testing.assert_allclose(dK_sum[:, :, -1:], dK_ref2)
 
+    def test_RBF_plus_ConstantKernel_diag(self):
+        n = 3
+        m = 4
+        n_dim = 12
+        X = np.random.randn(n, n_dim)
+        Y = np.random.randn(m, n_dim)
+
+        constant = 10.0
+
+        kernel = Sum(RBFKernel(), ConstantKernel(constant=constant))
+
+        K = kernel(X, Y, dx=True, dy=True)
+        diag_K = kernel.diag(X)
+
+        np.testing.assert_allclose(diag_K, np.diag(K))
+
     def test_atomic_position_gradient(self):
         kernel = Sum(RBFKernel(), ConstantKernel(constant=10))
 
