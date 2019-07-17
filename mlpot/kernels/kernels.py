@@ -14,7 +14,102 @@ except ImportError:
         return jit_decorator
 
 
-class DotProductKernel(object):
+class Kernel(object):
+    """Base class for all kernels
+
+    """
+
+    def __add__(self, b):
+        if not isinstance(b, Kernel):
+            return Sum(self, ConstantKernel(b))
+        return Sum(self, b)
+
+    def __radd__(self, b):
+        if not isinstance(b, Kernel):
+            return Sum(ConstantKernel(b), self)
+        return Sum(b, self)
+
+
+class KernelOperator(Kernel):
+    """Base class for all kernel operators.
+    """
+
+    def __init__(self, k1, k2):
+        self.k1 = k1
+        self.k2 = k2
+
+    @property
+    def theta(self):
+        return np.append(self.k1.theta, self.k2.theta)
+
+    @theta.setter
+    def theta(self, theta):
+        k1_dims = self.theta.shape[0]
+        self.k1.theta = theta[:k1_dims]
+        self.k2.theta = theta[k1_dims:]
+
+
+class Sum(KernelOperator):
+
+    def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
+        if eval_gradient:
+            K1, dK1 = self.k1(X, Y, dx=dx, dy=dy, eval_gradient=True)
+            K2, dK2 = self.k2(X, Y, dx=dx, dy=dy, eval_gradient=True)
+            return K1 + K2, np.dstack([dK1, dK2])
+        else:
+            return self.k1(X, Y, dx=dx, dy=dy) + self.k2(X, Y, dx=dx, dy=dy)
+
+
+class ConstantKernel(Kernel):
+
+    def __init__(self, constant=1.0, constant_bounds=(1e-5, 1e5)):
+        if np.ndim(constant) == 0:
+            self.constant = np.array([constant])
+        elif np.ndim(constant) == 1:
+            self.constant = np.array(constant)
+        else:
+            raise ValueError('Unexpected dimension of constant')
+        self.constant_bounds = constant_bounds
+
+    @property
+    def theta(self):
+        return np.log(self.constant)
+
+    @theta.setter
+    def theta(self, theta):
+        self.constant = np.exp(theta)
+
+    @property
+    def bounds(self):
+        if np.ndim(self.constant_bounds) == 1:
+            return np.log(np.asarray([self.constant_bounds]))
+        elif np.ndim(self.constant_bounds) == 2:
+            return np.log(self.constant_bounds)
+        else:
+            raise ValueError('Unexpected dimension of constant_bounds')
+
+    def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
+        n = X.shape[0]
+        m = Y.shape[0]
+        n_dim = X.shape[1]
+
+        # The arguments dx and dy are deprecated and will be removed soon
+        if not (dx and dy):
+            raise NotImplementedError
+        # Initialize kernel matrix
+        K = np.zeros((n*(1+n_dim), m*(1+n_dim)))
+        if eval_gradient:
+            K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim), 1))
+        K[:n, :m] = self.constant
+        K_gradient[:n, :m] = 1.0
+
+        if eval_gradient:
+            return K, K_gradient
+        else:
+            return K
+
+
+class DotProductKernel(Kernel):
 
     def __init__(self, sigma0=1.0, exponent=2):
         self.sigma0 = sigma0
@@ -66,7 +161,7 @@ class DotProductKernel(object):
             return K, K_gradient
 
 
-class NormalizedDotProductKernel(object):
+class NormalizedDotProductKernel(Kernel):
 
     def __init__(self, sigma0=1.0, exponent=2, constant=0.0):
         self.sigma0 = sigma0
@@ -135,16 +230,16 @@ class NormalizedDotProductKernel(object):
             return K, K_gradient
 
 
-class NormalizedDotProductKernelwithHyperparameter(object):
+class NormalizedDotProductKernelwithHyperparameter(Kernel):
 
     def __init__(self, sigma0=1.0, sigma0_bounds=(1e-3, 1e3), exponent=2,
                  constant=0.0):
-        if np.ndim(constant) == 0:
+        if np.ndim(sigma0) == 0:
             self.sigma0 = np.array([sigma0])
-        elif np.ndim(constant) == 1:
+        elif np.ndim(sigma0) == 1:
             self.sigma0 = np.array(sigma0)
         else:
-            raise ValueError('Unexpected dimension of constant')
+            raise ValueError('Unexpected dimension of sigma0')
         self.sigma0_bounds = sigma0_bounds
         self.exponent = exponent
         self.constant = constant
@@ -164,7 +259,7 @@ class NormalizedDotProductKernelwithHyperparameter(object):
         elif np.ndim(self.sigma0_bounds) == 2:
             return np.log(self.sigma0_bounds)
         else:
-            raise ValueError('Unexpected dimension of constant_bounds')
+            raise ValueError('Unexpected dimension of sigma0_bounds')
 
     def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
         n = X.shape[0]
@@ -230,7 +325,7 @@ class NormalizedDotProductKernelwithHyperparameter(object):
             return K, K_gradient
 
 
-class RBFKernel(object):
+class RBFKernel(Kernel):
 
     def __init__(self, constant=0.0, factor=1.0, length_scale=np.array([1.0]),
                  length_scale_bounds=(1e-3, 1e3)):
@@ -502,7 +597,7 @@ class RBFKernel(object):
             return K, K_gradient
 
 
-class RBFKernel_with_factor(object):
+class RBFKernel_with_factor(Kernel):
 
     def __init__(self, constant=0.0, factor=1.0, length_scale=1.0,
                  factor_bounds=(1e-5, 1e5), length_scale_bounds=(1e-3, 1e3)):
@@ -633,7 +728,7 @@ class RBFKernel_with_factor(object):
             return K, K_gradient
 
 
-class MaternKernel(object):
+class MaternKernel(Kernel):
     def __init__(self, constant=0.0, factor=1.0, length_scale=np.array([1.0]),
                  length_scale_bounds=(1e-3, 1e3)):
         self.factor = factor
@@ -778,7 +873,7 @@ class MaternKernel(object):
             return K, K_gradient
 
 
-class SFSKernel(object):
+class SFSKernel(Kernel):
     def __init__(self, descriptor_set, factor=1.0, constant=1.0,
                  kernel='dot_product'):
         self.descriptor_set = descriptor_set
@@ -880,7 +975,7 @@ class SFSKernel(object):
             raise NotImplementedError
 
 
-class SFSKernel_new(object):
+class SFSKernel_new(Kernel):
     def __init__(self, descriptor_set, factor=1.0, constant=1.0,
                  kernel='dot_product'):
         self.descriptor_set = descriptor_set
@@ -977,7 +1072,7 @@ class SFSKernel_new(object):
             raise NotImplementedError
 
 
-class KlemensInterface(object):
+class KlemensInterface(Kernel):
     def __init__(self, kernel):
         self.kernel = kernel
 
