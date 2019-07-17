@@ -1,7 +1,8 @@
 import unittest
 import numpy as np
-from mlpot.kernels import (RBFKernel, RBFKernel_with_factor, MaternKernel,
-                           DotProductKernel, NormalizedDotProductKernel,
+from mlpot.kernels import (ConstantKernel, RBFKernel, RBFKernel_with_factor,
+                           MaternKernel, DotProductKernel,
+                           NormalizedDotProductKernel,
                            NormalizedDotProductKernelwithHyperparameter)
 
 
@@ -98,6 +99,12 @@ class KernelTest():
             K = kernel(atomsX, atomsX, dx=True, dy=True)
 
             np.testing.assert_allclose(K, K.T)
+
+
+
+class ConstantKernelTest(KernelTest.KernelTest):
+    kernel = ConstantKernel
+    kwargs = {'constant': 23.4}
 
 
 class RBFKernelTest(KernelTest.KernelTest):
