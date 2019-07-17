@@ -109,12 +109,10 @@ class ConstantKernel(Kernel):
             raise NotImplementedError
         # Initialize kernel matrix
         K = np.zeros((n*(1+n_dim), m*(1+n_dim)))
+        K[:n, :m] = self.constant
         if eval_gradient:
             K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim), 1))
-        K[:n, :m] = self.constant
-        K_gradient[:n, :m] = 1.0
-
-        if eval_gradient:
+            K_gradient[:n, :m] = 1.0
             return K, K_gradient
         else:
             return K
