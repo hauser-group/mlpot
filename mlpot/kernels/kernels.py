@@ -1,3 +1,5 @@
+from abc import ABCMeta, abstractmethod
+from future.utils import with_metaclass
 import numpy as np
 try:
     from numba import jit
@@ -14,7 +16,7 @@ except ImportError:
         return jit_decorator
 
 
-class Kernel(object):
+class Kernel(with_metaclass(ABCMeta)):
     """Base class for all kernels
 
     """
@@ -29,9 +31,11 @@ class Kernel(object):
             return Sum(ConstantKernel(b), self)
         return Sum(b, self)
 
+    @abstractmethod
     def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
         """Exaluates the kernel"""
 
+    @abstractmethod
     def diag(self, X):
         """Evaluates only the diagonal of the kernel which often can be
         achieved faster and is needed for the uncertainty prediction"""
