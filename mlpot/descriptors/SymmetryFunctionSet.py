@@ -165,6 +165,28 @@ class SymmetryFunctionSet(object):
                                 ti, tj, tk, "BehlerG4", [lamb, zeta, eta],
                                 cuttype=cuttype, cutoff=cutoff)
 
+    def add_Artrith_Kolpak_set(self):
+        # Parameters from Artrith and Kolpak Nano Lett. 2014, 14, 2670
+        etas = [0.0009, 0.01, 0.02, 0.035, 0.06, 0.1, 0.2]
+        rss = [0.0]*len(etas)
+        for t1 in self.atomtypes:
+            for t2 in self.atomtypes:
+                for eta, rs in zip(etas, rss):
+                    self.add_TwoBodySymmetryFunction(
+                        t1, t2, 'BehlerG2', [eta, rs], cuttype='cos')
+
+        ang_etas = [0.0001, 0.003, 0.008]
+        zetas = [1.0, 4.0]
+        for ti in self.atomtypes:
+            for (tj, tk) in combinations_with_replacement(
+                    self.atomtypes, 2):
+                for eta in ang_etas:
+                    for zeta in zetas:
+                        for lamb in [-1.0, 1.0]:
+                            self.add_ThreeBodySymmetryFunction(
+                                ti, tj, tk, "BehlerG3",
+                                [lamb, zeta, eta], cuttype='cos')
+
     def print_symFuns(self):
         lib.SymmetryFunctionSet_print_symFuns(self.obj)
 
