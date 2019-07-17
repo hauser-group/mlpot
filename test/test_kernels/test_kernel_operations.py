@@ -1,9 +1,14 @@
 import numpy as np
 import unittest
-from mlpot.kernels import Sum, ConstantKernel, RBFKernel
+from mlpot.kernels import Sum, Product, ConstantKernel, RBFKernel
+try:
+    from test_kernels import KernelTest
+except ImportError:
+    from .test_kernels import KernelTest
 
 
-class SumTest(unittest.TestCase):
+class SumTest(KernelTest.KernelTest):
+    kernel = Sum(RBFKernel(), ConstantKernel(constant=10.0))
 
     def test_RBF_plus_float(self):
         n = 3
