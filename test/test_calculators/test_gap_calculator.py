@@ -8,7 +8,7 @@ from mlpot.descriptors.SymmetryFunctionSet import SymmetryFunctionSet
 from mlpot.kernels import RBFKernel
 
 
-class GapCalculatorTest(unittest.TestCase):
+class GAPCalculatorTest(unittest.TestCase):
     def test_co_potential_curve(self):
         direction = np.array([1., 2., 3.])
         direction /= np.linalg.norm(direction)
