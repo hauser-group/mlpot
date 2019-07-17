@@ -67,6 +67,9 @@ class Sum(KernelOperator):
         else:
             return self.k1(X, Y, dx=dx, dy=dy) + self.k2(X, Y, dx=dx, dy=dy)
 
+    def diag(self, X):
+        return self.k1.diag(X) + self.k2.diag(X)
+
 
 class ConstantKernel(Kernel):
 
@@ -115,6 +118,11 @@ class ConstantKernel(Kernel):
             return K, K_gradient
         else:
             return K
+
+    def diag(self, X):
+        diag = np.zeros(X.shape[0] * (1 + X.shape[1]))
+        diag[:X.shape[0]] = self.constant
+        return diag
 
 
 class DotProductKernel(Kernel):
@@ -167,6 +175,16 @@ class DotProductKernel(Kernel):
             return K
         else:
             return K, K_gradient
+
+    def diag(self, X):
+        diag = np.zeros(X.shape[0] * (1 + X.shape[1]))
+        xx_plus_c = np.sum(X**2, axis=1) + self.sigma0**2
+        diag[:X.shape[0]] = (xx_plus_c)**self.exponent
+        diag[X.shape[0]:] = (
+                (self.exponent*xx_plus_c**(self.exponent - 2))[:, np.newaxis] *
+                ((self.exponent - 1)*X**2 + xx_plus_c[:, np.newaxis])
+            ).flatten()
+        return diag
 
 
 class NormalizedDotProductKernel(Kernel):
@@ -236,6 +254,15 @@ class NormalizedDotProductKernel(Kernel):
             return K
         else:
             return K, K_gradient
+
+    def diag(self, X):
+        diag = np.zeros(X.shape[0] * (1 + X.shape[1]))
+        diag[:X.shape[0]] = 1.0 + self.constant
+        xx_plus_c = np.sum(X**2, axis=1) + self.sigma0**2
+        diag[X.shape[0]:] = self.exponent*(
+                (1./xx_plus_c)[:, np.newaxis] -
+                X**2/(xx_plus_c**2)[:, np.newaxis]).flatten()
+        return diag
 
 
 class NormalizedDotProductKernelwithHyperparameter(Kernel):
@@ -331,6 +358,15 @@ class NormalizedDotProductKernelwithHyperparameter(Kernel):
             return K
         else:
             return K, K_gradient
+
+    def diag(self, X):
+        diag = np.zeros(X.shape[0] * (1 + X.shape[1]))
+        diag[:X.shape[0]] = 1.0 + self.constant
+        xx_plus_c = np.sum(X**2, axis=1) + self.sigma0**2
+        diag[X.shape[0]:] = self.exponent*(
+                (1./xx_plus_c)[:, np.newaxis] -
+                X**2/(xx_plus_c**2)[:, np.newaxis]).flatten()
+        return diag
 
 
 class RBFKernel(Kernel):
@@ -604,6 +640,13 @@ class RBFKernel(Kernel):
         else:
             return K, K_gradient
 
+    def diag(self, X):
+        diag = np.zeros(X.shape[0] * (1 + X.shape[1]))
+        diag[:X.shape[0]] = self.factor + self.constant
+        diag[X.shape[0]:] = self.factor*(
+            np.ones_like(X)/self.length_scale**2).flatten()
+        return diag
+
 
 class RBFKernel_with_factor(Kernel):
 
@@ -734,6 +777,13 @@ class RBFKernel_with_factor(Kernel):
             return K
         else:
             return K, K_gradient
+
+    def diag(self, X):
+        diag = np.zeros(X.shape[0] * (1 + X.shape[1]))
+        diag[:X.shape[0]] = self.factor + self.constant
+        diag[X.shape[0]:] = self.factor*(
+            np.ones_like(X)/self.length_scale**2).flatten()
+        return diag
 
 
 class MaternKernel(Kernel):
@@ -879,6 +929,13 @@ class MaternKernel(Kernel):
             return K
         else:
             return K, K_gradient
+
+    def diag(self, X):
+        diag = np.zeros(X.shape[0] * (1 + X.shape[1]))
+        diag[:X.shape[0]] = self.factor + self.constant
+        diag[X.shape[0]:] = 5./3.*self.factor*(
+            np.ones_like(X)/self.length_scale**2).flatten()
+        return diag
 
 
 class SFSKernel(Kernel):
