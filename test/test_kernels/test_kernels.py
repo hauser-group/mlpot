@@ -100,6 +100,14 @@ class KernelTest():
 
             np.testing.assert_allclose(K, K.T)
 
+        def test_diag(self):
+            kernel = self.kernel(**self.kwargs)
+            atomsX = np.random.randn(5, 12)
+
+            K = kernel(atomsX, atomsX, dx=True, dy=True)
+            diag_K = kernel.diag(atomsX)
+
+            np.testing.assert_allclose(diag_K, np.diag(K), rtol=1E-6)
 
 
 class ConstantKernelTest(KernelTest.KernelTest):
