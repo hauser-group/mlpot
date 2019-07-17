@@ -29,6 +29,13 @@ class Kernel(object):
             return Sum(ConstantKernel(b), self)
         return Sum(b, self)
 
+    def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
+        """Exaluates the kernel"""
+
+    def diag(self, X):
+        """Evaluates only the diagonal of the kernel which often can be
+        achieved faster and is needed for the uncertainty prediction"""
+
 
 class KernelOperator(Kernel):
     """Base class for all kernel operators.
