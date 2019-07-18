@@ -242,7 +242,7 @@ class NormalizedDotProductKernelwithHyperparameterTest(KernelTest.KernelTest):
 class NormalizedDotProductKernelwithHyperparameterExp4Test(
         KernelTest.KernelTest):
     kernel = NormalizedDotProductKernelwithHyperparameter(
-        sigma0=0.321, exponent=4, constant=1.234
+        sigma0=0.321, exponent=4, constant=0.234
     )
 
 
