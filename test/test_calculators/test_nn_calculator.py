@@ -58,7 +58,7 @@ class NNCalculatorTest(unittest.TestCase):
             np.testing.assert_allclose(
                 energies_train,
                 [calc.predict(im)[0] for im in images_train],
-                rtol=1e-3)
+                rtol=1e-3, atol=5e-3)
 
 
 if __name__ == '__main__':
