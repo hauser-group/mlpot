@@ -31,6 +31,16 @@ class Kernel(with_metaclass(ABCMeta)):
             return Sum(ConstantKernel(b), self)
         return Sum(b, self)
 
+    def __mul__(self, b):
+        if not isinstance(b, Kernel):
+            return Product(self, ConstantKernel(b))
+        return Product(self, b)
+
+    def __rmul__(self, b):
+        if not isinstance(b, Kernel):
+            return Product(ConstantKernel(b), self)
+        return Product(b, self)
+
     @abstractmethod
     def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
         """Exaluates the kernel"""
@@ -79,6 +89,107 @@ class Sum(KernelOperator):
 
     def diag(self, X):
         return self.k1.diag(X) + self.k2.diag(X)
+
+
+class Product(KernelOperator):
+
+    def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
+        n = X.shape[0]
+        m = Y.shape[0]
+        n_dim = X.shape[1]
+        n_theta1 = self.k1.theta.shape[0]
+        n_theta2 = self.k2.theta.shape[0]
+
+        K = np.zeros((n*(1+n_dim), m*(1+n_dim)))
+        if eval_gradient:
+            K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim), len(self.theta)))
+            K1, dK1 = self.k1(X, Y, dx=True, dy=True, eval_gradient=True)
+            K2, dK2 = self.k2(X, Y, dx=True, dy=True, eval_gradient=True)
+        else:
+            K1 = self.k1(X, Y, dx=True, dy=True)
+            K2 = self.k2(X, Y, dx=True, dy=True)
+        K[:n, :m] = K1[:n, :m] * K2[:n, :m]
+        dK1_dX = K1[n:, :m].reshape((n, n_dim, m))
+        dK2_dX = K2[n:, :m].reshape((n, n_dim, m))
+        dK1_dY = K1[:n, m:].reshape((n, m, n_dim))
+        dK2_dY = K2[:n, m:].reshape((n, m, n_dim))
+        K[n:, :m] = (
+                K2[:n, np.newaxis, :m]*dK1_dX +
+                K1[:n, np.newaxis, :m]*dK2_dX
+            ).reshape((n*n_dim, m))
+        K[:n, m:] = (
+                K2[:n, :m, np.newaxis]*dK1_dY +
+                K1[:n, :m, np.newaxis]*dK2_dY
+            ).reshape((n, m*n_dim))
+        K[n:, m:] = (
+                K2[:n, np.newaxis, :m, np.newaxis] *
+                K1[n:, m:].reshape((n, n_dim, m, n_dim)) +
+                dK2_dX[:, :, :, np.newaxis] * dK1_dY[:, np.newaxis, :, :] +
+                dK1_dX[:, :, :, np.newaxis] * dK2_dY[:, np.newaxis, :, :] +
+                K1[:n, np.newaxis, :m, np.newaxis] *
+                K2[n:, m:].reshape((n, n_dim, m, n_dim))
+            ).reshape((n*n_dim, m*n_dim))
+        if eval_gradient:
+            K_gradient[:n, :m, :n_theta1] = (
+                K2[:n, :m, np.newaxis]*dK1[:n, :m, :])
+            K_gradient[:n, :m, n_theta1:] = (
+                K1[:n, :m, np.newaxis]*dK2[:n, :m, :])
+
+            K_gradient[n:, :m, :n_theta1] = (
+                K2[:n, np.newaxis, :m, np.newaxis] *
+                dK1[n:, :m, :].reshape((n, n_dim, m, n_theta1)) +
+                dK1[:n, np.newaxis, :m, :] *
+                dK2_dX[:, :, :, np.newaxis]).reshape(n*n_dim, m, n_theta1)
+            K_gradient[n:, :m, n_theta1:] = (
+                K1[:n, np.newaxis, :m, np.newaxis] *
+                dK2[n:, :m, :].reshape((n, n_dim, m, n_theta2)) +
+                dK2[:n, np.newaxis, :m, :] *
+                dK1_dX[:, :, :, np.newaxis]).reshape(n*n_dim, m, n_theta2)
+
+            K_gradient[:n, m:, :n_theta1] = (
+                K2[:n, :m, np.newaxis, np.newaxis] *
+                dK1[:n, m:, :].reshape((n, m, n_dim, n_theta1)) +
+                dK1[:n, :m, np.newaxis, :] *
+                dK2_dY[:, :, :, np.newaxis]).reshape(n, m*n_dim, n_theta1)
+            K_gradient[:n, m:, n_theta1:] = (
+                K1[:n, :m, np.newaxis, np.newaxis] *
+                dK2[:n, m:, :].reshape((n, m, n_dim, n_theta2)) +
+                dK2[:n, :m, np.newaxis, :] *
+                dK1_dY[:, :, :, np.newaxis]).reshape((n, m*n_dim, n_theta2))
+
+            K_gradient[n:, m:, :n_theta1] = (
+                K2[:n, np.newaxis, :m, np.newaxis, np.newaxis] *
+                dK1[n:, m:, :].reshape((n, n_dim, m, n_dim, n_theta1)) +
+                dK2_dX[:, :, :, np.newaxis, np.newaxis] *
+                dK1[:n, m:, :].reshape(
+                    (n, m, n_dim, n_theta1))[:, np.newaxis, :, :, :] +
+                dK1[n:, :m, :].reshape(
+                    (n, n_dim, m, n_theta1))[:, :, :, np.newaxis, :] *
+                dK2_dY[:, np.newaxis, :, :, np.newaxis] +
+                dK1[:n, np.newaxis, :m, np.newaxis, :] *
+                K2[n:, m:].reshape(
+                    (n, n_dim, m, n_dim))[:, :, :, :, np.newaxis]
+            ).reshape((n*n_dim, m*n_dim, n_theta1))
+            K_gradient[n:, m:, n_theta1:] = (
+                dK2[:n, np.newaxis, :m, np.newaxis, :] *
+                K1[n:, m:].reshape(
+                    (n, n_dim, m, n_dim))[:, :, :, :, np.newaxis] +
+                dK2[n:, :m, :].reshape(
+                    (n, n_dim, m, n_theta2))[:, :, :, np.newaxis, :] *
+                dK1_dY[:, np.newaxis, :, :, np.newaxis] +
+                dK1_dX[:, :, :, np.newaxis, np.newaxis] *
+                dK2[:n, m:, :].reshape(
+                    (n, m, n_dim, n_theta2))[:, np.newaxis, :, :, :] +
+                K1[:n, np.newaxis, :m, np.newaxis, np.newaxis] *
+                dK2[n:, m:, :].reshape((n, n_dim, m, n_dim, n_theta2))
+            ).reshape((n*n_dim, m*n_dim, n_theta2))
+
+            return K, K_gradient
+        return K
+
+    def diag(self, X):
+        # TODO: find better way to do this?
+        return np.diag(self(X, X, dx=True, dy=True))
 
 
 class ConstantKernel(Kernel):
