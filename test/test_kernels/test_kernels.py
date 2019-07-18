@@ -216,33 +216,33 @@ class DotProductKernelExp1Test(KernelTest.KernelTest):
 
 
 class DotProductKernelExp4Test(KernelTest.KernelTest):
-    kernel = DotProductKernel(sigma0=23.4, exponent=4)
+    kernel = DotProductKernel(sigma0=2.34, exponent=4)
 
 
 class NormalizedDotProductKernelTest(KernelTest.KernelTest):
-    kernel = NormalizedDotProductKernel(sigma0=4.321, constant=1.234)
+    kernel = NormalizedDotProductKernel(sigma0=0.321, constant=1.234)
 
 
 class NormalizedDotProductKernelExp1Test(KernelTest.KernelTest):
-    kernel = NormalizedDotProductKernel(sigma0=4.321, constant=1.234,
+    kernel = NormalizedDotProductKernel(sigma0=0.321, constant=1.234,
                                         exponent=1)
 
 
 class NormalizedDotProductKernelExp4Test(KernelTest.KernelTest):
-    kernel = NormalizedDotProductKernel(sigma0=4.321, constant=1.234,
+    kernel = NormalizedDotProductKernel(sigma0=0.321, constant=1.234,
                                         exponent=4)
 
 
 class NormalizedDotProductKernelwithHyperparameterTest(KernelTest.KernelTest):
     kernel = NormalizedDotProductKernelwithHyperparameter(
-        sigma0=4.321, exponent=2, constant=1.234
+        sigma0=0.321, exponent=2, constant=1.234
     )
 
 
 class NormalizedDotProductKernelwithHyperparameterExp4Test(
         KernelTest.KernelTest):
     kernel = NormalizedDotProductKernelwithHyperparameter(
-        sigma0=4.321, exponent=4, constant=1.234
+        sigma0=0.321, exponent=4, constant=1.234
     )
 
 
