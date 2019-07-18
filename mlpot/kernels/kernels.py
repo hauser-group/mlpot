@@ -241,6 +241,109 @@ class Rescaling(Kernel):
     def diag(self, X):
         return self.factor*self.kernel.diag(X)
 
+
+class Exponentiation(Kernel):
+
+    def __init__(self, kernel, exponent):
+        self.kernel = kernel
+        self.exponent = exponent
+
+    @property
+    def theta(self):
+        return self.kernel.theta
+
+    @theta.setter
+    def theta(self, theta):
+        self.kernel.theta = theta
+
+    @property
+    def bounds(self):
+        return self.kernel.bounds
+
+    def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
+        n = X.shape[0]
+        m = Y.shape[0]
+        n_dim = X.shape[1]
+
+        # The arguments dx and dy are deprecated and will be removed soon
+        if not (dx and dy):
+            raise NotImplementedError
+
+        K_prime = np.zeros((n*(1+n_dim), m*(1+n_dim)))
+        if eval_gradient:
+            n_theta = self.kernel.theta.shape[0]
+            K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim), n_theta))
+            K, dK = self.kernel(X, Y, dx=True, dy=True, eval_gradient=True)
+        else:
+            K = self.kernel(X, Y, dx=True, dy=True)
+
+        dK_d1 = self.exponent*K[:n, :m]**(self.exponent - 1)
+        dK_d2 = (
+            self.exponent*(self.exponent - 1)*K[:n, :m]**(self.exponent - 2))
+        dK_d3 = (self.exponent*(self.exponent - 1)*(self.exponent - 2) *
+                 K[:n, :m]**(self.exponent - 3))
+
+        K_prime[:n, :m] = K[:n, :m]**self.exponent
+        K_prime[n:, :m] = (
+            dK_d1[:, np.newaxis, :] *
+            K[n:, :m].reshape((n, n_dim, m))).reshape((n*n_dim, m))
+        K_prime[:n, m:] = (
+            dK_d1[:, :, np.newaxis] *
+            K[:n, m:].reshape((n, m, n_dim))).reshape((n, m*n_dim))
+        K_prime[n:, m:] = (
+            dK_d2[:, np.newaxis, :, np.newaxis] *
+            K[n:, :m].reshape((n, n_dim, m))[:, :, :, np.newaxis] *
+            K[:n, m:].reshape((n, m, n_dim))[:, np.newaxis, :, :] +
+            dK_d1[:, np.newaxis, :, np.newaxis] *
+            K[n:, m:].reshape((n, n_dim, m, n_dim))
+        ).reshape((n*n_dim, m*n_dim))
+        if eval_gradient:
+            K_gradient[:n, :m, :] = (
+                dK_d1[:, :, np.newaxis] * dK[:n, :m, :])
+            K_gradient[n:, :m, :] = (
+                dK_d2[:, np.newaxis, :, np.newaxis] *
+                dK[:n, np.newaxis, :m, :] *
+                K[n:, :m].reshape((n, n_dim, m))[:, :, :, np.newaxis] +
+                dK_d1[:, np.newaxis, :, np.newaxis] *
+                dK[n:, :m, :].reshape((n, n_dim, m, n_theta))
+            ).reshape((n*n_dim, m, n_theta))
+            K_gradient[:n, m:, :] = (
+                dK_d2[:, :, np.newaxis, np.newaxis] *
+                dK[:n, :m, np.newaxis, :] *
+                K[:n, m:].reshape((n, m, n_dim))[:, :, :, np.newaxis] +
+                dK_d1[:, :, np.newaxis, np.newaxis] *
+                dK[:n, m:, :].reshape((n, m, n_dim, n_theta))
+            ).reshape((n, m*n_dim, n_theta))
+            K_gradient[n:, m:, :] = (
+                dK_d3[:, np.newaxis, :, np.newaxis, np.newaxis] *
+                dK[:n, np.newaxis, :m, np.newaxis, :] *
+                K[n:, :m].reshape(
+                    (n, n_dim, m))[:, :, :, np.newaxis, np.newaxis] *
+                K[:n, m:].reshape(
+                    (n, m, n_dim))[:, np.newaxis, :, :, np.newaxis] +
+                dK_d2[:, np.newaxis, :, np.newaxis, np.newaxis]*(
+                    dK[n:, :m, :].reshape(
+                        (n, n_dim, m, n_theta))[:, :, :, np.newaxis, :] *
+                    K[:n, m:].reshape(
+                        (n, m, n_dim))[:, np.newaxis, :, :, np.newaxis] +
+                    K[n:, :m].reshape(
+                        (n, n_dim, m))[:, :, :, np.newaxis, np.newaxis] *
+                    dK[:n, m:, :].reshape(
+                        (n, m, n_dim))[:, np.newaxis, :, :, np.newaxis] +
+                    dK[:n, np.newaxis, :m, np.newaxis, :] *
+                    K[n:, m:].reshape(
+                        (n, n_dim, m, n_dim))[:, :, :, :, np.newaxis]) +
+                dK_d1[:, np.newaxis, :, np.newaxis, np.newaxis] *
+                dK[n:, m:, :].reshape((n, n_dim, m, n_dim, n_theta))
+            ).reshape(n*n_dim, m*n_dim, n_theta)
+            return K_prime, K_gradient
+        return K_prime
+
+    def diag(self, X):
+        # TODO: Figure out better way to do this:
+        return np.diag(self(X, X, dx=True, dy=True))
+
+
 class ConstantKernel(Kernel):
 
     def __init__(self, constant=1.0, constant_bounds=(1e-5, 1e5)):
