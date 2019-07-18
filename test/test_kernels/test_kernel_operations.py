@@ -1,13 +1,14 @@
 import numpy as np
 import unittest
-from mlpot.kernels import Sum, Product, ConstantKernel, RBFKernel
+from mlpot.kernels import (Sum, Product, ConstantKernel, RBFKernel,
+                           DotProductKernel)
 try:
     from test_kernels import KernelTest
 except ImportError:
     from .test_kernels import KernelTest
 
 
-class SumTest(KernelTest.KernelTest):
+class RBFplusConstantTest(KernelTest.KernelTest):
     kernel = Sum(RBFKernel(), ConstantKernel(constant=10.0))
 
     def test_RBF_plus_float(self):
@@ -56,74 +57,95 @@ class SumTest(KernelTest.KernelTest):
         np.testing.assert_allclose(dK_sum[:, :, :1], dK_ref1)
         np.testing.assert_allclose(dK_sum[:, :, -1:], dK_ref2)
 
-    def test_RBF_plus_ConstantKernel_diag(self):
+
+class RBFplusRBFTest(KernelTest.KernelTest):
+    kernel = Sum(RBFKernel(length_scale=0.8),
+                 RBFKernel(length_scale=1.2))
+
+
+class RBFtimesConstantTest(KernelTest.KernelTest):
+    kernel = Product(RBFKernel(), ConstantKernel(constant=10.0))
+
+    def test_RBF_times_float(self):
         n = 3
+        m = 4
         n_dim = 12
         X = np.random.randn(n, n_dim)
+        Y = np.random.randn(m, n_dim)
 
-        constant = 10.0
+        factor = 10.0
 
-        kernel = Sum(RBFKernel(), ConstantKernel(constant=constant))
+        prod_kernel = RBFKernel() * factor
+        ref_kernel = RBFKernel()
 
-        K = kernel(X, X, dx=True, dy=True)
-        diag_K = kernel.diag(X)
+        K_prod, dK_prod = prod_kernel(
+            X, Y, dx=True, dy=True, eval_gradient=True)
+        K_ref, dK_ref1 = ref_kernel(X, Y, dx=True, dy=True, eval_gradient=True)
+        # Derivative with respect to the second hyperparameter:
+        dK_ref2 = np.zeros((n*(1+n_dim), m*(1+n_dim), 1))
+        dK_ref2[:, :, 0] = K_ref
 
-        np.testing.assert_allclose(diag_K, np.diag(K))
+        K_ref *= factor
+        dK_ref1 *= factor
 
-    def test_atomic_position_gradient(self):
-        kernel = Sum(RBFKernel(), ConstantKernel(constant=10))
+        np.testing.assert_allclose(K_prod, K_ref)
+        np.testing.assert_allclose(dK_prod[:, :, :1], dK_ref1)
+        np.testing.assert_allclose(dK_prod[:, :, -1:], dK_ref2)
 
-        atomsX = np.random.randn(1, 12)
-        atomsY = np.random.randn(1, 12)
+    def test_RBF_times_ConstantKernel(self):
+        n = 3
+        m = 4
+        n_dim = 12
+        X = np.random.randn(n, n_dim)
+        Y = np.random.randn(m, n_dim)
 
-        K = kernel(atomsX, atomsY, dx=True, dy=True)
-        dK_num_total = np.zeros_like(K)
-        dK_num_total[0, 0] = K[0, 0]
+        factor = 10.0
 
-        dx = 1e-4
-        for i in range(12):
-            dxi = np.zeros(12)
-            dxi[i] = dx
-            K_plus = kernel(atomsX+dxi, atomsY, dx=True, dy=True)
-            K_minus = kernel(atomsX-dxi, atomsY, dx=True, dy=True)
-            # Test first derivative
-            dK_num_total[1+i, 0] = (K_plus[0, 0] - K_minus[0, 0])/(2*dx)
-            # Approximate second derivative as numerical derivative of
-            # first derivative
-            dK_num_total[1+i, 1:] = (K_plus[0, 1:] - K_minus[0, 1:])/(2*dx)
+        prod_kernel = Product(RBFKernel(), ConstantKernel(constant=factor))
+        ref_kernel = RBFKernel()
 
-            # Test symmetry of derivatives
-            K_plus = kernel(atomsX, atomsY+dxi, dx=True, dy=True)
-            K_minus = kernel(atomsX, atomsY-dxi, dx=True, dy=True)
-            dK_num_total[0, 1+i] = (K_plus[0, 0] - K_minus[0, 0])/(2*dx)
+        K_prod, dK_prod = prod_kernel(
+            X, Y, dx=True, dy=True, eval_gradient=True)
+        K_ref, dK_ref1 = ref_kernel(X, Y, dx=True, dy=True, eval_gradient=True)
+        # Derivative with respect to the second hyperparameter:
+        dK_ref2 = np.zeros((n*(1+n_dim), m*(1+n_dim), 1))
+        dK_ref2[:, :, 0] = K_ref
 
-        np.testing.assert_allclose(K, dK_num_total, atol=1E-9)
+        K_ref *= factor
+        dK_ref1 *= factor
 
-    def test_hyperparameter_gradient(self):
-        kernel = Sum(RBFKernel(), ConstantKernel(constant=10.0))
-        atomsX = np.random.randn(5, 12)
-        atomsY = np.random.randn(5, 12)
+        np.testing.assert_allclose(K_prod, K_ref)
+        np.testing.assert_allclose(dK_prod[:, :, :1], dK_ref1)
+        np.testing.assert_allclose(dK_prod[:, :, -1:], dK_ref2)
 
-        K, dK = kernel(atomsX, atomsY, dx=True, dy=True,
-                       eval_gradient=True)
-        dK_num = np.zeros_like(dK)
 
-        # Derivative with respect to the hyperparameters:
-        dt = 1e-6
-        # Hyperparameters live on an exponential scale!!!
-        for i in range(len(kernel.theta)):
-            dti = np.zeros(len(kernel.theta))
-            dti[i] = dt
-            kernel.theta = np.log(np.exp(kernel.theta) + dti)
-            K_plus = kernel(atomsX, atomsY, dx=True, dy=True,
-                            eval_gradient=False)
-            kernel.theta = np.log(np.exp(kernel.theta) - 2*dti)
-            K_minus = kernel(atomsX, atomsY, dx=True, dy=True,
-                             eval_gradient=False)
-            kernel.theta = np.log(np.exp(kernel.theta) + dti)
-            dK_num[:, :, i] = (K_plus - K_minus)/(2*dt)
+class DottimesConstantTest(KernelTest.KernelTest):
+    kernel = Product(DotProductKernel(exponent=2),
+                     ConstantKernel(constant=10.0))
 
-        np.testing.assert_allclose(dK, dK_num, atol=1E-8)
+
+class RBFtimesRBFTest(KernelTest.KernelTest):
+    kernel = Product(RBFKernel(length_scale=0.8),
+                     RBFKernel(length_scale=1.2))
+
+
+class DottimeDotTest(KernelTest.KernelTest):
+    kernel = Product(DotProductKernel(), DotProductKernel())
+
+    def test_2times2is4(self):
+        n = 3
+        m = 4
+        n_dim = 12
+        X = np.random.randn(n, n_dim)
+        Y = np.random.randn(m, n_dim)
+
+        kernel1 = Product(DotProductKernel(), DotProductKernel())
+        kernel2 = DotProductKernel(exponent=4)
+
+        K1 = kernel1(X, Y, dx=True, dy=True)
+        K2 = kernel2(X, Y, dx=True, dy=True)
+
+        np.testing.assert_allclose(K1, K2)
 
 
 if __name__ == '__main__':
