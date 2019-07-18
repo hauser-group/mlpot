@@ -33,12 +33,12 @@ class Kernel(with_metaclass(ABCMeta)):
 
     def __mul__(self, b):
         if not isinstance(b, Kernel):
-            return Product(self, ConstantKernel(b))
+            return Rescaling(self, b)
         return Product(self, b)
 
     def __rmul__(self, b):
         if not isinstance(b, Kernel):
-            return Product(ConstantKernel(b), self)
+            return Rescaling(self, b, rmul=True)
         return Product(b, self)
 
     @abstractmethod
@@ -191,6 +191,55 @@ class Product(KernelOperator):
         # TODO: find better way to do this?
         return np.diag(self(X, X, dx=True, dy=True))
 
+
+class Rescaling(Kernel):
+
+    def __init__(self, kernel, factor=1.0, factor_bounds=(1e-5, 1e5),
+                 rmul=False):
+        """
+        rmul: Indicates that the kernel is the right object in the
+              multiplication. Used for ordering of the hyperparameters.
+        """
+        self.kernel = kernel
+        self.factor = factor
+        self.factor_bounds = factor_bounds
+        self.rmul = rmul
+
+    @property
+    def theta(self):
+        if self.rmul:
+            return np.append(np.log(self.factor), self.kernel.theta)
+        return np.append(self.kernel.theta, np.log(self.factor))
+
+    @theta.setter
+    def theta(self, theta):
+        if self.rmul:
+            self.factor = np.exp(theta[0])
+            self.kernel.theta = theta[1:]
+        else:
+            self.factor = np.exp(theta[-1])
+            self.kernel.theta = theta[:-1]
+
+    @property
+    def bounds(self):
+        if self.rmul:
+            return np.vstack((self.factor_bounds, self.kernel.bounds))
+        return np.vstack((self.kernel.bounds, self.factor_bounds))
+
+    def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
+        # The arguments dx and dy are deprecated and will be removed soon
+        if not (dx and dy):
+            raise NotImplementedError
+
+        if eval_gradient:
+            K, K_gradient = self.kernel(X, Y, dx=dx, dy=dy, eval_gradient=True)
+            if self.rmul:
+                return self.factor*K, np.dstack([K, self.factor*K_gradient])
+            return self.factor*K, np.dstack([self.factor*K_gradient, K])
+        return self.factor*self.kernel(X, Y, dx=dx, dy=dy)
+
+    def diag(self, X):
+        return self.factor*self.kernel.diag(X)
 
 class ConstantKernel(Kernel):
 
