@@ -208,7 +208,7 @@ class GPRCalculator(MLCalculator):
     def get_params(self):
         return {'atoms_train': self.atoms_train, 'x_train': self.x_train,
                 'alpha': self.alpha, 'L': self.L, 'intercept': self.intercept,
-                'hyper_parameters': self.kernel.theta}
+                'hyperparameters': self.kernel.theta}
 
     def set_params(self, **params):
         self.atoms_train = params['atoms_train']
@@ -217,7 +217,7 @@ class GPRCalculator(MLCalculator):
         self.alpha = params['alpha']
         self.L = params['L']
         self.intercept = params['intercept']
-        self.kernel.theta = params['hyper_parameters']
+        self.kernel.theta = params['hyperparameters']
 
     def build_kernel_matrix(self, X_star=None, eval_gradient=False):
         """Builds the kernel matrix K(X,X*) of the trainings_examples and
@@ -233,6 +233,6 @@ class GPRCalculator(MLCalculator):
     def build_kernel_diagonal(self, X_star):
         """Evaluates the diagonal of the kernel matrix which can be done
         significantly faster than evaluating the whole matrix and is needed for
-        the uncertainty prediction
+        the uncertainty prediction.
         """
         return self.kernel.diag(X_star)
