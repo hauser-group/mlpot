@@ -189,11 +189,9 @@ class GAPCalculator(GPRCalculator):
         Gs_X_star = {t: [] for t in self.atomtypes}
         dGs_X_star = {t: [] for t in self.atomtypes}
         Gs_by_type, dGs_by_type = self._transform_input_old(atoms)
-        print(Gs_by_type['C'])
         for t in self.atomtypes:
             Gs_X_star[t].append(np.array(Gs_by_type[t]))
             dGs_X_star[t].append(np.array(dGs_by_type[t]))
-        print(Gs_X_star['C'])
         X_star = self._normalize_input_old(Gs_X_star, dGs_X_star)
         y = self.alpha.dot(self.build_kernel_matrix(X_star=X_star))
         E = y[0] + self.intercept
