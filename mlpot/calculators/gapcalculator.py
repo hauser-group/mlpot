@@ -290,3 +290,26 @@ class GAPCalculator(GPRCalculator):
             return kernel_mat, kernel_grad
         else:
             return kernel_mat
+
+    def build_kernel_diagonal(self, X_star):
+        """Evaluates the diagonal of the kernel matrix which can be done
+        significantly faster than evaluating the whole matrix and is needed for
+        the uncertainty prediction.
+        """
+        Gs_X = X_star[0]
+        dGs_X = X_star[1]
+        n = len(Gs_X[self.atomtypes[0]])
+
+        kernel_diag = np.zeros(n*(1+self.n_dim))
+        for t in self.atomtypes:
+            for i, (Gsi_t, dGsi_t) in enumerate(zip(Gs_X[t], dGs_X[t])):
+                n_t = Gsi_t.shape[0]
+                di = slice(n+i*self.n_dim, n+(i+1)*self.n_dim, 1)
+
+                K = self.kernel(Gsi_t, Gsi_t, dx=True, dy=True)
+                kernel_diag[i] += np.sum(K[:n_t, :n_t])
+                # n_dim x n * n_dim x n_dim * n_dim x n -> n x 1
+                kernel_diag[di] += np.einsum(
+                    'ji,jk,ki->i', dGsi_t, K[n_t:, n_t:], dGsi_t,
+                    optimize=True)
+        return kernel_diag
