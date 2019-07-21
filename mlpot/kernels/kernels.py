@@ -194,7 +194,7 @@ class Product(KernelOperator):
 
 class Rescaling(Kernel):
 
-    def __init__(self, kernel, factor=1.0, factor_bounds=(1e-5, 1e5),
+    def __init__(self, kernel, factor=1.0, factor_bounds=(1e-3, 1e3),
                  rmul=False):
         """
         rmul: Indicates that the kernel is the right object in the
@@ -346,7 +346,7 @@ class Exponentiation(Kernel):
 
 class ConstantKernel(Kernel):
 
-    def __init__(self, constant=1.0, constant_bounds=(1e-5, 1e5)):
+    def __init__(self, constant=1.0, constant_bounds=(1e-3, 1e3)):
         if np.ndim(constant) == 0:
             self.constant = np.array([constant])
         elif np.ndim(constant) == 1:
@@ -917,7 +917,7 @@ class RBFKernel(Kernel):
 class RBFKernel_with_factor(Kernel):
 
     def __init__(self, constant=0.0, factor=1.0, length_scale=1.0,
-                 factor_bounds=(1e-5, 1e5), length_scale_bounds=(1e-3, 1e3)):
+                 factor_bounds=(1e-3, 1e3), length_scale_bounds=(1e-3, 1e3)):
         self.factor = factor
         self.constant = constant
         self.length_scale = length_scale
