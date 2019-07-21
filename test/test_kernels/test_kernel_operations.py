@@ -105,7 +105,7 @@ class RBFtimesRBFTest(KernelTest.KernelTest):
 
 
 class DottimeDotTest(KernelTest.KernelTest):
-    kernel = Product(DotProductKernel(sigma0=0.1),
+    kernel = Product(DotProductKernel(exponent=1, sigma0=0.1),
                      DotProductKernel(sigma0=0.1))
 
     def test_2times2is4(self):
