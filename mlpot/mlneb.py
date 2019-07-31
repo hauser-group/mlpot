@@ -38,7 +38,7 @@ def run_neb_on_ml_pes(ml_neb, training_images, optimizer=FIRE, fmax=0.5,
                 [ml_image.set_positions(old_pos.copy())
                  for ml_image, old_pos
                  in zip(ml_neb.images[1:-1], old_positions)]
-                return False, ni
+                return False, ni + 1
         old_positions = [image.get_positions()
                          for image
                          in ml_neb.images[1:-1]]
@@ -103,8 +103,7 @@ def run_mla_neb(neb, ml_calc, optimizer=FIRE, steps=100, f_max=0.05,
 
         # reset machine learning path to initial path and set the parameters of
         # the individual ml_image calculators to the newly fitted values.
-        for ml_image, init_positions, image in zip(ml_images, initial_path,
-                                                   images):
+        for ml_image, init_positions in zip(ml_images, initial_path):
             ml_image.set_positions(init_positions.copy())
             ml_image.calc.set_params(**params)
 
@@ -138,21 +137,121 @@ def run_mla_neb(neb, ml_calc, optimizer=FIRE, steps=100, f_max=0.05,
             ml_calc.add_data(training_image)
 
 
-def aie_ml_neb(neb, ml_calc, t_MEP, t_CI, t_CIon, r_max):
+def _relaxation_phase(ml_neb, ml_calc, steps, t_CI, t_CIon, r_max,
+                      optimizer=FIRE):
+    opt = optimizer(ml_neb)
 
-    def evaluate_image(index):
-        
+    old_positions = [image.get_positions() for image in ml_neb.images[1:-1]]
+    for converged in opt.irun(fmax=0.1*t_CI, steps=steps):
+        # Step I and II: get forces and reshape them into
+        # N_intermediate_images x N_atoms x 3
+        forces = ml_neb.get_forces().reshape((len(ml_neb.images)-2, -1, 3))
+        f_max = np.sqrt(np.max(np.sum(forces**2, axis=(1, 2))))
+        # Check for convergence or switch to climbing
+        if not ml_neb.climb and f_max < t_CIon:  # Step III
+            print('Turning on climbing mode.')
+            ml_neb.climb = True
+            # Maybe reset optimizer here?
+        if ml_neb.climb and f_max < 0.1*t_CI:  # Step IV:
+            return True, None
+
+        # Step VI: check if any image has moved to far from the training_images
+        for ni, ml_image in enumerate(ml_neb.images[1:-1]):
+            distances = np.zeros(len(ml_calc.atoms_train))
+            for nj, training_image in enumerate(ml_calc.atoms_train):
+                distances[nj] = distance(ml_image, training_image)
+            # stop if the distance from ml_image to the closest training_image
+            # is larger than r_max
+            if np.min(distances) > r_max:
+                print('Image %d exceeded r_max at step %d.' % (
+                    ni + 1, opt.nsteps), 'Resetting to previous step.')
+                [ml_image.set_positions(old_pos.copy())
+                    for ml_image, old_pos
+                    in zip(ml_neb.images[1:-1], old_positions)]
+                return False, ni + 1
+        old_positions = [image.get_positions()
+                         for image
+                         in ml_neb.images[1:-1]]
+
+
+def aie_ml_neb(neb, ml_calc, steps=150, ml_steps=250, t_MEP=0.3, t_CI=0.01,
+               t_CIon=1.0, r_max=None, callback_after_ml_neb=None):
+    """
+
+
+    Koistinen et al. J. Chem. Phys. 147, 152720 (2017)
+    """
+    images = neb.images
+    initial_path = [image.get_positions().copy() for image in images]
+
+    if r_max is None:
+        # Koistinen et al. suggest half of the length of the initial path for
+        # r_max:
+        r_max = 0.5*sum(
+            [distance(images[i-1], images[i]) for i in range(1, len(images))])
+        print('r_max = %.2f' % r_max)
+
+    # Add first and last image to the training data
+    for image in (images[0], images[-1]):
+        training_image = image.copy()
+        training_image.set_calculator(SinglePointCalculator(
+            training_image,
+            energy=image.get_potential_energy(),
+            forces=image.get_forces(apply_constraint=False)))
+        ml_calc.add_data(training_image)
+
+    ml_images = [image.copy() for image in images]
+    [ml_image.set_calculator(copy(ml_calc)) for ml_image in ml_images]
+    ml_neb = NEB(
+        ml_images,
+        remove_rotation_and_translation=neb.remove_rotation_and_translation)
 
     for i_step in range(steps):
+        # Step A:
+        # evaluate intermediate images and add them to the training_image data
+        for image, ml_image in zip(images[1:-1], ml_images[1:-1]):
+            # Update image positions
+            image.set_positions(ml_image.get_positions())
+            training_image = image.copy()
+            training_image.set_calculator(
+                SinglePointCalculator(
+                    training_image,
+                    energy=image.get_potential_energy(),
+                    forces=image.get_forces(apply_constraint=False))
+            )
+            ml_calc.add_data(training_image)
+
         # Step B:
-        true_forces = neb.get_forces()
+        # Reshape forces into N_intermediate_images x N_atoms x 3
+        forces = neb.get_forces().reshape((len(ml_neb.images)-2, -1, 3))
+        print('Maximum force per image after %d evaluations of the band:' % (
+            i_step+1))
+        print(np.sqrt((forces**2).sum(axis=2).max(axis=1)))
 
         # Step C:
-        if abs
-
+        # TODO: I do not think it is a good idea to check convergence like this
+        max_force = np.sqrt(np.max(np.sum(forces**2, axis=(1, 2))))
+        ci_force = np.sqrt(np.sum(forces[neb.imax-1, :, :]**2))
+        if max_force < t_MEP and ci_force < t_CI:
+            # Converged
+            return True
         # Step D:
         ml_calc.fit()
         params = ml_calc.get_params()
+
+        # Step E:
+        for ml_image, init_pos in zip(ml_images, initial_path):
+            # Update calculator
+            ml_image.calc.set_params(**params)
+            # Reset positions to inital path
+            ml_image.set_positions(init_pos.copy())
+        ml_neb.climb = False
+        _relaxation_phase(ml_neb, ml_calc, ml_steps, t_CI, t_CIon, r_max)
+
+        if callback_after_ml_neb is not None:
+            callback_after_ml_neb(images, ml_images, ml_calc)
+    # No convergence reached:
+    return False
 
 
 def oie_ml_neb(neb, ml_calc, optimizer=FIRE, steps=100, f_max=0.05,
@@ -248,7 +347,7 @@ def oie_ml_neb(neb, ml_calc, optimizer=FIRE, steps=100, f_max=0.05,
                 training_images.append(training_image)
                 ml_calc.add_data(training_image)
                 continue  # Go to C
-            elif images_evaluated[tmp_neb.imax] and :  # Substep II
+            elif images_evaluated[tmp_neb.imax]:  # Substep II
                 pass
         # Substep III
         # Step H: Relaxation phase
