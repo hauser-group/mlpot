@@ -146,7 +146,9 @@ def _relaxation_phase(ml_neb, ml_calc, steps, t_CI, t_CIon, r_max,
         # Step I and II: get forces and reshape them into
         # N_intermediate_images x N_atoms x 3
         forces = ml_neb.get_forces().reshape((len(ml_neb.images)-2, -1, 3))
-        f_max = np.sqrt(np.max(np.sum(forces**2, axis=(1, 2))))
+        # This differs from Koistinen et al. by checking the maximum force
+        # on any atom and not the norm of the force vector
+        f_max = np.sqrt((forces**2).sum(axis=2).max())
         # Check for convergence or switch to climbing
         if not ml_neb.climb and f_max < t_CIon:  # Step III
             print('Turning on climbing mode.')
@@ -229,9 +231,13 @@ def aie_ml_neb(neb, ml_calc, steps=150, ml_steps=250, t_MEP=0.3, t_CI=0.01,
         print(np.sqrt((forces**2).sum(axis=2).max(axis=1)))
 
         # Step C:
-        # TODO: I do not think it is a good idea to check convergence like this
-        max_force = np.sqrt(np.max(np.sum(forces**2, axis=(1, 2))))
-        ci_force = np.sqrt(np.sum(forces[neb.imax-1, :, :]**2))
+        # This differs from Koistinen et al. by checking the maximum force
+        # on any atom and not the norm of the force vector
+        max_force = np.sqrt((forces**2).sum(axis=2).max())
+        # Use imax-1 since forces only contains intermediate images
+        ci_force = np.sqrt((forces[neb.imax-1, :, :]**2).sum(axis=1).max())
+        print('Maximum force: ', max_force)
+        print('Force on climbing image: ', ci_force)
         if max_force < t_MEP and ci_force < t_CI:
             # Converged
             return True
