@@ -173,7 +173,8 @@ class SymmetryFunctionSet(object):
             for t2 in self.atomtypes:
                 for eta, rs in zip(etas, rss):
                     self.add_TwoBodySymmetryFunction(
-                        t1, t2, 'BehlerG2', [eta, rs], cuttype='cos')
+                        t1, t2, 'BehlerG2', [eta, rs], cuttype='cos',
+                        cutoff=6.5)
 
         ang_etas = [0.0001, 0.003, 0.008]
         zetas = [1.0, 4.0]
@@ -185,7 +186,7 @@ class SymmetryFunctionSet(object):
                         for lamb in [-1.0, 1.0]:
                             self.add_ThreeBodySymmetryFunction(
                                 ti, tj, tk, "BehlerG3",
-                                [lamb, zeta, eta], cuttype='cos')
+                                [lamb, zeta, eta], cuttype='cos', cutoff=6.5)
 
     def print_symFuns(self):
         lib.SymmetryFunctionSet_print_symFuns(self.obj)
