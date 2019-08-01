@@ -1,5 +1,5 @@
 ase==3.17.0; python_version < '3.0'
-ase; python_version > '3.0'
+ase; python_version >= '3.0'
 future
 numpy
 scipy
