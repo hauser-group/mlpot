@@ -208,6 +208,7 @@ class GAPCalculator(GPRCalculator):
                 'Gs_norm1': self.Gs_norm1,
                 'Gs_norm2': self.Gs_norm2,
                 'alpha': self.alpha,
+                'L': self.L,
                 'intercept': self.intercept,
                 'hyper_parameters': self.kernel.theta}
 
@@ -222,6 +223,7 @@ class GAPCalculator(GPRCalculator):
         self.Gs_norm2 = params['Gs_norm2']
         self.n_dim = 3*len(self.atoms_train[0])
         self.alpha = params['alpha']
+        self.L = params['L']
         self.intercept = params['intercept']
         self.kernel.theta = params['hyper_parameters']
 
