@@ -111,8 +111,7 @@ class GPRCalculator(MLCalculator):
         k_mat[self.n_samples:, self.n_samples:] += np.eye(
             self.n_samples * self.n_dim)/self.C2
 
-        self.L, alpha = self._cholesky(k_mat)
-        self.alpha = alpha
+        self.L, self.alpha = self._cholesky(k_mat)
 
         y = self.alpha.dot(pure_k_mat)
         E = y[:self.n_samples] + self.intercept
@@ -206,8 +205,11 @@ class GPRCalculator(MLCalculator):
         return E_var, F_var
 
     def get_params(self):
-        return {'atoms_train': self.atoms_train, 'x_train': self.x_train,
-                'alpha': self.alpha, 'L': self.L, 'intercept': self.intercept,
+        return {'atoms_train': self.atoms_train,
+                'x_train': self.x_train,
+                'alpha': self.alpha,
+                'L': self.L,
+                'intercept': self.intercept,
                 'hyperparameters': self.kernel.theta}
 
     def set_params(self, **params):
