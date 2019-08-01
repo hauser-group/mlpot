@@ -202,7 +202,7 @@ class GPRCalculator(MLCalculator):
         y_var -= np.einsum('ij,ij->j', K_star, K_inv.dot(K_star))
 
         E_var = y_var[0]
-        F_var = -y_var[1:].reshape((-1, 3))
+        F_var = y_var[1:].reshape((-1, 3))
         return E_var, F_var
 
     def get_params(self):
