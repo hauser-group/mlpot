@@ -325,9 +325,8 @@ def oie_ml_neb(neb, ml_calc, optimizer=FIRE, steps=100, ml_steps=150,
             if image.calc.calculation_required(image, ['energy', 'forces']):
                 # Calculate variance of the energy prediction:
                 vars[i] = ml_image.calc.predict_var(ml_image)[0]
-        print(vars)
         if np.any(vars < 0.):
-            print('Negative variance found. Using absolute values to' +
+            print('Negative variance found. Using absolute values to ' +
                   'determine next image to evalute.')
             vars = np.abs(vars)
         var_max_i = np.argmax(vars)
