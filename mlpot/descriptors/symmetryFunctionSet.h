@@ -33,14 +33,14 @@ class SymmetryFunctionSet
 
   private:
     int num_atomtypes, num_atomtypes_sq;
-    int* num_symFuns;
+    std::vector<int> num_symFuns;
     std::vector <std::vector<std::shared_ptr<TwoBodySymmetryFunction> > >
       twoBodySymFuns;
-    int* pos_twoBody;
+    std::vector<int> pos_twoBody;
     std::vector <std::vector<std::shared_ptr<ThreeBodySymmetryFunction> > >
       threeBodySymFuns;
-    int* pos_threeBody;
-    double* max_cutoff;
+    std::vector<int> pos_threeBody;
+    std::vector<double> max_cutoff;
     double global_max_cutoff;
 };
 

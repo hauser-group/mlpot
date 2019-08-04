@@ -11,29 +11,15 @@ threeBodySymFuns(num_atomtypes*num_atomtypes*num_atomtypes)
 {
   this->num_atomtypes = num_atomtypes;
   num_atomtypes_sq = num_atomtypes*num_atomtypes;
-  num_symFuns = new int[2*num_atomtypes]();
-  pos_twoBody = new int[num_atomtypes_sq]();
-  pos_threeBody = new int[num_atomtypes_sq*num_atomtypes]();
-  max_cutoff = new double[num_atomtypes_sq]{0.0};
+  num_symFuns.resize(2*num_atomtypes);
+  pos_twoBody.resize(num_atomtypes_sq);
+  pos_threeBody.resize(num_atomtypes_sq*num_atomtypes);
+  max_cutoff.resize(num_atomtypes_sq);
   global_max_cutoff = 0.0;
   printf("Constructor called with %d atom types\n",num_atomtypes);
 }
 
-SymmetryFunctionSet::~SymmetryFunctionSet()
-{
-  for (int i = 0; i < num_atomtypes; i++)
-  {
-    for (int j = 0; j < num_atomtypes; j++)
-    {
-      twoBodySymFuns[num_atomtypes*i + j].clear();
-    }
-  }
-  delete[] pos_twoBody;
-  delete[] pos_threeBody;
-  delete[] num_symFuns;
-  delete[] max_cutoff;
-  printf("Destructor finished\n");
-}
+SymmetryFunctionSet::~SymmetryFunctionSet(){}
 
 void SymmetryFunctionSet::add_TwoBodySymmetryFunction(
   int type1, int type2, int funtype, int num_prms, double* prms,
