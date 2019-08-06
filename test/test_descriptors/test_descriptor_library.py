@@ -102,6 +102,7 @@ class LibraryTest(unittest.TestCase):
 
     def test_acetone(self):
         from scipy.optimize import approx_fprime
+        # TODO: switch to custom implementation!
         x0 = np.array([0.00000,        0.00000,        0.00000,  # C
                        1.40704,        0.00902,       -0.67203,  # C
                        1.67062,       -0.92069,       -1.22124,  # H
@@ -125,6 +126,7 @@ class LibraryTest(unittest.TestCase):
             ds.add_G2_functions(rss, radial_etas)
             ds.add_G4_functions(angular_etas, zetas, lambs)
             f0 = ds.eval(types, x0.reshape((-1, 3)))
+            df = ds.eval_derivatives(types, x0.reshape((-1, 3)))
             eps = np.sqrt(np.finfo(float).eps)
 
             for i in range(len(f0)):
@@ -134,7 +136,7 @@ class LibraryTest(unittest.TestCase):
                             ds.eval(types, x.reshape((-1, 3))))[i][j]
 
                     np.testing.assert_array_almost_equal(
-                        ds.eval_derivatives(types, x0.reshape((-1, 3)))[i][j],
+                        df[i][j],
                         approx_fprime(x0, f, epsilon=eps).reshape((-1, 3)))
 
     def test_eval_with_derivatives(self):
