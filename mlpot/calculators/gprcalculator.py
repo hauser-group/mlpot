@@ -194,11 +194,15 @@ class GPRCalculator(MLCalculator):
         X_star = self._normalize_input(self._transform_input(atoms))
         K_star = self.build_kernel_matrix(X_star=X_star)
 
-        # Shamelessly copied from scikit-learn:
-        L_inv = solve_triangular(self.L.T, np.eye(self.L.shape[0]))
-        K_inv = L_inv.dot(L_inv.T)
+        # Scikit-learn implementation for the variances:
+        # L_inv = solve_triangular(self.L.T, np.eye(self.L.shape[0]))
+        # K_inv = L_inv.dot(L_inv.T)
+        # y_var = self.build_kernel_diagonal(X_star)
+        # y_var -= np.einsum('ij,ij->j', K_star, K_inv.dot(K_star))
+        # Rasmussen implementation seems numerically more stable:
+        v = solve_triangular(self.L, K_star, lower=True)
         y_var = self.build_kernel_diagonal(X_star)
-        y_var -= np.einsum('ij,ij->j', K_star, K_inv.dot(K_star))
+        y_var -= np.einsum('ij,ij->j', v, v)
 
         E_var = y_var[0]
         F_var = y_var[1:].reshape((-1, 3))
