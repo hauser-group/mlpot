@@ -16,28 +16,28 @@ try:
             "libDescriptorSet.so")
         )
     )
-    lib.create_SymmetryFunctionSet.restype = _ct.c_void_p
-    lib.create_SymmetryFunctionSet.argtypes = (_ct.c_int,)
-    lib.destroy_SymmetryFunctionSet.argtypes = (_ct.c_void_p,)
-    lib.SymmetryFunctionSet_add_TwoBodySymmetryFunction.argtypes = (
+    lib.create_descriptor_set.restype = _ct.c_void_p
+    lib.create_descriptor_set.argtypes = (_ct.c_int,)
+    lib.destroy_descriptor_set.argtypes = (_ct.c_void_p,)
+    lib.descriptor_set_add_two_body_descriptor.argtypes = (
         _ct.c_void_p, _ct.c_int, _ct.c_int, _ct.c_int, _ct.c_int,
         _ct.POINTER(_ct.c_double), _ct.c_int, _ct.c_double)
-    lib.SymmetryFunctionSet_add_ThreeBodySymmetryFunction.argtypes = (
+    lib.descriptor_set_add_three_body_descriptor.argtypes = (
         _ct.c_void_p, _ct.c_int, _ct.c_int, _ct.c_int, _ct.c_int, _ct.c_int,
         _ct.POINTER(_ct.c_double), _ct.c_int, _ct.c_double)
-    lib.SymmetryFunctionSet_eval.argtypes = (
+    lib.descriptor_set_eval.argtypes = (
         _ct.c_void_p, _ct.c_int, _ct.POINTER(_ct.c_int),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim=2,
                                 flags="C_CONTIGUOUS"),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim=1,
                                 flags="C_CONTIGUOUS"))
-    lib.SymmetryFunctionSet_eval_derivatives.argtypes = (
+    lib.descriptor_set_eval_derivatives.argtypes = (
         _ct.c_void_p, _ct.c_int, _ct.POINTER(_ct.c_int),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim=2,
                                 flags="C_CONTIGUOUS"),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim=3,
                                 flags="C_CONTIGUOUS"))
-    lib.SymmetryFunctionSet_eval_with_derivatives.argtypes = (
+    lib.descriptor_set_eval_with_derivatives.argtypes = (
         _ct.c_void_p, _ct.c_int, _ct.POINTER(_ct.c_int),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim=2,
                                 flags="C_CONTIGUOUS"),
@@ -45,27 +45,27 @@ try:
                                 flags="C_CONTIGUOUS"),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim=3,
                                 flags="C_CONTIGUOUS"))
-    lib.SymmetryFunctionSet_get_CutFun_by_name.argtypes = (_ct.c_char_p,)
-    lib.SymmetryFunctionSet_get_TwoBodySymFun_by_name.argtypes = (
+    lib.descriptor_set_get_cutoff_function_by_name.argtypes = (_ct.c_char_p,)
+    lib.descriptor_set_get_two_body_descriptor_by_name.argtypes = (
         _ct.c_char_p,)
-    lib.SymmetryFunctionSet_get_ThreeBodySymFun_by_name.argtypes = (
+    lib.descriptor_set_get_three_body_descriptor_by_name.argtypes = (
         _ct.c_char_p,)
-    lib.SymmetryFunctionSet_get_G_vector_size.argtypes = (
+    lib.descriptor_set_get_G_vector_size.argtypes = (
         _ct.c_void_p, _ct.c_int, _ct.POINTER(_ct.c_int))
-    lib.SymmetryFunctionSet_print_symFuns.argtypes = (_ct.c_void_p,)
-    lib.SymmetryFunctionSet_eval_atomwise.argtypes = (
+    lib.descriptor_set_print_descriptors.argtypes = (_ct.c_void_p,)
+    lib.descriptor_set_eval_atomwise.argtypes = (
         _ct.c_void_p, _ct.c_int, _ct.POINTER(_ct.c_int),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim=2,
                                 flags="C_CONTIGUOUS"),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim=1,
                                 flags="C_CONTIGUOUS"))
-    lib.SymmetryFunctionSet_eval_derivatives_atomwise.argtypes = (
+    lib.descriptor_set_eval_derivatives_atomwise.argtypes = (
         _ct.c_void_p, _ct.c_int, _ct.POINTER(_ct.c_int),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim=2,
                                 flags="C_CONTIGUOUS"),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim=3,
                                 flags="C_CONTIGUOUS"))
-    lib.SymmetryFunctionSet_eval_with_derivatives_atomwise.argtypes = (
+    lib.descriptor_set_eval_with_derivatives_atomwise.argtypes = (
         _ct.c_void_p, _ct.c_int, _ct.POINTER(_ct.c_int),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim=2,
                                 flags="C_CONTIGUOUS"),
@@ -87,11 +87,11 @@ class DescriptorSet(object):
         for i, t in enumerate(atomtypes):
             self.type_dict[t] = i
             self.type_dict[i] = i
-        self.obj = lib.create_SymmetryFunctionSet(len(atomtypes))
+        self.obj = lib.create_descriptor_set(len(atomtypes))
         self._closed = False
 
     def close(self):
-        lib.destroy_SymmetryFunctionSet(self.obj)
+        lib.destroy_descriptor_set(self.obj)
         self._closed = True
 
     def __enter__(self):
@@ -100,40 +100,40 @@ class DescriptorSet(object):
     def __exit__(self, type, value, traceback):
         self.close()
 
-    def add_TwoBodyDescriptor(self, type1, type2, funtype, prms,
-                              cuttype="cos", cutoff=None):
+    def add_two_body_descriptor(self, type1, type2, funtype, prms,
+                                cuttype="cos", cutoff=None):
         if cutoff is None:
             cutoff = self.cutoff
-        cutid = lib.SymmetryFunctionSet_get_CutFun_by_name(
+        cutid = lib.descriptor_set_get_cutoff_function_by_name(
             cuttype.encode('utf-8'))
         if cutid == -1:
-            raise TypeError("Unknow CutoffFunction type {}".format(cuttype))
-        funid = lib.SymmetryFunctionSet_get_TwoBodySymFun_by_name(
+            raise TypeError("Unknown cutoff function type {}".format(cuttype))
+        funid = lib.descriptor_set_get_two_body_descriptor_by_name(
             funtype.encode('utf-8'))
         if funid == -1:
-            raise TypeError("Unknown TwoBodySymmetryFunction type: {}".format(
+            raise TypeError("Unknown two body descriptor type: {}".format(
                 funtype))
         ptr = (_ct.c_double*len(prms))(*prms)
-        lib.SymmetryFunctionSet_add_TwoBodySymmetryFunction(
+        lib.descriptor_set_add_two_body_descriptor(
             self.obj, self.type_dict[type1], self.type_dict[type2], funid,
             len(prms), ptr, cutid, cutoff)
         self.num_Gs[self.type_dict[type1]] += 1
 
-    def add_ThreeBodyDescriptor(self, type1, type2, type3, funtype, prms,
-                                cuttype="cos", cutoff=None):
+    def add_three_body_descriptor(self, type1, type2, type3, funtype, prms,
+                                  cuttype="cos", cutoff=None):
         if cutoff is None:
             cutoff = self.cutoff
-        cutid = lib.SymmetryFunctionSet_get_CutFun_by_name(
+        cutid = lib.descriptor_set_get_cutoff_function_by_name(
             cuttype.encode('utf-8'))
         if cutid == -1:
-            raise TypeError("Unknow CutoffFunction type {}".format(cuttype))
-        funid = lib.SymmetryFunctionSet_get_ThreeBodySymFun_by_name(
+            raise TypeError("Unknown cutoff function type {}".format(cuttype))
+        funid = lib.descriptor_set_get_three_body_descriptor_by_name(
             funtype.encode('utf-8'))
         if funid == -1:
             raise TypeError(
-                "Unknown ThreeBodySymmetryFunction type: {}".format(funtype))
+                "Unknown three body descriptor type: {}".format(funtype))
         ptr = (_ct.c_double*len(prms))(*prms)
-        lib.SymmetryFunctionSet_add_ThreeBodySymmetryFunction(
+        lib.descriptor_set_add_three_body_descriptor(
             self.obj, self.type_dict[type1], self.type_dict[type2],
             self.type_dict[type3], funid, len(prms), ptr, cutid, cutoff)
         self.num_Gs[self.type_dict[type1]] += 1
@@ -141,7 +141,7 @@ class DescriptorSet(object):
     def add_G2_functions(self, rss, etas, cuttype="cos", cutoff=None):
         for rs, eta in zip(rss, etas):
             for (ti, tj) in product(self.atomtypes, repeat=2):
-                self.add_TwoBodyDescriptor(
+                self.add_two_body_descriptor(
                     ti, tj, "BehlerG2", [eta, rs], cuttype=cuttype,
                     cutoff=cutoff)
 
@@ -157,7 +157,7 @@ class DescriptorSet(object):
                     for ti in self.atomtypes:
                         for (tj, tk) in combinations_with_replacement(
                                 self.atomtypes, 2):
-                            self.add_ThreeBodyDescriptor(
+                            self.add_three_body_descriptor(
                                 ti, tj, tk, "BehlerG4", [lamb, zeta, eta],
                                 cuttype=cuttype, cutoff=cutoff)
 
@@ -168,7 +168,7 @@ class DescriptorSet(object):
         for t1 in self.atomtypes:
             for t2 in self.atomtypes:
                 for eta, rs in zip(etas, rss):
-                    self.add_TwoBodyDescriptor(
+                    self.add_two_body_descriptor(
                         t1, t2, 'BehlerG2', [eta, rs], cuttype='cos',
                         cutoff=6.5)
 
@@ -180,15 +180,15 @@ class DescriptorSet(object):
                 for eta in ang_etas:
                     for zeta in zetas:
                         for lamb in [-1.0, 1.0]:
-                            self.add_ThreeBodyDescriptor(
+                            self.add_three_body_descriptor(
                                 ti, tj, tk, "BehlerG3",
                                 [lamb, zeta, eta], cuttype='cos', cutoff=6.5)
 
     def print_descriptors(self):
-        lib.SymmetryFunctionSet_print_symFuns(self.obj)
+        lib.descriptor_set_print_descriptors(self.obj)
 
     def available_descriptors(self):
-        lib.SymmetryFunctionSet_available_symFuns(self.obj)
+        lib.descriptor_set_available_descriptors(self.obj)
 
     def eval(self, types, xyzs):
         int_types = [self.type_dict[ti] for ti in types]
@@ -196,7 +196,7 @@ class DescriptorSet(object):
         # For each atom save how many symmetry functions are centered on it:
         num_Gs_per_atom = [self.num_Gs[ti] for ti in int_types]
         out = _np.zeros(sum(num_Gs_per_atom))
-        lib.SymmetryFunctionSet_eval(
+        lib.descriptor_set_eval(
             self.obj, len(types), types_ptr, xyzs, out)
         cum_num_Gs = _np.cumsum([0]+num_Gs_per_atom)
         return [out[cum_num_Gs[i]:cum_num_Gs[i+1]] for i in range(len(types))]
@@ -207,7 +207,7 @@ class DescriptorSet(object):
         # For each atom save how many symmetry functions are centered on it:
         num_Gs_per_atom = [self.num_Gs[ti] for ti in int_types]
         out = _np.zeros((sum(num_Gs_per_atom), len(types), 3))
-        lib.SymmetryFunctionSet_eval_derivatives(
+        lib.descriptor_set_eval_derivatives(
             self.obj, len(types), types_ptr, xyzs, out)
         cum_num_Gs = _np.cumsum([0]+num_Gs_per_atom)
         return [out[cum_num_Gs[i]:cum_num_Gs[i+1], :]
@@ -220,7 +220,7 @@ class DescriptorSet(object):
         num_Gs_per_atom = [self.num_Gs[ti] for ti in int_types]
         Gs = _np.zeros(sum(num_Gs_per_atom))
         dGs = _np.zeros((sum(num_Gs_per_atom), len(types), 3))
-        lib.SymmetryFunctionSet_eval_with_derivatives(
+        lib.descriptor_set_eval_with_derivatives(
             self.obj, len(types), types_ptr, xyzs, Gs, dGs)
         cum_num_Gs = _np.cumsum([0]+num_Gs_per_atom)
         return (
@@ -238,14 +238,14 @@ class DescriptorSet(object):
         Gs = _np.zeros(sum(num_Gs_per_atom))
         if derivatives:
             dGs = _np.zeros((sum(num_Gs_per_atom), len(atoms), 3))
-            lib.SymmetryFunctionSet_eval_with_derivatives_atomwise(
+            lib.descriptor_set_eval_with_derivatives_atomwise(
                 self.obj, len(atoms), types_ptr, atoms.get_positions(), Gs,
                 dGs)
             return (
                 [Gs[cum_Gs[i]:cum_Gs[i+1]] for i in range(len(atoms))],
                 [dGs[cum_Gs[i]:cum_Gs[i+1], :] for i in range(len(atoms))])
         else:
-            lib.SymmetryFunctionSet_eval_atomwise(
+            lib.descriptor_set_eval_atomwise(
                 self.obj, len(atoms), types_ptr, atoms.get_positions(), Gs)
             return [Gs[cum_Gs[i]:cum_Gs[i+1]] for i in range(len(atoms))]
 
@@ -266,7 +266,7 @@ class DescriptorSet(object):
         #    len(types), types_ptr)
         num_Gs_per_atom = [self.num_Gs[ti] for ti in int_types]
         out = _np.zeros(sum(num_Gs_per_atom))
-        lib.SymmetryFunctionSet_eval_atomwise(
+        lib.descriptor_set_eval_atomwise(
             self.obj, len(types), types_ptr, xyzs, out)
         cum_num_Gs = _np.cumsum([0]+num_Gs_per_atom)
         return [out[cum_num_Gs[i]:cum_num_Gs[i+1]] for i in range(len(types))]
@@ -278,7 +278,7 @@ class DescriptorSet(object):
         #    self.obj, len(types), types_ptr)
         num_Gs_per_atom = [self.num_Gs[ti] for ti in int_types]
         dGs = _np.zeros((sum(num_Gs_per_atom), len(types), 3))
-        lib.SymmetryFunctionSet_eval_derivatives_atomwise(
+        lib.descriptor_set_eval_derivatives_atomwise(
             self.obj, len(types), types_ptr, xyzs, dGs)
         cum_num_Gs = _np.cumsum([0]+num_Gs_per_atom)
         return [dGs[cum_num_Gs[i]:cum_num_Gs[i+1], :]
@@ -291,7 +291,7 @@ class DescriptorSet(object):
         num_Gs_per_atom = [self.num_Gs[ti] for ti in int_types]
         Gs = _np.zeros(sum(num_Gs_per_atom))
         dGs = _np.zeros((sum(num_Gs_per_atom), len(types), 3))
-        lib.SymmetryFunctionSet_eval_with_derivatives_atomwise(
+        lib.descriptor_set_eval_with_derivatives_atomwise(
             self.obj, len(types), types_ptr, xyzs, Gs, dGs)
         cum_num_Gs = _np.cumsum([0]+num_Gs_per_atom)
         return (
