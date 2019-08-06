@@ -1,29 +1,29 @@
 import unittest
-from mlpot.descriptors.SymmetryFunctionSet import SymmetryFunctionSet
+from mlpot.descriptors import DescriptorSet
 import numpy as np
 from itertools import combinations_with_replacement
 
 
 class LibraryTest(unittest.TestCase):
     def test_invariances(self):
-        with SymmetryFunctionSet(['C', 'H'], cutoff=6.5) as sfs:
+        with DescriptorSet(['C', 'H'], cutoff=6.5) as ds:
             # Parameters from Artrith and Kolpak Nano Lett. 2014, 14, 2670
             etas = [0.0009, 0.01, 0.02, 0.035, 0.06, 0.1, 0.2]
-            for t1 in sfs.atomtypes:
-                for t2 in sfs.atomtypes:
+            for t1 in ds.atomtypes:
+                for t2 in ds.atomtypes:
                     for eta in etas:
-                        sfs.add_TwoBodySymmetryFunction(t1, t2, 'BehlerG1',
-                                                        [eta], cuttype='cos')
+                        ds.add_two_body_descriptor(t1, t2, 'BehlerG1',
+                                                   [eta], cuttype='cos')
 
             ang_etas = [0.0001, 0.003, 0.008]
             zetas = [1.0, 4.0]
-            for ti in sfs.atomtypes:
+            for ti in ds.atomtypes:
                 for (tj, tk) in combinations_with_replacement(
-                        sfs.atomtypes, 2):
+                        ds.atomtypes, 2):
                     for eta in ang_etas:
                         for lamb in [-1.0, 1.0]:
                             for zeta in zetas:
-                                sfs.add_ThreeBodySymmetryFunction(
+                                ds.add_three_body_descriptor(
                                     ti, tj, tk, 'BehlerG3', [lamb, zeta, eta],
                                     cuttype='cos')
 
@@ -37,12 +37,12 @@ class LibraryTest(unittest.TestCase):
                             [-1.0217062478, 0.0000000000, -1.1651331805],
                             [0.5108531239, 0.8848235658, -1.1651331805]])
 
-            Gs, dGs = sfs.eval_with_derivatives_atomwise(types, xyzs)
+            Gs, dGs = ds.eval_with_derivatives_atomwise(types, xyzs)
             Gs = np.asarray(Gs)
             dGs = np.asarray(dGs)
 
             # Test for translational invariance
-            Gs_test, dGs_test = sfs.eval_with_derivatives_atomwise(
+            Gs_test, dGs_test = ds.eval_with_derivatives_atomwise(
                 types, xyzs + 10.)
             Gs_test = np.asarray(Gs_test)
             dGs_test = np.asarray(dGs_test)
@@ -70,7 +70,7 @@ class LibraryTest(unittest.TestCase):
                      [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
 
             R = rotation_matrix([2, 1, 3], np.pi/3.)
-            Gs_test, dGs_test = sfs.eval_with_derivatives_atomwise(
+            Gs_test, dGs_test = ds.eval_with_derivatives_atomwise(
                 types, xyzs.dot(R))
             Gs_test = np.asarray(Gs_test)
             # dGs_test has to be rotated back to the original orientation
@@ -80,7 +80,7 @@ class LibraryTest(unittest.TestCase):
 
             # Test for rotational invariance
             xyzs = xyzs[[1, 0, 2, 4, 3, 6, 5, 7]]
-            Gs_test, dGs_test = sfs.eval_with_derivatives_atomwise(
+            Gs_test, dGs_test = ds.eval_with_derivatives_atomwise(
                 types, xyzs + 10.)
             Gs_test = np.asarray(Gs_test)
             dGs_test = np.asarray(dGs_test)

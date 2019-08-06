@@ -1,29 +1,29 @@
 import unittest
-from mlpot.descriptors.SymmetryFunctionSet import SymmetryFunctionSet
+from mlpot.descriptors import DescriptorSet
 import numpy as np
 
 
 class LibraryTest(unittest.TestCase):
 
     def test_trimer(self):
-        with SymmetryFunctionSet(['Ag'], cutoff=8.0) as sfs:
+        with DescriptorSet(['Ag'], cutoff=8.0) as ds:
             types = ['Ag', 'Ag', 'Ag']
 
             def fcut(r):
-                return 0.5*(1.0 + np.cos(np.pi*r/sfs.cutoff))*(r < sfs.cutoff)
+                return 0.5*(1.0 + np.cos(np.pi*r/ds.cutoff))*(r < ds.cutoff)
 
             # Parameters from Artrith and Kolpak Nano Lett. 2014, 14, 2670
             etas = np.array([0.0009, 0.01, 0.02, 0.035, 0.06, 0.1, 0.2])
             for eta in etas:
-                sfs.add_TwoBodySymmetryFunction('Ag', 'Ag', 'BehlerG1', [eta],
-                                                cuttype='cos')
+                ds.add_two_body_descriptor('Ag', 'Ag', 'BehlerG1', [eta],
+                                           cuttype='cos')
 
             ang_etas = np.array([0.0001, 0.003, 0.008])
             zetas = np.array([1.0, 4.0])
             for ang_eta in ang_etas:
                 for lamb in [-1.0, 1.0]:
                     for zeta in zetas:
-                        sfs.add_ThreeBodySymmetryFunction(
+                        ds.add_three_body_descriptor(
                             'Ag', 'Ag', 'Ag', 'BehlerG3',
                             [lamb, zeta, ang_eta], cuttype='cos')
 
@@ -31,7 +31,7 @@ class LibraryTest(unittest.TestCase):
             for ang_eta in ang_etas:
                 for lamb in [-1.0, 1.0]:
                     for zeta in zetas:
-                        sfs.add_ThreeBodySymmetryFunction(
+                        ds.add_three_body_descriptor(
                             'Ag', 'Ag', 'Ag', 'BehlerG4',
                             [lamb, zeta, ang_eta], cuttype='cos')
 
@@ -52,8 +52,8 @@ class LibraryTest(unittest.TestCase):
                         np.sqrt(rij**2+rik**2-2.*rij*rik*np.cos(ti)),
                         atol=1E-12)
 
-                    Gs = sfs.eval(types, xyzs)
-                    Gs_atomwise = sfs.eval_atomwise(types, xyzs)
+                    Gs = ds.eval(types, xyzs)
+                    Gs_atomwise = ds.eval_atomwise(types, xyzs)
                     Gs_ref = np.concatenate(
                         [2*np.exp(-etas*ri**2)*fcut(ri)] +
                         [2**(1.-zetas)*np.exp(-eta*(rij**2+rik**2+rjk**2)) *
@@ -67,15 +67,15 @@ class LibraryTest(unittest.TestCase):
                     np.testing.assert_allclose(Gs[0], Gs_ref)
                     np.testing.assert_allclose(Gs_atomwise[0], Gs_ref)
 
-                    dGs = sfs.eval_derivatives(types, xyzs)
-                    dGs_atomwise = sfs.eval_derivatives_atomwise(types, xyzs)
+                    dGs = ds.eval_derivatives(types, xyzs)
+                    dGs_atomwise = ds.eval_derivatives_atomwise(types, xyzs)
                     # Adding the equal_nan=False option shows a bug for
                     # descriptors using rik as input
                     np.testing.assert_allclose(dGs, dGs_atomwise)
 
-                    Gs, dGs = sfs.eval_with_derivatives(types, xyzs)
+                    Gs, dGs = ds.eval_with_derivatives(types, xyzs)
                     Gs_atomwise, dGs_atomwise = (
-                        sfs.eval_with_derivatives_atomwise(types, xyzs))
+                        ds.eval_with_derivatives_atomwise(types, xyzs))
                     np.testing.assert_allclose(Gs, Gs_atomwise)
                     np.testing.assert_allclose(dGs, dGs_atomwise)
 
