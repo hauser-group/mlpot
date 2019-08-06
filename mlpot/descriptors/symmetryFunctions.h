@@ -190,7 +190,7 @@ std::shared_ptr<TwoBodySymmetryFunction> switch_TwoBodySymFun(
 std::shared_ptr<ThreeBodySymmetryFunction> switch_ThreeBodySymFun(
   int funtype, int num_prms, double* prms,
   std::shared_ptr<CutoffFunction> cutfun);
-int get_CutFun_by_name(const char* name);
-int get_TwoBodySymFun_by_name(const char* name);
-int get_ThreeBodySymFun_by_name(const char* name);
+int get_cutoff_function_by_name(const char* name);
+int get_two_body_descriptor_by_name(const char* name);
+int get_three_body_descriptor_by_name(const char* name);
 void available_symFuns();

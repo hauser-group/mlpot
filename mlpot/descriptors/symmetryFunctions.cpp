@@ -451,7 +451,7 @@ std::shared_ptr<ThreeBodySymmetryFunction> switch_ThreeBodySymFun(int funtype,
   return symFun;
 }
 
-int get_CutFun_by_name(const char* name)
+int get_cutoff_function_by_name(const char* name)
 {
   int id = -1;
   if (strcmp(name, "const") == 0)
@@ -482,7 +482,7 @@ int get_CutFun_by_name(const char* name)
   return id;
 }
 
-int get_TwoBodySymFun_by_name(const char* name)
+int get_two_body_descriptor_by_name(const char* name)
 {
   int id = -1;
 // AUTOMATIC get_TwoBodySymFuns start
@@ -518,7 +518,7 @@ int get_TwoBodySymFun_by_name(const char* name)
   return id;
 }
 
-int get_ThreeBodySymFun_by_name(const char* name)
+int get_three_body_descriptor_by_name(const char* name)
 {
   int id = -1;
 // AUTOMATIC get_ThreeBodySymFuns start

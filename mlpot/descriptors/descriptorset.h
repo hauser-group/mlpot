@@ -76,15 +76,15 @@ extern "C" {
   }
   int descriptor_set_get_cutoff_function_by_name(const char* name)
   {
-    return descriptor_set_get_cutoff_function_by_name(name);
+    return get_cutoff_function_by_name(name);
   }
   int descriptor_set_get_two_body_descriptor_by_name(const char* name)
   {
-    return descriptor_set_get_two_body_descriptor_by_name(name);
+    return get_two_body_descriptor_by_name(name);
   }
   int descriptor_set_get_three_body_descriptor_by_name(const char* name)
   {
-    return descriptor_set_get_three_body_descriptor_by_name(name);
+    return get_three_body_descriptor_by_name(name);
   }
   int descriptor_set_get_G_vector_size(DescriptorSet* ds,
     int num_atoms, int* types)
