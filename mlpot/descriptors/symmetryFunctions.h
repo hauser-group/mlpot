@@ -165,10 +165,10 @@ class BehlerG4: public ThreeBodySymmetryFunction
       double &G, double &dGdrij, double &dGdrik, double &dGdcostheta);
 };
 
-class MeyerG1: public ThreeBodySymmetryFunction
+class BehlerG5mod: public ThreeBodySymmetryFunction
 {
   public:
-    MeyerG1(int num_prms, double* prms,
+    BehlerG5mod(int num_prms, double* prms,
       std::shared_ptr<CutoffFunction> cutfun):
       ThreeBodySymmetryFunction(num_prms, prms, cutfun){};
     double eval(double rij, double rik, double costheta);

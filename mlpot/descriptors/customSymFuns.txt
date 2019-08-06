@@ -1,19 +1,27 @@
 !
-! TwoBodySymmetryFunctions
+! TwoBodyDescriptors
 !
+! Add arbitrary two body descriptors here. The only argument of a two body
+! descriptor is the interatomic distance rij.
 
-TwoBodySymFun BehlerG0 0 fcut(rij)
-TwoBodySymFun BehlerG1 1 exp(-prm0*(rij)**2)*fcut(rij)
-TwoBodySymFun BehlerG2 2 exp(-prm0*(rij-prm1)**2)*fcut(rij)
-TwoBodySymFun OneOverR6 0 1/rij**6*fcut(rij)
-TwoBodySymFun OneOverR8 0 1/rij**8*fcut(rij)
-TwoBodySymFun OneOverR10 0 1/rij**10*fcut(rij)
-TwoBodySymFun radialTest 0 rij
+TwoBodyDescriptor BehlerG0 0 fcut(rij)
+TwoBodyDescriptor BehlerG1 1 exp(-prm0*(rij)**2)*fcut(rij)
+TwoBodyDescriptor BehlerG2 2 exp(-prm0*(rij-prm1)**2)*fcut(rij)
+TwoBodyDescriptor OneOverR6 0 1/rij**6*fcut(rij)
+TwoBodyDescriptor OneOverR8 0 1/rij**8*fcut(rij)
+TwoBodyDescriptor OneOverR10 0 1/rij**10*fcut(rij)
+TwoBodyDescriptor radialTest 0 rij
 
 !
-! ThreeBodySymmetryFunctions
+! ThreeBodyDescriptors
 !
+! Add arbitrary three body descriptors here. The arguments of a three body
+! descriptor are the interatomic distances rij and rik as well as the cosine
+! of the angle theta (costheta) between these vectors rij and rik. The last
+! interatomic distance rjk can be calculated as:
+! sqrt(rij**2+rik**2-2*rij*rik*costheta)
 
-ThreeBodySymFun BehlerG3 3 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*(2*rij**2+2*rik**2-2*rij*rik*costheta))*fcut(rij)*fcut(rik)*fcut(sqrt(rij**2+rik**2-2*rij*rik*costheta))
-ThreeBodySymFun BehlerG4 3 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*(rij**2+rik**2))*fcut(rij)*fcut(rik)
-ThreeBodySymFun MeyerG1 4 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*(rij**2+rik**2))*exp(-prm2*((rij-prm3)**2+(rik-prm3)**2))*fcut(rij)*fcut(rik)
+ThreeBodyDescriptors BehlerG3 3 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*(2*rij**2+2*rik**2-2*rij*rik*costheta))*fcut(rij)*fcut(rik)*fcut(sqrt(rij**2+rik**2-2*rij*rik*costheta))
+ThreeBodyDescriptors BehlerG4 3 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*(rij**2+rik**2))*fcut(rij)*fcut(rik)
+! Modified BehlerG5 function introducing a center for the radial Gaussians
+ThreeBodyDescriptors BehlerG5mod 4 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*((rij-prm3)**2+(rik-prm4)**2))*fcut(rij)*fcut(rik)

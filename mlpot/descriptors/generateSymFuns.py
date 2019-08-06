@@ -101,10 +101,10 @@ twoBodySymFuns = []
 threeBodySymFuns = []
 with open("customSymFuns.txt", "r") as fin:
     for line in fin:
-        if line.startswith("TwoBodySymFun"):
+        if line.startswith("TwoBodyDescriptor"):
             sp = line.split()
             twoBodySymFuns.append([sp[1], int(sp[2]), " ".join(sp[3::])])
-        if line.startswith("ThreeBodySymFun"):
+        if line.startswith("ThreeBodyDescriptor"):
             sp = line.split()
             threeBodySymFuns.append([sp[1], int(sp[2]), " ".join(sp[3::])])
 
