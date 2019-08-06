@@ -303,22 +303,22 @@ void BehlerG4::derivatives(double rij, double rik, double costheta,
 
 double BehlerG5mod::eval(double rij, double rik, double costheta)
 {
-  return pow(costheta*prms[0] + 1, prms[1])*exp2(-prms[1] + 1)*cutfun->eval(rij)*cutfun->eval(rik)*exp(-prms[2]*(pow(-prms[3] + rij, 2) + pow(-prm4 + rik, 2)));
+  return pow(costheta*prms[0] + 1, prms[1])*exp2(-prms[1] + 1)*cutfun->eval(rij)*cutfun->eval(rik)*exp(-prms[2]*(pow(-prms[3] + rij, 2) + pow(-prms[4] + rik, 2)));
 };
 
 double BehlerG5mod::drij(double rij, double rik, double costheta)
 {
-  return pow(costheta*prms[0] + 1, prms[1])*(2*prms[2]*(prms[3] - rij)*cutfun->eval(rij) + cutfun->derivative(rij))*exp2(-prms[1] + 1)*cutfun->eval(rik)*exp(-prms[2]*(pow(prms[3] - rij, 2) + pow(prm4 - rik, 2)));
+  return pow(costheta*prms[0] + 1, prms[1])*(2*prms[2]*(prms[3] - rij)*cutfun->eval(rij) + cutfun->derivative(rij))*exp2(-prms[1] + 1)*cutfun->eval(rik)*exp(-prms[2]*(pow(prms[3] - rij, 2) + pow(prms[4] - rik, 2)));
 };
 
 double BehlerG5mod::drik(double rij, double rik, double costheta)
 {
-  return pow(costheta*prms[0] + 1, prms[1])*(2*prms[2]*(prm4 - rik)*cutfun->eval(rik) + cutfun->derivative(rik))*exp2(-prms[1] + 1)*cutfun->eval(rij)*exp(-prms[2]*(pow(prms[3] - rij, 2) + pow(prm4 - rik, 2)));
+  return pow(costheta*prms[0] + 1, prms[1])*(2*prms[2]*(prms[4] - rik)*cutfun->eval(rik) + cutfun->derivative(rik))*exp2(-prms[1] + 1)*cutfun->eval(rij)*exp(-prms[2]*(pow(prms[3] - rij, 2) + pow(prms[4] - rik, 2)));
 };
 
 double BehlerG5mod::dcostheta(double rij, double rik, double costheta)
 {
-  return prms[0]*prms[1]*pow(costheta*prms[0] + 1, prms[1] - 1)*exp2(-prms[1] + 1)*cutfun->eval(rij)*cutfun->eval(rik)*exp(-prms[2]*(pow(prms[3] - rij, 2) + pow(prm4 - rik, 2)));
+  return prms[0]*prms[1]*pow(costheta*prms[0] + 1, prms[1] - 1)*exp2(-prms[1] + 1)*cutfun->eval(rij)*cutfun->eval(rik)*exp(-prms[2]*(pow(prms[3] - rij, 2) + pow(prms[4] - rik, 2)));
 };
 
 void BehlerG5mod::eval_with_derivatives(double rij, double rik, double costheta,
@@ -330,7 +330,7 @@ void BehlerG5mod::eval_with_derivatives(double rij, double rik, double costheta,
   auto x3 = cutfun->eval(rik);
   auto x4 = exp2(-prms[1] + 1);
   auto x5 = prms[3] - rij;
-  auto x6 = prm4 - rik;
+  auto x6 = prms[4] - rik;
   auto x7 = exp(-prms[2]*(pow(x5, 2) + pow(x6, 2)));
   auto x8 = x2*x3*x4*x7;
   auto x9 = 2*prms[2];
@@ -351,7 +351,7 @@ void BehlerG5mod::derivatives(double rij, double rik, double costheta,
   auto x4 = prms[3] - rij;
   auto x5 = cutfun->eval(rik);
   auto x6 = exp2(-prms[1] + 1);
-  auto x7 = prm4 - rik;
+  auto x7 = prms[4] - rik;
   auto x8 = exp(-prms[2]*(pow(x4, 2) + pow(x7, 2)));
   auto x9 = x5*x6*x8;
   dGdrij = x1*x9*(x2*x3*x4 + cutfun->derivative(rij));
@@ -550,6 +550,6 @@ void available_symFuns()
   printf("ThreeBodySymmetryFunctions: (key: name, # of parameters)\n");
   printf("0: BehlerG3, 3\n");
   printf("1: BehlerG4, 3\n");
-  printf("2: BehlerG5mod, 4\n");
+  printf("2: BehlerG5mod, 5\n");
 // AUTOMATIC available_symFuns end
 }
