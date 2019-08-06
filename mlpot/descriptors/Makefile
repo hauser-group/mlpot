@@ -8,7 +8,7 @@ SOURCES = $(shell echo *.cpp)
 HEADERS = $(shell echo *.h)
 OBJECTS=$(SOURCES:.cpp=.o)
 
-TARGET=libSymFunSet.so
+TARGET=libDescriptorSet.so
 
 all: $(TARGET)
 

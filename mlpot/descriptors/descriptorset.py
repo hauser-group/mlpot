@@ -13,7 +13,7 @@ try:
     lib = _ct.cdll.LoadLibrary(
         normpath(join(
             module_path,
-            "libSymFunSet.so")
+            "libDescriptorSet.so")
         )
     )
     lib.create_SymmetryFunctionSet.restype = _ct.c_void_p
