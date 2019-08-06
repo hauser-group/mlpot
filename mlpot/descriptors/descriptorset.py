@@ -1,12 +1,8 @@
 from os.path import dirname, abspath, join, normpath
 from inspect import getsourcefile
 from itertools import product, combinations_with_replacement
-from .SymmetryFunctions import (AngularSymmetryFunction,
-                                RadialSymmetryFunction)
 import numpy as _np
 import ctypes as _ct
-from scipy.spatial.distance import pdist, squareform
-from scipy.special import comb
 
 try:
 
@@ -82,7 +78,7 @@ except OSError as e:
     raise e
 
 
-class SymmetryFunctionSet(object):
+class DescriptorSet(object):
     def __init__(self, atomtypes, cutoff=7.0):
         self.cutoff = cutoff
         self.atomtypes = atomtypes
@@ -104,8 +100,8 @@ class SymmetryFunctionSet(object):
     def __exit__(self, type, value, traceback):
         self.close()
 
-    def add_TwoBodySymmetryFunction(self, type1, type2, funtype, prms,
-                                    cuttype="cos", cutoff=None):
+    def add_TwoBodyDescriptor(self, type1, type2, funtype, prms,
+                              cuttype="cos", cutoff=None):
         if cutoff is None:
             cutoff = self.cutoff
         cutid = lib.SymmetryFunctionSet_get_CutFun_by_name(
@@ -123,8 +119,8 @@ class SymmetryFunctionSet(object):
             len(prms), ptr, cutid, cutoff)
         self.num_Gs[self.type_dict[type1]] += 1
 
-    def add_ThreeBodySymmetryFunction(self, type1, type2, type3, funtype, prms,
-                                      cuttype="cos", cutoff=None):
+    def add_ThreeBodyDescriptor(self, type1, type2, type3, funtype, prms,
+                                cuttype="cos", cutoff=None):
         if cutoff is None:
             cutoff = self.cutoff
         cutid = lib.SymmetryFunctionSet_get_CutFun_by_name(
@@ -145,7 +141,7 @@ class SymmetryFunctionSet(object):
     def add_G2_functions(self, rss, etas, cuttype="cos", cutoff=None):
         for rs, eta in zip(rss, etas):
             for (ti, tj) in product(self.atomtypes, repeat=2):
-                self.add_TwoBodySymmetryFunction(
+                self.add_TwoBodyDescriptor(
                     ti, tj, "BehlerG2", [eta, rs], cuttype=cuttype,
                     cutoff=cutoff)
 
@@ -161,7 +157,7 @@ class SymmetryFunctionSet(object):
                     for ti in self.atomtypes:
                         for (tj, tk) in combinations_with_replacement(
                                 self.atomtypes, 2):
-                            self.add_ThreeBodySymmetryFunction(
+                            self.add_ThreeBodyDescriptor(
                                 ti, tj, tk, "BehlerG4", [lamb, zeta, eta],
                                 cuttype=cuttype, cutoff=cutoff)
 
@@ -172,7 +168,7 @@ class SymmetryFunctionSet(object):
         for t1 in self.atomtypes:
             for t2 in self.atomtypes:
                 for eta, rs in zip(etas, rss):
-                    self.add_TwoBodySymmetryFunction(
+                    self.add_TwoBodyDescriptor(
                         t1, t2, 'BehlerG2', [eta, rs], cuttype='cos',
                         cutoff=6.5)
 
@@ -184,14 +180,14 @@ class SymmetryFunctionSet(object):
                 for eta in ang_etas:
                     for zeta in zetas:
                         for lamb in [-1.0, 1.0]:
-                            self.add_ThreeBodySymmetryFunction(
+                            self.add_ThreeBodyDescriptor(
                                 ti, tj, tk, "BehlerG3",
                                 [lamb, zeta, eta], cuttype='cos', cutoff=6.5)
 
-    def print_symFuns(self):
+    def print_descriptors(self):
         lib.SymmetryFunctionSet_print_symFuns(self.obj)
 
-    def available_symFuns(self):
+    def available_descriptors(self):
         lib.SymmetryFunctionSet_available_symFuns(self.obj)
 
     def eval(self, types, xyzs):
@@ -306,122 +302,3 @@ class SymmetryFunctionSet(object):
         types = [a[0] for a in geo]
         xyzs = _np.array([a[1] for a in geo])
         return self.eval_atomwise(types, xyzs)
-
-
-class SymmetryFunctionSet_py(object):
-
-    def __init__(self, atomtypes, cutoff=7.):
-        self.atomtypes = atomtypes
-        self.cutoff = cutoff
-        self.radial_sym_funs = []
-        self.angular_sym_funs = []
-
-    def add_radial_functions(self, rss, etas):
-        for rs in rss:
-            for eta in etas:
-                self.radial_sym_funs.append(
-                        RadialSymmetryFunction(rs, eta, self.cutoff))
-
-    def add_angular_functions(self, etas, zetas, lambs):
-        for eta in etas:
-            for zeta in zetas:
-                for lamb in lambs:
-                    self.angular_sym_funs.append(
-                        AngularSymmetryFunction(eta, zeta, lamb,
-                                                self.cutoff))
-
-    def add_angular_functions_new(self, etas, zetas, lambs, rss):
-        for eta in etas:
-            for zeta in zetas:
-                for lamb in lambs:
-                    for rs in rss:
-                        self.angular_sym_funs.append(
-                            AngularSymmetryFunction(eta, zeta, lamb, rs,
-                                                    self.cutoff))
-
-    def add_radial_functions_evenly(self, N):
-        rss = _np.linspace(0., self.cutoff, N)
-        etas = [2./(self.cutoff/(N-1))**2]*N
-        for rs, eta in zip(rss, etas):
-            self.radial_sym_funs.append(
-                        RadialSymmetryFunction(rs, eta, self.cutoff))
-
-    def eval_geometry(self, geometry, derivative=False):
-        # Returns a (Number of atoms) x (Size of G vector) matrix
-        # The G vector doubles in size if derivatives are also requested
-        # Calculate distance matrix. Should be solvable without using
-        # squareform!
-        # TODO: rewrite even more efficient
-        # TODO: Implement derivative
-        N = len(geometry)  # Number of atoms
-        Nt = len(self.atomtypes)  # Number of atomtypes
-        Nr = len(self.radial_sym_funs)  # Number of radial symmetry functions
-        Na = len(self.angular_sym_funs)  # Number of angular symmetry functions
-
-        dist_mat = squareform(pdist([g[1] for g in geometry]))
-        # Needed for angular symmetry functions
-        # maybe more elegant solution possible using transposition?
-        rij = _np.tile(dist_mat.reshape((N, N, 1)), (1, 1, N))
-        rik = _np.tile(dist_mat.reshape((N, 1, N)), (1, N, 1))
-        rjk = _np.tile(dist_mat.reshape((1, N, N)), (N, 1, 1))
-        costheta = (rij**2+rik**2-rjk**2)
-        costheta[rij*rik > 0] = costheta[rij*rik > 0] / (
-            (2*rij*rik)[rij*rik > 0])
-        costheta[rij*rik == 0] = 0.0
-        # (1-eye) to satify the j != i condition of the sum
-        kron_ij = (1.-_np.eye(N))
-        # Similar for the condition j != i, k != j in the angular sum
-        dij = _np.tile(_np.eye(N).reshape((N, N, 1)), (1, 1, N))
-        dik = _np.tile(_np.eye(N).reshape((N, 1, N)), (1, N, 1))
-        djk = _np.tile(_np.eye(N).reshape((1, N, N)), (N, 1, 1))
-        kron_ijk = 1. - _np.sign(dij+dik+djk)
-
-        if derivative is False:
-            out = _np.zeros((N, Nr*Nt + comb(Nt, 2, exact=True,
-                                             repetition=True)*Na))
-
-            ind = 0  # Counter for the combinations of angle types
-            for t, atype in enumerate(self.atomtypes):
-                # Mask for the different atom types
-                mask = [a[0] == atype for a in geometry]
-                for i, rad_fun in enumerate(self.radial_sym_funs):
-                    out[:, t*Nr+i] = (kron_ij * rad_fun(dist_mat)).dot(mask)
-                for atype2 in self.atomtypes[t:]:
-                    # Second mask because two atom types are involved
-                    mask2 = [a[0] == atype2 for a in geometry]
-                    for j, ang_fun in enumerate(self.angular_sym_funs):
-                        if (atype == atype2):
-                            out[:, Nt*Nr+ind*Na+j] = 0.5*(
-                                kron_ijk * ang_fun(rij, rik, costheta)).dot(
-                                mask).dot(mask2)
-                        else:
-                            out[:, Nt*Nr+ind*Na+j] = (
-                                kron_ijk * ang_fun(rij, rik, costheta)).dot(
-                                mask).dot(mask2)
-                    ind += 1
-
-        else:  # derivative = True: doubles the size of the output matrix
-            out = _np.zeros((N, 2*(Nr*Nt + comb(Nt, 2, exact=True,
-                                                repetition=True)*Na)))
-
-            ind = 0  # Counter for the combinations of angle types
-            for t, atype in enumerate(self.atomtypes):
-                # Mask for the different atom types
-                mask = [a[0] == atype for a in geometry]
-                for i, rad_fun in enumerate(self.radial_sym_funs):
-                    out[:, t*2*Nr+2*i] = (
-                        kron_ij * rad_fun(dist_mat)).dot(mask)
-                    out[:, t*2*Nr+2*i+1] = (
-                        kron_ij * rad_fun.derivative(dist_mat)).dot(mask)
-                for atype2 in self.atomtypes[t:]:
-                    # Second mask because two atom types are involved
-                    mask2 = [a[0] == atype2 for a in geometry]
-                    for j, ang_fun in enumerate(self.angular_sym_funs):
-                        out[:, Nt*2*Nr+ind*2*Na+2*j] = (
-                            kron_ijk * ang_fun(rij, rik, costheta)
-                            ).dot(mask).dot(mask2)
-                        out[:, Nt*2*Nr+ind*2*Na+2*j+1] = (
-                            kron_ijk * ang_fun.derivative(rij, rik, costheta)
-                            ).dot(mask).dot(mask2)
-                    ind += 1
-        return out
