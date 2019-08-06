@@ -1,100 +1,9 @@
 import unittest
 from mlpot.descriptors import DescriptorSet
 import numpy as np
-from itertools import product, combinations_with_replacement
 
 
 class LibraryTest(unittest.TestCase):
-
-    def test_poly_cutoff_functions(self):
-        r_vec = np.linspace(0.1, 8, 101)
-        geos = [[('F', np.array([0.0, 0.0, 0.0])),
-                ('H', np.array([0.0, 0.0, ri]))] for ri in r_vec]
-        with DescriptorSet(['H', 'F'], cutoff=6.5) as ds:
-            for (t1, t2) in product(ds.atomtypes, repeat=2):
-                ds.add_two_body_descriptor(
-                    t1, t2, 'BehlerG0', [], cuttype='polynomial')
-
-            Gs = []
-            dGs = []
-            for geo in geos:
-                Gs.append(ds.eval_geometry(geo))
-                dGs.append(ds.eval_geometry_derivatives(geo))
-            np.testing.assert_allclose(
-                np.array(Gs)[:, 0, 0],
-                (1 - 10.0 * (r_vec/ds.cutoff)**3
-                 + 15.0 * (r_vec/ds.cutoff)**4
-                 - 6.0 * (r_vec/ds.cutoff)**5)*(r_vec < ds.cutoff))
-            np.testing.assert_allclose(
-                np.array(dGs)[:, 0, 0, 1, -1],
-                (- 30.0 * (r_vec/ds.cutoff)**2/ds.cutoff
-                 + 60.0 * (r_vec/ds.cutoff)**3/ds.cutoff
-                 - 30.0 * (r_vec/ds.cutoff)**4/ds.cutoff) *
-                (r_vec < ds.cutoff))
-
-    def test_tanh_cutoff_functions(self):
-        r_vec = np.linspace(0.1, 8, 101)
-        geos = [[('F', np.array([0.0, 0.0, 0.0])),
-                ('H', np.array([0.0, 0.0, ri]))] for ri in r_vec]
-        with DescriptorSet(['H', 'F'], cutoff=6.5) as ds:
-            for (t1, t2) in product(ds.atomtypes, repeat=2):
-                ds.add_two_body_descriptor(
-                    t1, t2, 'BehlerG0', [], cuttype='tanh')
-
-            Gs = []
-            dGs = []
-            for geo in geos:
-                Gs.append(ds.eval_geometry(geo))
-                dGs.append(ds.eval_geometry_derivatives(geo))
-            np.testing.assert_allclose(
-                np.array(Gs)[:, 0, 0],
-                (np.tanh(1.0-r_vec/ds.cutoff)**3)*(r_vec < ds.cutoff))
-            np.testing.assert_allclose(
-                np.array(dGs)[:, 0, 0, 1, -1],
-                -(3*np.sinh(1.0-r_vec/ds.cutoff)**2) /
-                (ds.cutoff*np.cosh(1.0-r_vec/ds.cutoff)**4) *
-                (r_vec < ds.cutoff))
-
-    def test_const_cutoff_functions(self):
-        r_vec = np.linspace(0.1, 8, 101)
-        geos = [[('F', np.array([0.0, 0.0, 0.0])),
-                ('H', np.array([0.0, 0.0, ri]))] for ri in r_vec]
-        with DescriptorSet(['H', 'F'], cutoff=6.5) as ds:
-            for (t1, t2) in product(ds.atomtypes, repeat=2):
-                ds.add_two_body_descriptor(
-                    t1, t2, 'BehlerG0', [], cuttype='const')
-
-            Gs = []
-            dGs = []
-            for geo in geos:
-                Gs.append(ds.eval_geometry(geo))
-                dGs.append(ds.eval_geometry_derivatives(geo))
-            np.testing.assert_allclose(
-                np.array(Gs)[:, 0, 0], (1.0)*(r_vec < ds.cutoff))
-            np.testing.assert_allclose(np.array(dGs)[:, 0, 0, -1], 0.0)
-
-    def test_smooth2_cutoff_functions(self):
-        r_vec = np.linspace(0.1, 8, 101)
-        geos = [[('F', np.array([0.0, 0.0, 0.0])),
-                ('H', np.array([0.0, 0.0, ri]))] for ri in r_vec]
-        cut = 6.5
-        with DescriptorSet(['H', 'F'], cutoff=cut) as ds:
-            for (t1, t2) in product(ds.atomtypes, repeat=2):
-                ds.add_two_body_descriptor(
-                    t1, t2, 'BehlerG0', [], cuttype='smooth2')
-
-            Gs = []
-            dGs = []
-            for geo in geos:
-                Gs.append(ds.eval_geometry(geo))
-                dGs.append(ds.eval_geometry_derivatives(geo))
-            np.testing.assert_allclose(
-                np.array(Gs)[:, 0, 0],
-                (np.exp(1.0 - 1.0/(1.0-(r_vec/cut)**2)))*(r_vec < cut))
-            np.testing.assert_allclose(
-                np.array(dGs)[:, 0, 0, 1, -1],
-                (-2.0*cut**2*r_vec*np.exp(r_vec**2/(r_vec**2-cut**2))) /
-                (cut**2-r_vec**2)**2*(r_vec < cut))
 
     def test_dimer_cos(self):
         with DescriptorSet(['Au'], cutoff=7.) as ds:
@@ -245,24 +154,7 @@ class LibraryTest(unittest.TestCase):
 
         with DescriptorSet(['C', 'N', 'H', 'O'], cutoff=7.0) as ds:
             # Parameters from Artrith and Kolpak Nano Lett. 2014, 14, 2670
-            etas = [0.0009, 0.01, 0.02, 0.035, 0.06, 0.1, 0.2]
-            for t1 in ds.atomtypes:
-                for t2 in ds.atomtypes:
-                    for eta in etas:
-                        ds.add_two_body_descriptor(
-                            t1, t2, 'BehlerG1', [eta], cuttype='cos')
-
-            ang_etas = [0.0001, 0.003, 0.008]
-            zetas = [1.0, 4.0]
-            for ti in ds.atomtypes:
-                for (tj, tk) in combinations_with_replacement(
-                        ds.atomtypes, 2):
-                    for eta in ang_etas:
-                        for lamb in [-1.0, 1.0]:
-                            for zeta in zetas:
-                                ds.add_three_body_descriptor(
-                                    ti, tj, tk, 'BehlerG3', [lamb, zeta, eta],
-                                    cuttype='cos')
+            ds.add_Artrith_Kolpak_set()
 
             Gs_ref = ds.eval(types, xyzs)
             dGs_ref = ds.eval_derivatives(types, xyzs)
