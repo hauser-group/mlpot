@@ -5,7 +5,7 @@ These parts are marked by comment lines starting with AUTOMATIC. Do not alter
 anything between these tags.
 */
 
-#include "cutoffFunctions.h"
+#include "cutoff_functions.h"
 #include <memory>
 
 class SymmetryFunction
