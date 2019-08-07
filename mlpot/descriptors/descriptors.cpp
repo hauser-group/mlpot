@@ -5,13 +5,13 @@ These parts are marked by comment lines starting with AUTOMATIC. Do not alter
 anything between these tags.
 */
 
-#include "symmetryFunctions.h"
+#include "descriptors.h"
 #include <stdio.h>
 #include <math.h>
 #include <limits>
 #include <string.h>
 
-SymmetryFunction::SymmetryFunction(int num_prms, double* prms,
+Descriptor::Descriptor(int num_prms, double* prms,
   std::shared_ptr<CutoffFunction> cutfun):cutfun(cutfun)
 {
   this->num_prms = num_prms;
@@ -22,12 +22,12 @@ SymmetryFunction::SymmetryFunction(int num_prms, double* prms,
   }
 };
 
-SymmetryFunction::~SymmetryFunction()
+Descriptor::~Descriptor()
 {
   delete[] prms;
 };
 
-SymmetryFunction::SymmetryFunction(const SymmetryFunction& other) //Copy constructor
+Descriptor::Descriptor(const Descriptor& other) //Copy constructor
 {
   num_prms = other.num_prms;
   prms = new double[other.num_prms];
@@ -37,7 +37,7 @@ SymmetryFunction::SymmetryFunction(const SymmetryFunction& other) //Copy constru
   }
 };
 
-SymmetryFunction& SymmetryFunction::operator=(const SymmetryFunction& other) //Copy assignment
+Descriptor& Descriptor::operator=(const Descriptor& other) //Copy assignment
 {
   double* tmp_prms = new double[other.num_prms];
   for (int i = 0; i < other.num_prms; i++)
@@ -393,11 +393,11 @@ std::shared_ptr<CutoffFunction> switch_cutoff_functions(
   return cutfun;
 }
 
-std::shared_ptr<TwoBodySymmetryFunction> switch_two_body_descriptors(
+std::shared_ptr<TwoBodyDescriptor> switch_two_body_descriptors(
   int funtype, int num_prms, double* prms,
   std::shared_ptr<CutoffFunction> cutfun)
 {
-  std::shared_ptr<TwoBodySymmetryFunction> symFun;
+  std::shared_ptr<TwoBodyDescriptor> symFun;
   switch (funtype){
 // AUTOMATIC switch TwoBodyDescriptors start
     case 0:
@@ -428,11 +428,11 @@ std::shared_ptr<TwoBodySymmetryFunction> switch_two_body_descriptors(
   return symFun;
 }
 
-std::shared_ptr<ThreeBodySymmetryFunction> switch_three_body_descriptors(
+std::shared_ptr<ThreeBodyDescriptor> switch_three_body_descriptors(
   int funtype, int num_prms, double* prms,
   std::shared_ptr<CutoffFunction> cutfun)
 {
-  std::shared_ptr<ThreeBodySymmetryFunction> symFun;
+  std::shared_ptr<ThreeBodyDescriptor> symFun;
   switch (funtype){
 // AUTOMATIC switch ThreeBodyDescriptors start
     case 0:

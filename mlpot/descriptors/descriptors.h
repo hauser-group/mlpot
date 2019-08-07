@@ -8,26 +8,26 @@ anything between these tags.
 #include "cutoff_functions.h"
 #include <memory>
 
-class SymmetryFunction
+class Descriptor
 {
     public:
-        SymmetryFunction(int num_prms, double* pmrs,
+        Descriptor(int num_prms, double* pmrs,
           std::shared_ptr<CutoffFunction> cutfun);
-        ~SymmetryFunction();
-        SymmetryFunction(const SymmetryFunction& other);
-        SymmetryFunction& operator=(const SymmetryFunction& other);
+        ~Descriptor();
+        Descriptor(const Descriptor& other);
+        Descriptor& operator=(const Descriptor& other);
     protected:
         int num_prms;
         double* prms;
         std::shared_ptr<CutoffFunction> cutfun;
 };
 
-class TwoBodySymmetryFunction: public SymmetryFunction
+class TwoBodyDescriptor: public Descriptor
 {
     public:
-        TwoBodySymmetryFunction(int num_prms, double* prms,
+        TwoBodyDescriptor(int num_prms, double* prms,
           std::shared_ptr<CutoffFunction> cutfun):
-          SymmetryFunction(num_prms, prms, cutfun){};
+          Descriptor(num_prms, prms, cutfun){};
         virtual double eval(double rij) = 0;
         virtual double drij(double rij) = 0;
         virtual void eval_with_derivatives(
@@ -36,90 +36,90 @@ class TwoBodySymmetryFunction: public SymmetryFunction
 
 // AUTOMATIC custom TwoBodyDescriptors start
 
-class BehlerG0: public TwoBodySymmetryFunction
+class BehlerG0: public TwoBodyDescriptor
 {
     public:
         BehlerG0(int num_prms, double* prms,
           std::shared_ptr<CutoffFunction> cutfun):
-          TwoBodySymmetryFunction(num_prms, prms, cutfun){};
+          TwoBodyDescriptor(num_prms, prms, cutfun){};
         double eval(double rij);
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
 };
 
-class BehlerG1: public TwoBodySymmetryFunction
+class BehlerG1: public TwoBodyDescriptor
 {
     public:
         BehlerG1(int num_prms, double* prms,
           std::shared_ptr<CutoffFunction> cutfun):
-          TwoBodySymmetryFunction(num_prms, prms, cutfun){};
+          TwoBodyDescriptor(num_prms, prms, cutfun){};
         double eval(double rij);
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
 };
 
-class BehlerG2: public TwoBodySymmetryFunction
+class BehlerG2: public TwoBodyDescriptor
 {
     public:
         BehlerG2(int num_prms, double* prms,
           std::shared_ptr<CutoffFunction> cutfun):
-          TwoBodySymmetryFunction(num_prms, prms, cutfun){};
+          TwoBodyDescriptor(num_prms, prms, cutfun){};
         double eval(double rij);
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
 };
 
-class OneOverR6: public TwoBodySymmetryFunction
+class OneOverR6: public TwoBodyDescriptor
 {
     public:
         OneOverR6(int num_prms, double* prms,
           std::shared_ptr<CutoffFunction> cutfun):
-          TwoBodySymmetryFunction(num_prms, prms, cutfun){};
+          TwoBodyDescriptor(num_prms, prms, cutfun){};
         double eval(double rij);
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
 };
 
-class OneOverR8: public TwoBodySymmetryFunction
+class OneOverR8: public TwoBodyDescriptor
 {
     public:
         OneOverR8(int num_prms, double* prms,
           std::shared_ptr<CutoffFunction> cutfun):
-          TwoBodySymmetryFunction(num_prms, prms, cutfun){};
+          TwoBodyDescriptor(num_prms, prms, cutfun){};
         double eval(double rij);
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
 };
 
-class OneOverR10: public TwoBodySymmetryFunction
+class OneOverR10: public TwoBodyDescriptor
 {
     public:
         OneOverR10(int num_prms, double* prms,
           std::shared_ptr<CutoffFunction> cutfun):
-          TwoBodySymmetryFunction(num_prms, prms, cutfun){};
+          TwoBodyDescriptor(num_prms, prms, cutfun){};
         double eval(double rij);
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
 };
 
-class radialTest: public TwoBodySymmetryFunction
+class radialTest: public TwoBodyDescriptor
 {
     public:
         radialTest(int num_prms, double* prms,
           std::shared_ptr<CutoffFunction> cutfun):
-          TwoBodySymmetryFunction(num_prms, prms, cutfun){};
+          TwoBodyDescriptor(num_prms, prms, cutfun){};
         double eval(double rij);
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
 };
 // AUTOMATIC custom TwoBodyDescriptors end
 
-class ThreeBodySymmetryFunction: public SymmetryFunction
+class ThreeBodyDescriptor: public Descriptor
 {
     public:
-      ThreeBodySymmetryFunction(int num_prms, double* prms,
+      ThreeBodyDescriptor(int num_prms, double* prms,
         std::shared_ptr<CutoffFunction> cutfun):
-        SymmetryFunction(num_prms, prms, cutfun){};
+        Descriptor(num_prms, prms, cutfun){};
       virtual double eval(double rij, double rik, double costheta) = 0;
       virtual double drij(double rij, double rik, double costheta) = 0;
       virtual double drik(double rij, double rik, double costheta) = 0;
@@ -133,12 +133,12 @@ class ThreeBodySymmetryFunction: public SymmetryFunction
 
 // AUTOMATIC custom ThreeBodyDescriptors start
 
-class BehlerG3: public ThreeBodySymmetryFunction
+class BehlerG3: public ThreeBodyDescriptor
 {
   public:
     BehlerG3(int num_prms, double* prms,
       std::shared_ptr<CutoffFunction> cutfun):
-      ThreeBodySymmetryFunction(num_prms, prms, cutfun){};
+      ThreeBodyDescriptor(num_prms, prms, cutfun){};
     double eval(double rij, double rik, double costheta);
     double drij(double rij, double rik, double costheta);
     double drik(double rij, double rik, double costheta);
@@ -149,12 +149,12 @@ class BehlerG3: public ThreeBodySymmetryFunction
       double &G, double &dGdrij, double &dGdrik, double &dGdcostheta);
 };
 
-class BehlerG4: public ThreeBodySymmetryFunction
+class BehlerG4: public ThreeBodyDescriptor
 {
   public:
     BehlerG4(int num_prms, double* prms,
       std::shared_ptr<CutoffFunction> cutfun):
-      ThreeBodySymmetryFunction(num_prms, prms, cutfun){};
+      ThreeBodyDescriptor(num_prms, prms, cutfun){};
     double eval(double rij, double rik, double costheta);
     double drij(double rij, double rik, double costheta);
     double drik(double rij, double rik, double costheta);
@@ -165,12 +165,12 @@ class BehlerG4: public ThreeBodySymmetryFunction
       double &G, double &dGdrij, double &dGdrik, double &dGdcostheta);
 };
 
-class BehlerG5mod: public ThreeBodySymmetryFunction
+class BehlerG5mod: public ThreeBodyDescriptor
 {
   public:
     BehlerG5mod(int num_prms, double* prms,
       std::shared_ptr<CutoffFunction> cutfun):
-      ThreeBodySymmetryFunction(num_prms, prms, cutfun){};
+      ThreeBodyDescriptor(num_prms, prms, cutfun){};
     double eval(double rij, double rik, double costheta);
     double drij(double rij, double rik, double costheta);
     double drik(double rij, double rik, double costheta);
@@ -184,10 +184,10 @@ class BehlerG5mod: public ThreeBodySymmetryFunction
 
 std::shared_ptr<CutoffFunction> switch_cutoff_functions(
   int cutoff_type, double cutoff);
-std::shared_ptr<TwoBodySymmetryFunction> switch_two_body_descriptors(
+std::shared_ptr<TwoBodyDescriptor> switch_two_body_descriptors(
   int funtype, int num_prms, double* prms,
   std::shared_ptr<CutoffFunction> cutfun);
-std::shared_ptr<ThreeBodySymmetryFunction> switch_three_body_descriptors(
+std::shared_ptr<ThreeBodyDescriptor> switch_three_body_descriptors(
   int funtype, int num_prms, double* prms,
   std::shared_ptr<CutoffFunction> cutfun);
 int get_cutoff_function_by_name(const char* name);
