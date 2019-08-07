@@ -6,15 +6,15 @@
 #include <omp.h>
 
 DescriptorSet::DescriptorSet(int num_atomtypes):
+num_descriptors(2*num_atomtypes),
 two_body_descriptors(num_atomtypes*num_atomtypes),
-three_body_descriptors(num_atomtypes*num_atomtypes*num_atomtypes)
+pos_two_body(num_atomtypes*num_atomtypes),
+three_body_descriptors(num_atomtypes*num_atomtypes*num_atomtypes),
+pos_three_body(num_atomtypes*num_atomtypes*num_atomtypes),
+max_cutoff(num_atomtypes*num_atomtypes)
 {
   this->num_atomtypes = num_atomtypes;
   num_atomtypes_sq = num_atomtypes*num_atomtypes;
-  num_descriptors.resize(2*num_atomtypes);
-  pos_two_body.resize(num_atomtypes_sq);
-  pos_three_body.resize(num_atomtypes_sq*num_atomtypes);
-  max_cutoff.resize(num_atomtypes_sq);
   global_max_cutoff = 0.0;
   printf("Constructor called with %d atom types\n",num_atomtypes);
 }
