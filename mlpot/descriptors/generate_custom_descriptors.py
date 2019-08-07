@@ -3,7 +3,7 @@ import re
 
 rij, rik, costheta = _sp.symbols('rij rik costheta')
 
-header_twoBody = """
+HEADER_TWO_BODY = """
 class {0}: public TwoBodySymmetryFunction
 {{
     public:
@@ -16,7 +16,7 @@ class {0}: public TwoBodySymmetryFunction
 }};
 """
 
-header_threeBody = """
+HEADER_THREE_BODY = """
 class {0}: public ThreeBodySymmetryFunction
 {{
   public:
@@ -34,28 +34,28 @@ class {0}: public ThreeBodySymmetryFunction
 }};
 """
 
-method_twoBody = """
+METHOD_TWO_BODY = """
 double {}::{}(double rij)
 {{
   return {};
 }};
 """
 
-eval_with_derivatives_twoBody = """
+EVAL_WITH_DERIVATIVES_TWO_BODY = """
 void {}::eval_with_derivatives(double rij, double &G, double &dGdrij)
 {{
   {};
 }};
 """
 
-method_threeBody = """
+METHOD_THREE_BODY = """
 double {}::{}(double rij, double rik, double costheta)
 {{
   return {};
 }};
 """
 
-derivatives_threeBody = """
+DERIVATIVES_THREE_BODY = """
 void {}::derivatives(double rij, double rik, double costheta,
   double &dGdrij, double &dGdrik, double &dGdcostheta)
 {{
@@ -63,7 +63,7 @@ void {}::derivatives(double rij, double rik, double costheta,
 }};
 """
 
-eval_with_derivatives_threeBody = """
+EVAL_WITH_DERIVATIVES_THREE_BODY = """
 void {}::eval_with_derivatives(double rij, double rik, double costheta,
   double &G, double &dGdrij, double &dGdrik, double &dGdcostheta)
 {{
@@ -71,12 +71,12 @@ void {}::eval_with_derivatives(double rij, double rik, double costheta,
 }};
 """
 
-case_string = """    case {}:
+CASE_STRING = """    case {}:
       symFun = std::make_shared<{}>(num_prms, prms, cutfun);
       break;
 """
 
-switch_string = """  if (strcmp(name, "{}") == 0)
+SWITCH_STRING = """  if (strcmp(name, "{}") == 0)
   {{
     id = {};
   }}
@@ -127,10 +127,10 @@ with open('symmetryFunctions.h', 'w') as fout:
         fout.write(line)
         if line.startswith(CUSTOM_TWO_BODY_START):
             for symfun in twoBodySymFuns:
-                fout.write(header_twoBody.format(symfun[0]))
+                fout.write(HEADER_TWO_BODY.format(symfun[0]))
         if line.startswith(CUSTOM_THREE_BODY_START):
             for symfun in threeBodySymFuns:
-                fout.write(header_threeBody.format(symfun[0]))
+                fout.write(HEADER_THREE_BODY.format(symfun[0]))
 
 with open('symmetryFunctions.cpp', 'r') as fin:
     lines = fin.readlines()
@@ -171,14 +171,14 @@ with open('symmetryFunctions.cpp', 'w') as fout:
         if line.startswith(CUSTOM_TWO_BODY_START):
             for symfun in twoBodySymFuns:
                 parsed_symfun = _sp.sympify(symfun[2])
-                fout.write(method_twoBody.format(symfun[0], 'eval',
+                fout.write(METHOD_TWO_BODY.format(symfun[0], 'eval',
                            format_prms(symfun[1], _sp.ccode(
                                 symfun[2], user_functions=user_funs))))
                 deriv = str(_sp.simplify(
                     _sp.Derivative(parsed_symfun, rij).doit()))
                 deriv = deriv.replace(
                     'Derivative(fcut(rij), rij)', 'dfcut(rij)')
-                fout.write(method_twoBody.format(
+                fout.write(METHOD_TWO_BODY.format(
                     symfun[0], 'drij', format_prms(symfun[1], _sp.ccode(
                         deriv, user_functions=user_funs))))
 
@@ -203,12 +203,12 @@ with open('symmetryFunctions.cpp', 'w') as fout:
                     symfun[1], _sp.ccode(
                         simplified_results[1], user_functions=user_funs))))
 
-                fout.write(eval_with_derivatives_twoBody.format(
+                fout.write(EVAL_WITH_DERIVATIVES_TWO_BODY.format(
                     symfun[0], ';\n  '.join(method_body)))
         elif line.startswith(CUSTOM_THREE_BODY_START):
             for symfun in threeBodySymFuns:
                 parsed_symfun = _sp.sympify(symfun[2])
-                fout.write(method_threeBody.format(
+                fout.write(METHOD_THREE_BODY.format(
                     symfun[0], 'eval', format_prms(symfun[1], _sp.ccode(
                         symfun[2], user_functions=user_funs))))
                 # Derivative with respect to rij
@@ -217,7 +217,7 @@ with open('symmetryFunctions.cpp', 'w') as fout:
                 deriv = _sp.sympify(re.sub(
                     'Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)',  # NOQA
                     'dfcut(\g<arg>)', str(deriv))).doit()
-                fout.write(method_threeBody.format(
+                fout.write(METHOD_THREE_BODY.format(
                     symfun[0], 'drij', format_prms(symfun[1], _sp.ccode(
                         deriv, user_functions=user_funs))))
                 # Derivative with respect to rik
@@ -226,7 +226,7 @@ with open('symmetryFunctions.cpp', 'w') as fout:
                 deriv = _sp.sympify(re.sub(
                     'Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)',  # NOQA
                     'dfcut(\g<arg>)', str(deriv))).doit()
-                fout.write(method_threeBody.format(
+                fout.write(METHOD_THREE_BODY.format(
                     symfun[0], 'drik', format_prms(symfun[1], _sp.ccode(
                         deriv, user_functions=user_funs))))
                 # Derivative with respect to costheta
@@ -235,7 +235,7 @@ with open('symmetryFunctions.cpp', 'w') as fout:
                 deriv = _sp.sympify(re.sub(
                     'Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)',  # NOQA
                     'dfcut(\g<arg>)', str(deriv))).doit()
-                fout.write(method_threeBody.format(
+                fout.write(METHOD_THREE_BODY.format(
                     symfun[0], 'dcostheta', format_prms(symfun[1], _sp.ccode(
                         deriv, user_functions=user_funs))))
 
@@ -273,7 +273,7 @@ with open('symmetryFunctions.cpp', 'w') as fout:
                     format_prms(symfun[1], _sp.ccode(
                         simplified_results[3], user_functions=user_funs))))
 
-                fout.write(eval_with_derivatives_threeBody.format(
+                fout.write(EVAL_WITH_DERIVATIVES_THREE_BODY.format(
                     symfun[0], ';\n  '.join(method_body)))
 
                 # Derivatives with respect to the three arguments
@@ -294,7 +294,7 @@ with open('symmetryFunctions.cpp', 'w') as fout:
                     format_prms(symfun[1], _sp.ccode(
                         simplified_derivs[2], user_functions=user_funs))))
 
-                fout.write(derivatives_threeBody.format(
+                fout.write(DERIVATIVES_THREE_BODY.format(
                     symfun[0], ';\n  '.join(method_body)))
         elif line.startswith(AVAILABLE_DESCRIPTORS_START):
             fout.write('  printf("TwoBodySymmetryFunctions:'
@@ -310,13 +310,13 @@ with open('symmetryFunctions.cpp', 'w') as fout:
 
         elif line.startswith(SWITCH_TWO_BODY_START):
             for i, symfun in enumerate(twoBodySymFuns):
-                fout.write(case_string.format(i, symfun[0]))
+                fout.write(CASE_STRING.format(i, symfun[0]))
         elif line.startswith(SWITCH_THREE_BODY_START):
             for i, symfun in enumerate(threeBodySymFuns):
-                fout.write(case_string.format(i, symfun[0]))
+                fout.write(CASE_STRING.format(i, symfun[0]))
         elif line.startswith(GET_TWO_BODY_START):
             for i, symfun in enumerate(twoBodySymFuns):
-                fout.write(switch_string.format(symfun[0], i))
+                fout.write(SWITCH_STRING.format(symfun[0], i))
         elif line.startswith(GET_THREE_BODY_START):
             for i, symfun in enumerate(threeBodySymFuns):
-                fout.write(switch_string.format(symfun[0], i))
+                fout.write(SWITCH_STRING.format(symfun[0], i))
