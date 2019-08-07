@@ -14,7 +14,7 @@ class CutoffTest(unittest.TestCase):
             with DescriptorSet(['H', 'F'], cutoff=6.5) as ds:
                 for (t1, t2) in product(ds.atomtypes, repeat=2):
                     ds.add_two_body_descriptor(
-                        t1, t2, 'BehlerG0', [], cuttype=self.cuttype)
+                        t1, t2, 'BehlerG1', [], cuttype=self.cuttype)
 
                 Gs = []
                 dGs = []
