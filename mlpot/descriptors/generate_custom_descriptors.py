@@ -96,17 +96,27 @@ def format_py(s):
     return s
 
 
-# Read custom symmetry function file
-twoBodySymFuns = []
-threeBodySymFuns = []
+class Descriptor():
+
+    def __init__(self, name, num_prms, expr):
+        self.name = name
+        self.num_prms = num_prms
+        self.expr = expr
+
+
+# Read custom descriptor file
+two_body_descriptors = []
+three_body_descriptors = []
 with open('custom_descriptors.txt', 'r') as fin:
     for line in fin:
         if line.startswith('TwoBodyDescriptor'):
             sp = line.split()
-            twoBodySymFuns.append([sp[1], int(sp[2]), ' '.join(sp[3::])])
+            two_body_descriptors.append(
+                Descriptor(sp[1], int(sp[2]), ' '.join(sp[3::])))
         if line.startswith('ThreeBodyDescriptor'):
             sp = line.split()
-            threeBodySymFuns.append([sp[1], int(sp[2]), ' '.join(sp[3::])])
+            three_body_descriptors.append(
+                Descriptor(sp[1], int(sp[2]), ' '.join(sp[3::])))
 
 with open('symmetryFunctions.h', 'r') as fin:
     lines = fin.readlines()
@@ -126,11 +136,11 @@ with open('symmetryFunctions.h', 'w') as fout:
     for line in lines:
         fout.write(line)
         if line.startswith(CUSTOM_TWO_BODY_START):
-            for symfun in twoBodySymFuns:
-                fout.write(HEADER_TWO_BODY.format(symfun[0]))
+            for descriptor in two_body_descriptors:
+                fout.write(HEADER_TWO_BODY.format(descriptor.name))
         if line.startswith(CUSTOM_THREE_BODY_START):
-            for symfun in threeBodySymFuns:
-                fout.write(HEADER_THREE_BODY.format(symfun[0]))
+            for descriptor in three_body_descriptors:
+                fout.write(HEADER_THREE_BODY.format(descriptor.name))
 
 with open('symmetryFunctions.cpp', 'r') as fin:
     lines = fin.readlines()
@@ -169,22 +179,23 @@ with open('symmetryFunctions.cpp', 'w') as fout:
     for line in lines:
         fout.write(line)
         if line.startswith(CUSTOM_TWO_BODY_START):
-            for symfun in twoBodySymFuns:
-                parsed_symfun = _sp.sympify(symfun[2])
-                fout.write(METHOD_TWO_BODY.format(symfun[0], 'eval',
-                           format_prms(symfun[1], _sp.ccode(
-                                symfun[2], user_functions=user_funs))))
+            for descriptor in two_body_descriptors:
+                parsed_descriptor = _sp.sympify(descriptor.expr)
+                fout.write(METHOD_TWO_BODY.format(descriptor.name, 'eval',
+                           format_prms(descriptor.num_prms, _sp.ccode(
+                                descriptor.expr, user_functions=user_funs))))
                 deriv = str(_sp.simplify(
-                    _sp.Derivative(parsed_symfun, rij).doit()))
+                    _sp.Derivative(parsed_descriptor, rij).doit()))
                 deriv = deriv.replace(
                     'Derivative(fcut(rij), rij)', 'dfcut(rij)')
                 fout.write(METHOD_TWO_BODY.format(
-                    symfun[0], 'drij', format_prms(symfun[1], _sp.ccode(
-                        deriv, user_functions=user_funs))))
+                    descriptor.name, 'drij',
+                    format_prms(descriptor.num_prms,
+                                _sp.ccode(deriv, user_functions=user_funs))))
 
-                results = [_sp.simplify(parsed_symfun),
+                results = [_sp.simplify(parsed_descriptor),
                            _sp.simplify(_sp.Derivative(
-                                parsed_symfun, rij).doit())]
+                                parsed_descriptor, rij).doit())]
 
                 simplified_results = [result.replace(
                     'Derivative(fcut(rij), rij)', 'dfcut(rij)') for result
@@ -194,58 +205,67 @@ with open('symmetryFunctions.cpp', 'w') as fout:
                 for sub_expr in sub_exprs:
                     method_body.append(
                         'auto {} = {}'.format(
-                            sub_expr[0], format_prms(symfun[1], _sp.ccode(
-                                sub_expr[1], user_functions=user_funs))))
+                            sub_expr[0],
+                            format_prms(descriptor.num_prms,
+                                        _sp.ccode(sub_expr[1],
+                                                  user_functions=user_funs))))
                 method_body.append('G = {}'.format(format_prms(
-                    symfun[1], _sp.ccode(
+                    descriptor.num_prms, _sp.ccode(
                         simplified_results[0], user_functions=user_funs))))
                 method_body.append('dGdrij = {}'.format(format_prms(
-                    symfun[1], _sp.ccode(
+                    descriptor.num_prms, _sp.ccode(
                         simplified_results[1], user_functions=user_funs))))
 
                 fout.write(EVAL_WITH_DERIVATIVES_TWO_BODY.format(
-                    symfun[0], ';\n  '.join(method_body)))
+                    descriptor.name, ';\n  '.join(method_body)))
         elif line.startswith(CUSTOM_THREE_BODY_START):
-            for symfun in threeBodySymFuns:
-                parsed_symfun = _sp.sympify(symfun[2])
+            for descriptor in three_body_descriptors:
+                parsed_descriptor = _sp.sympify(descriptor.expr)
                 fout.write(METHOD_THREE_BODY.format(
-                    symfun[0], 'eval', format_prms(symfun[1], _sp.ccode(
-                        symfun[2], user_functions=user_funs))))
+                    descriptor.name, 'eval',
+                    format_prms(descriptor.num_prms,
+                                _sp.ccode(descriptor.expr,
+                                          user_functions=user_funs))))
                 # Derivative with respect to rij
                 deriv = _sp.simplify(
-                    _sp.Derivative(parsed_symfun, rij).doit())
+                    _sp.Derivative(parsed_descriptor, rij).doit())
                 deriv = _sp.sympify(re.sub(
                     'Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)',  # NOQA
                     'dfcut(\g<arg>)', str(deriv))).doit()
                 fout.write(METHOD_THREE_BODY.format(
-                    symfun[0], 'drij', format_prms(symfun[1], _sp.ccode(
-                        deriv, user_functions=user_funs))))
+                    descriptor.name, 'drij',
+                    format_prms(descriptor.num_prms,
+                                _sp.ccode(deriv, user_functions=user_funs))))
                 # Derivative with respect to rik
                 deriv = _sp.simplify(
-                    _sp.Derivative(parsed_symfun, rik).doit())
+                    _sp.Derivative(parsed_descriptor, rik).doit())
                 deriv = _sp.sympify(re.sub(
                     'Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)',  # NOQA
                     'dfcut(\g<arg>)', str(deriv))).doit()
                 fout.write(METHOD_THREE_BODY.format(
-                    symfun[0], 'drik', format_prms(symfun[1], _sp.ccode(
-                        deriv, user_functions=user_funs))))
+                    descriptor.name, 'drik',
+                    format_prms(descriptor.num_prms,
+                                _sp.ccode(deriv, user_functions=user_funs))))
                 # Derivative with respect to costheta
                 deriv = _sp.simplify(
-                    _sp.Derivative(parsed_symfun, costheta).doit())
+                    _sp.Derivative(parsed_descriptor, costheta).doit())
                 deriv = _sp.sympify(re.sub(
                     'Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)',  # NOQA
                     'dfcut(\g<arg>)', str(deriv))).doit()
                 fout.write(METHOD_THREE_BODY.format(
-                    symfun[0], 'dcostheta', format_prms(symfun[1], _sp.ccode(
-                        deriv, user_functions=user_funs))))
+                    descriptor.name, 'dcostheta',
+                    format_prms(descriptor.num_prms,
+                                _sp.ccode(deriv, user_functions=user_funs))))
 
                 # Combined eval and derivatives
                 results = [
-                    _sp.simplify(parsed_symfun),
-                    _sp.simplify(_sp.Derivative(parsed_symfun, rij).doit()),
-                    _sp.simplify(_sp.Derivative(parsed_symfun, rik).doit()),
+                    _sp.simplify(parsed_descriptor),
                     _sp.simplify(
-                        _sp.Derivative(parsed_symfun, costheta).doit())]
+                        _sp.Derivative(parsed_descriptor, rij).doit()),
+                    _sp.simplify(
+                        _sp.Derivative(parsed_descriptor, rik).doit()),
+                    _sp.simplify(
+                        _sp.Derivative(parsed_descriptor, costheta).doit())]
                 # Ugly work around to allow working with regex. Should maybe be
                 # redone.
                 results = [
@@ -258,23 +278,25 @@ with open('symmetryFunctions.cpp', 'w') as fout:
                 for sub_expr in sub_exprs:
                     method_body.append(
                         'auto {} = {}'.format(
-                            sub_expr[0], format_prms(symfun[1], _sp.ccode(
-                                sub_expr[1], user_functions=user_funs))))
+                            sub_expr[0],
+                            format_prms(descriptor.num_prms,
+                                        _sp.ccode(sub_expr[1],
+                                                  user_functions=user_funs))))
                 method_body.append('G = {}'.format(format_prms(
-                    symfun[1], _sp.ccode(
+                    descriptor.num_prms, _sp.ccode(
                         simplified_results[0], user_functions=user_funs))))
                 method_body.append('dGdrij = {}'.format(format_prms(
-                    symfun[1], _sp.ccode(
+                    descriptor.num_prms, _sp.ccode(
                         simplified_results[1], user_functions=user_funs))))
                 method_body.append('dGdrik = {}'.format(format_prms(
-                    symfun[1], _sp.ccode(
+                    descriptor.num_prms, _sp.ccode(
                         simplified_results[2], user_functions=user_funs))))
                 method_body.append('dGdcostheta = {}'.format(
-                    format_prms(symfun[1], _sp.ccode(
+                    format_prms(descriptor.num_prms, _sp.ccode(
                         simplified_results[3], user_functions=user_funs))))
 
                 fout.write(EVAL_WITH_DERIVATIVES_THREE_BODY.format(
-                    symfun[0], ';\n  '.join(method_body)))
+                    descriptor.name, ';\n  '.join(method_body)))
 
                 # Derivatives with respect to the three arguments
                 sub_exprs, simplified_derivs = _sp.cse(results[1::])
@@ -282,41 +304,43 @@ with open('symmetryFunctions.cpp', 'w') as fout:
                 for sub_expr in sub_exprs:
                     method_body.append(
                         'auto {} = {}'.format(
-                            sub_expr[0], format_prms(symfun[1], _sp.ccode(
-                                sub_expr[1], user_functions=user_funs))))
+                            sub_expr[0],
+                            format_prms(descriptor.num_prms,
+                                        _sp.ccode(sub_expr[1],
+                                                  user_functions=user_funs))))
                 method_body.append('dGdrij = {}'.format(format_prms(
-                    symfun[1], _sp.ccode(
+                    descriptor.num_prms, _sp.ccode(
                         simplified_derivs[0], user_functions=user_funs))))
                 method_body.append('dGdrik = {}'.format(format_prms(
-                    symfun[1], _sp.ccode(
+                    descriptor.num_prms, _sp.ccode(
                         simplified_derivs[1], user_functions=user_funs))))
                 method_body.append('dGdcostheta = {}'.format(
-                    format_prms(symfun[1], _sp.ccode(
+                    format_prms(descriptor.num_prms, _sp.ccode(
                         simplified_derivs[2], user_functions=user_funs))))
 
                 fout.write(DERIVATIVES_THREE_BODY.format(
-                    symfun[0], ';\n  '.join(method_body)))
+                    descriptor.name, ';\n  '.join(method_body)))
         elif line.startswith(AVAILABLE_DESCRIPTORS_START):
             fout.write('  printf("TwoBodySymmetryFunctions:'
                        ' (key: name, # of parameters)\\n");\n')
-            for i, symfun in enumerate(twoBodySymFuns):
+            for i, descriptor in enumerate(two_body_descriptors):
                 fout.write('  printf("{}: {}, {}\\n");\n'.format(
-                    i, symfun[0], symfun[1]))
+                    i, descriptor.name, descriptor.num_prms))
             fout.write('  printf("ThreeBodySymmetryFunctions:'
                        ' (key: name, # of parameters)\\n");\n')
-            for i, symfun in enumerate(threeBodySymFuns):
+            for i, descriptor in enumerate(three_body_descriptors):
                 fout.write('  printf("{}: {}, {}\\n");\n'.format(
-                    i, symfun[0], symfun[1]))
+                    i, descriptor.name, descriptor.num_prms))
 
         elif line.startswith(SWITCH_TWO_BODY_START):
-            for i, symfun in enumerate(twoBodySymFuns):
-                fout.write(CASE_STRING.format(i, symfun[0]))
+            for i, descriptor in enumerate(two_body_descriptors):
+                fout.write(CASE_STRING.format(i, descriptor.name))
         elif line.startswith(SWITCH_THREE_BODY_START):
-            for i, symfun in enumerate(threeBodySymFuns):
-                fout.write(CASE_STRING.format(i, symfun[0]))
+            for i, descriptor in enumerate(three_body_descriptors):
+                fout.write(CASE_STRING.format(i, descriptor.name))
         elif line.startswith(GET_TWO_BODY_START):
-            for i, symfun in enumerate(twoBodySymFuns):
-                fout.write(SWITCH_STRING.format(symfun[0], i))
+            for i, descriptor in enumerate(two_body_descriptors):
+                fout.write(SWITCH_STRING.format(descriptor.name, i))
         elif line.startswith(GET_THREE_BODY_START):
-            for i, symfun in enumerate(threeBodySymFuns):
-                fout.write(SWITCH_STRING.format(symfun[0], i))
+            for i, descriptor in enumerate(three_body_descriptors):
+                fout.write(SWITCH_STRING.format(descriptor.name, i))
