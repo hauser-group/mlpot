@@ -19,7 +19,5 @@ TwoBodyDescriptor radialTest 0 rij
 ! interatomic distance rjk can be calculated as:
 ! sqrt(rij**2+rik**2-2*rij*rik*costheta)
 
-ThreeBodyDescriptors BehlerG4 3 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*(2*rij**2+2*rik**2-2*rij*rik*costheta))*fcut(rij)*fcut(rik)*fcut(sqrt(rij**2+rik**2-2*rij*rik*costheta))
-ThreeBodyDescriptors BehlerG5 3 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*(rij**2+rik**2))*fcut(rij)*fcut(rik)
 ! Modified BehlerG5 function introducing a center for the radial Gaussians
 ThreeBodyDescriptors BehlerG5mod 5 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*((rij-prm3)**2+(rik-prm4)**2))*fcut(rij)*fcut(rik)

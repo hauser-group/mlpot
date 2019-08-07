@@ -143,8 +143,6 @@ class ThreeBodyDescriptor: public Descriptor
         double &G, double &dGdrij, double &dGdrik, double &dGdcostheta) = 0;
 };
 
-// AUTOMATIC custom ThreeBodyDescriptors start
-
 class BehlerG4: public ThreeBodyDescriptor
 {
   public:
@@ -176,6 +174,8 @@ class BehlerG5: public ThreeBodyDescriptor
     void eval_with_derivatives(double rij, double rik, double costheta,
       double &G, double &dGdrij, double &dGdrik, double &dGdcostheta);
 };
+
+// AUTOMATIC custom ThreeBodyDescriptors start
 
 class BehlerG5mod: public ThreeBodyDescriptor
 {

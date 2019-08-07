@@ -191,8 +191,6 @@ void radialTest::eval_with_derivatives(double rij, double &G, double &dGdrij)
 };
 // AUTOMATIC custom TwoBodyDescriptors end
 
-// AUTOMATIC custom ThreeBodyDescriptors start
-
 double BehlerG4::eval(double rij, double rik, double costheta)
 {
   return pow(costheta*prms[0] + 1, prms[1])*exp2(-prms[1] + 1)*cutfun->eval(rij)*cutfun->eval(rik)*cutfun->eval(sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2)))*exp(-prms[2]*(-2*costheta*rij*rik + 2*pow(rij, 2) + 2*pow(rik, 2)));
@@ -320,6 +318,8 @@ void BehlerG5::derivatives(double rij, double rik, double costheta,
   dGdcostheta = prms[0]*prms[1]*pow(x0, prms[1] - 1)*x3*x7;
 };
 
+// AUTOMATIC custom ThreeBodyDescriptors start
+
 double BehlerG5mod::eval(double rij, double rik, double costheta)
 {
   return pow(costheta*prms[0] + 1, prms[1])*exp2(-prms[1] + 1)*cutfun->eval(rij)*cutfun->eval(rik)*exp(-prms[2]*(pow(-prms[3] + rij, 2) + pow(-prms[4] + rik, 2)));
@@ -418,9 +418,9 @@ std::shared_ptr<ThreeBodyDescriptor> switch_three_body_descriptors(
   std::shared_ptr<CutoffFunction> cutfun)
 {
   std::shared_ptr<ThreeBodyDescriptor> symFun;
-// AUTOMATIC switch ThreeBodyDescriptors start
   if (funtype == 0) symFun = std::make_shared<BehlerG4>(num_prms, prms, cutfun);
   else if (funtype == 1) symFun = std::make_shared<BehlerG5>(num_prms, prms, cutfun);
+// AUTOMATIC switch ThreeBodyDescriptors start
   else if (funtype == 2) symFun = std::make_shared<BehlerG5mod>(num_prms, prms, cutfun);
 // AUTOMATIC switch ThreeBodyDescriptors end
   else printf("No function type %d\n", funtype);
@@ -460,9 +460,9 @@ int get_two_body_descriptor_by_name(const char* name)
 int get_three_body_descriptor_by_name(const char* name)
 {
   int id = -1;
-// AUTOMATIC get_three_body_descriptor start
   if (strcmp(name, "BehlerG4") == 0) id = 0;
   else if (strcmp(name, "BehlerG5") == 0) id = 1;
+// AUTOMATIC get_three_body_descriptor start
   else if (strcmp(name, "BehlerG5mod") == 0) id = 2;
 // AUTOMATIC get_three_body_descriptor end
   return id;
@@ -482,9 +482,9 @@ void available_descriptors()
   printf("7: radialTest, 0\n");
 // AUTOMATIC available_two_body_descriptors end
   printf("ThreeBodyDescriptors: (key: name, # of parameters)\n");
-// AUTOMATIC available_three_body_descriptors start
   printf("0: BehlerG4, 3\n");
   printf("1: BehlerG5, 3\n");
+// AUTOMATIC available_three_body_descriptors start
   printf("2: BehlerG5mod, 5\n");
 // AUTOMATIC available_three_body_descriptors end
 }
