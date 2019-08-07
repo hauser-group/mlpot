@@ -399,32 +399,14 @@ std::shared_ptr<CutoffFunction> switch_cutoff_functions(
   int cutoff_type, double cutoff)
 {
   std::shared_ptr<CutoffFunction> cutfun;
-  switch (cutoff_type) {
-    case 0:
-      cutfun = std::make_shared<ConstCutoffFunction>(cutoff);
-      break;
-    case 1:
-      cutfun = std::make_shared<CosCutoffFunction>(cutoff);
-      break;
-    case 2:
-      cutfun = std::make_shared<TanhCutoffFunction>(cutoff);
-      break;
-    case 3:
-      cutfun = std::make_shared<PolynomialCutoffFunction>(cutoff);
-      break;
-    case 4:
-      cutfun = std::make_shared<SmoothCutoffFunction>(cutoff);
-      break;
-    case 5:
-      cutfun = std::make_shared<Smooth2CutoffFunction>(cutoff);
-      break;
-    case 6:
-      cutfun = std::make_shared<ShortRangeCutoffFunction>(cutoff);
-      break;
-    case 7:
-      cutfun = std::make_shared<LongRangeCutoffFunction>(cutoff);
-      break;
-  }
+  if (cutoff_type == 0) cutfun = std::make_shared<ConstCutoffFunction>(cutoff);
+  else if (cutoff_type == 1) cutfun = std::make_shared<CosCutoffFunction>(cutoff);
+  else if (cutoff_type == 2) cutfun = std::make_shared<TanhCutoffFunction>(cutoff);
+  else if (cutoff_type == 3) cutfun = std::make_shared<PolynomialCutoffFunction>(cutoff);
+  else if (cutoff_type == 4) cutfun = std::make_shared<SmoothCutoffFunction>(cutoff);
+  else if (cutoff_type == 5) cutfun = std::make_shared<Smooth2CutoffFunction>(cutoff);
+  else if (cutoff_type == 6) cutfun = std::make_shared<ShortRangeCutoffFunction>(cutoff);
+  else if (cutoff_type == 7) cutfun = std::make_shared<LongRangeCutoffFunction>(cutoff);
   return cutfun;
 }
 
@@ -433,39 +415,18 @@ std::shared_ptr<TwoBodyDescriptor> switch_two_body_descriptors(
   std::shared_ptr<CutoffFunction> cutfun)
 {
   std::shared_ptr<TwoBodyDescriptor> symFun;
-  switch (funtype){
 // AUTOMATIC switch TwoBodyDescriptors start
-    case 0:
-      symFun = std::make_shared<BehlerG0>(num_prms, prms, cutfun);
-      break;
-    case 1:
-      symFun = std::make_shared<BehlerG1>(num_prms, prms, cutfun);
-      break;
-    case 2:
-      symFun = std::make_shared<BehlerG1old>(num_prms, prms, cutfun);
-      break;
-    case 3:
-      symFun = std::make_shared<BehlerG2>(num_prms, prms, cutfun);
-      break;
-    case 4:
-      symFun = std::make_shared<BehlerG3>(num_prms, prms, cutfun);
-      break;
-    case 5:
-      symFun = std::make_shared<OneOverR6>(num_prms, prms, cutfun);
-      break;
-    case 6:
-      symFun = std::make_shared<OneOverR8>(num_prms, prms, cutfun);
-      break;
-    case 7:
-      symFun = std::make_shared<OneOverR10>(num_prms, prms, cutfun);
-      break;
-    case 8:
-      symFun = std::make_shared<radialTest>(num_prms, prms, cutfun);
-      break;
+  if (funtype == 0) symFun = std::make_shared<BehlerG0>(num_prms, prms, cutfun);
+  else if (funtype == 1) symFun = std::make_shared<BehlerG1>(num_prms, prms, cutfun);
+  else if (funtype == 2) symFun = std::make_shared<BehlerG1old>(num_prms, prms, cutfun);
+  else if (funtype == 3) symFun = std::make_shared<BehlerG2>(num_prms, prms, cutfun);
+  else if (funtype == 4) symFun = std::make_shared<BehlerG3>(num_prms, prms, cutfun);
+  else if (funtype == 5) symFun = std::make_shared<OneOverR6>(num_prms, prms, cutfun);
+  else if (funtype == 6) symFun = std::make_shared<OneOverR8>(num_prms, prms, cutfun);
+  else if (funtype == 7) symFun = std::make_shared<OneOverR10>(num_prms, prms, cutfun);
+  else if (funtype == 8) symFun = std::make_shared<radialTest>(num_prms, prms, cutfun);
 // AUTOMATIC switch TwoBodyDescriptors end
-    default:
-      printf("No function type %d\n", funtype);
-  }
+  else printf("No function type %d\n", funtype);
   return symFun;
 }
 
@@ -474,52 +435,26 @@ std::shared_ptr<ThreeBodyDescriptor> switch_three_body_descriptors(
   std::shared_ptr<CutoffFunction> cutfun)
 {
   std::shared_ptr<ThreeBodyDescriptor> symFun;
-  switch (funtype){
 // AUTOMATIC switch ThreeBodyDescriptors start
-    case 0:
-      symFun = std::make_shared<BehlerG4>(num_prms, prms, cutfun);
-      break;
-    case 1:
-      symFun = std::make_shared<BehlerG5>(num_prms, prms, cutfun);
-      break;
-    case 2:
-      symFun = std::make_shared<BehlerG5mod>(num_prms, prms, cutfun);
-      break;
+  if (funtype == 0) symFun = std::make_shared<BehlerG4>(num_prms, prms, cutfun);
+  else if (funtype == 1) symFun = std::make_shared<BehlerG5>(num_prms, prms, cutfun);
+  else if (funtype == 2) symFun = std::make_shared<BehlerG5mod>(num_prms, prms, cutfun);
 // AUTOMATIC switch ThreeBodyDescriptors end
-    default:
-      printf("No function type %d\n", funtype);
-  }
+  else printf("No function type %d\n", funtype);
   return symFun;
 }
 
 int get_cutoff_function_by_name(const char* name)
 {
   int id = -1;
-  if (strcmp(name, "const") == 0)
-  {
-    id = 0;
-  } else if (strcmp(name, "cos") == 0)
-  {
-    id = 1;
-  } else if (strcmp(name, "tanh") == 0)
-  {
-    id = 2;
-  } else if (strcmp(name, "polynomial") == 0)
-  {
-    id = 3;
-  } else if (strcmp(name, "smooth") == 0)
-  {
-    id = 4;
-  } else if (strcmp(name, "smooth2") == 0)
-  {
-    id = 5;
-  } else if (strcmp(name, "shortRange") == 0)
-  {
-    id = 6;
-  } else if (strcmp(name, "longRange") == 0)
-  {
-    id = 7;
-  }
+  if (strcmp(name, "const") == 0) id = 0;
+  else if (strcmp(name, "cos") == 0) id = 1;
+  } else if (strcmp(name, "tanh") == 0) id = 2;
+  } else if (strcmp(name, "polynomial") == 0) id = 3;
+  } else if (strcmp(name, "smooth") == 0) id = 4;
+  } else if (strcmp(name, "smooth2") == 0) id = 5;
+  } else if (strcmp(name, "shortRange") == 0) id = 6;
+  } else if (strcmp(name, "longRange") == 0) id = 7;
   return id;
 }
 
@@ -527,42 +462,15 @@ int get_two_body_descriptor_by_name(const char* name)
 {
   int id = -1;
 // AUTOMATIC get_two_body_descriptor start
-  if (strcmp(name, "BehlerG0") == 0)
-  {
-    id = 0;
-  }
-  if (strcmp(name, "BehlerG1") == 0)
-  {
-    id = 1;
-  }
-  if (strcmp(name, "BehlerG1old") == 0)
-  {
-    id = 2;
-  }
-  if (strcmp(name, "BehlerG2") == 0)
-  {
-    id = 3;
-  }
-  if (strcmp(name, "BehlerG3") == 0)
-  {
-    id = 4;
-  }
-  if (strcmp(name, "OneOverR6") == 0)
-  {
-    id = 5;
-  }
-  if (strcmp(name, "OneOverR8") == 0)
-  {
-    id = 6;
-  }
-  if (strcmp(name, "OneOverR10") == 0)
-  {
-    id = 7;
-  }
-  if (strcmp(name, "radialTest") == 0)
-  {
-    id = 8;
-  }
+  if (strcmp(name, "BehlerG0") == 0) id = 0;
+  else if (strcmp(name, "BehlerG1") == 0) id = 1;
+  else if (strcmp(name, "BehlerG1old") == 0) id = 2;
+  else if (strcmp(name, "BehlerG2") == 0) id = 3;
+  else if (strcmp(name, "BehlerG3") == 0) id = 4;
+  else if (strcmp(name, "OneOverR6") == 0) id = 5;
+  else if (strcmp(name, "OneOverR8") == 0) id = 6;
+  else if (strcmp(name, "OneOverR10") == 0) id = 7;
+  else if (strcmp(name, "radialTest") == 0) id = 8;
 // AUTOMATIC get_two_body_descriptor end
   return id;
 }
@@ -571,18 +479,9 @@ int get_three_body_descriptor_by_name(const char* name)
 {
   int id = -1;
 // AUTOMATIC get_three_body_descriptor start
-  if (strcmp(name, "BehlerG4") == 0)
-  {
-    id = 0;
-  }
-  if (strcmp(name, "BehlerG5") == 0)
-  {
-    id = 1;
-  }
-  if (strcmp(name, "BehlerG5mod") == 0)
-  {
-    id = 2;
-  }
+  if (strcmp(name, "BehlerG4") == 0) id = 0;
+  else if (strcmp(name, "BehlerG5") == 0) id = 1;
+  else if (strcmp(name, "BehlerG5mod") == 0) id = 2;
 // AUTOMATIC get_three_body_descriptor end
   return id;
 }
