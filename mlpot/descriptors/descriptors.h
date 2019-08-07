@@ -1,6 +1,7 @@
 /*
 
-CAUTION: Part of this file is written by the python script generateSymFuns.py.
+CAUTION: Part of this file is written by the python script
+generate_custom_descriptors.py.
 These parts are marked by comment lines starting with AUTOMATIC. Do not alter
 anything between these tags.
 */
