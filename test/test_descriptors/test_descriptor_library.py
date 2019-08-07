@@ -11,6 +11,27 @@ class LibraryTest(unittest.TestCase):
             ds.add_Artrith_Kolpak_set()
             ds.print_descriptors()
 
+    def test_exceptions(self):
+        with DescriptorSet(['H', 'O']) as ds:
+            try:
+                ds.add_two_body_descriptor('H', 'O', 'FOO', [])
+            except TypeError:
+                pass
+            try:
+                ds.add_three_body_descriptor('H', 'O', 'H', 'FOO', [])
+            except TypeError:
+                pass
+            try:
+                ds.add_two_body_descriptor('H', 'O', 'BehlerG1', [],
+                                           cuttype='FOO')
+            except TypeError:
+                pass
+            try:
+                ds.add_three_body_descriptor('H', 'O', 'O', 'BehlerG4',
+                                             [1.0, 1.0, 1.0], cuttype='FOO')
+            except TypeError:
+                pass
+
     def test_dimer_cos(self):
         with DescriptorSet(['Au'], cutoff=7.) as ds:
             types = ['Au', 'Au']
