@@ -589,8 +589,8 @@ int get_three_body_descriptor_by_name(const char* name)
 
 void available_descriptors()
 {
-// AUTOMATIC available_descriptors start
   printf("TwoBodyDescriptors: (key: name, # of parameters)\n");
+// AUTOMATIC available_two_body_descriptors start
   printf("0: BehlerG0, 0\n");
   printf("1: BehlerG1, 0\n");
   printf("2: BehlerG1old, 1\n");
@@ -600,9 +600,11 @@ void available_descriptors()
   printf("6: OneOverR8, 0\n");
   printf("7: OneOverR10, 0\n");
   printf("8: radialTest, 0\n");
+// AUTOMATIC available_two_body_descriptors end
   printf("ThreeBodyDescriptors: (key: name, # of parameters)\n");
+// AUTOMATIC available_three_body_descriptors start
   printf("0: BehlerG4, 3\n");
   printf("1: BehlerG5, 3\n");
   printf("2: BehlerG5mod, 5\n");
-// AUTOMATIC available_descriptors end
+// AUTOMATIC available_three_body_descriptors end
 }

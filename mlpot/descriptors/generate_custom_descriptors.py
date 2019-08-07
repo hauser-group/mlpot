@@ -151,8 +151,13 @@ SWITCH_TWO_BODY_END = '// AUTOMATIC switch TwoBodyDescriptors end\n'
 SWITCH_THREE_BODY_START = '// AUTOMATIC switch ThreeBodyDescriptors start\n'
 SWITCH_THREE_BODY_END = '// AUTOMATIC switch ThreeBodyDescriptors end\n'
 
-AVAILABLE_DESCRIPTORS_START = '// AUTOMATIC available_descriptors start\n'
-AVAILABLE_DESCRIPTORS_end = '// AUTOMATIC available_descriptors end\n'
+AVAILABLE_TWO_BODY_START = (
+    '// AUTOMATIC available_two_body_descriptors start\n')
+AVAILABLE_TWO_BODY_END = '// AUTOMATIC available_two_body_descriptors end\n'
+AVAILABLE_THREE_BODY_START = (
+    '// AUTOMATIC available_three_body_descriptors start\n')
+AVAILABLE_THREE_BODY_END = (
+    '// AUTOMATIC available_three_body_descriptors end\n')
 
 GET_TWO_BODY_START = '// AUTOMATIC get_two_body_descriptor start\n'
 GET_TWO_BODY_END = '// AUTOMATIC get_two_body_descriptor end\n'
@@ -168,8 +173,10 @@ lines = (lines[0:(lines.index(SWITCH_TWO_BODY_START)+1)] +
          lines[lines.index(SWITCH_TWO_BODY_END)::])
 lines = (lines[0:(lines.index(SWITCH_THREE_BODY_START)+1)] +
          lines[lines.index(SWITCH_THREE_BODY_END)::])
-lines = (lines[0:(lines.index(AVAILABLE_DESCRIPTORS_START)+1)] +
-         lines[lines.index(AVAILABLE_DESCRIPTORS_end)::])
+lines = (lines[0:(lines.index(AVAILABLE_TWO_BODY_START)+1)] +
+         lines[lines.index(AVAILABLE_TWO_BODY_END)::])
+lines = (lines[0:(lines.index(AVAILABLE_THREE_BODY_START)+1)] +
+         lines[lines.index(AVAILABLE_THREE_BODY_END)::])
 lines = (lines[0:(lines.index(GET_TWO_BODY_START)+1)] +
          lines[lines.index(GET_TWO_BODY_END)::])
 lines = (lines[0:(lines.index(GET_THREE_BODY_START)+1)] +
@@ -320,14 +327,11 @@ with open('descriptors.cpp', 'w') as fout:
 
                 fout.write(DERIVATIVES_THREE_BODY.format(
                     descriptor.name, ';\n  '.join(method_body)))
-        elif line.startswith(AVAILABLE_DESCRIPTORS_START):
-            fout.write('  printf("TwoBodyDescriptors:'
-                       ' (key: name, # of parameters)\\n");\n')
+        elif line.startswith(AVAILABLE_TWO_BODY_START):
             for i, descriptor in enumerate(two_body_descriptors):
                 fout.write('  printf("{}: {}, {}\\n");\n'.format(
                     i, descriptor.name, descriptor.num_prms))
-            fout.write('  printf("ThreeBodyDescriptors:'
-                       ' (key: name, # of parameters)\\n");\n')
+        elif line.startswith(AVAILABLE_THREE_BODY_START):
             for i, descriptor in enumerate(three_body_descriptors):
                 fout.write('  printf("{}: {}, {}\\n");\n'.format(
                     i, descriptor.name, descriptor.num_prms))
