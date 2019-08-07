@@ -321,12 +321,12 @@ with open('symmetryFunctions.cpp', 'w') as fout:
                 fout.write(DERIVATIVES_THREE_BODY.format(
                     descriptor.name, ';\n  '.join(method_body)))
         elif line.startswith(AVAILABLE_DESCRIPTORS_START):
-            fout.write('  printf("TwoBodySymmetryFunctions:'
+            fout.write('  printf("TwoBodyDescriptors:'
                        ' (key: name, # of parameters)\\n");\n')
             for i, descriptor in enumerate(two_body_descriptors):
                 fout.write('  printf("{}: {}, {}\\n");\n'.format(
                     i, descriptor.name, descriptor.num_prms))
-            fout.write('  printf("ThreeBodySymmetryFunctions:'
+            fout.write('  printf("ThreeBodyDescriptors:'
                        ' (key: name, # of parameters)\\n");\n')
             for i, descriptor in enumerate(three_body_descriptors):
                 fout.write('  printf("{}: {}, {}\\n");\n'.format(
