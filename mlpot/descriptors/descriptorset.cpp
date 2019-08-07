@@ -25,8 +25,9 @@ void DescriptorSet::add_two_body_descriptor(
   int type1, int type2, int funtype, int num_prms, double* prms,
   int cutoff_type, double cutoff)
 {
-  std::shared_ptr<CutoffFunction> cutfun = switch_cutoff_functions(cutoff_type, cutoff);
-  std::shared_ptr<TwoBodySymmetryFunction> symfun = switch_two_body_descriptors(
+  std::shared_ptr<CutoffFunction> cutfun = switch_cutoff_functions(
+    cutoff_type, cutoff);
+  std::shared_ptr<TwoBodyDescriptor> symfun = switch_two_body_descriptors(
     funtype, num_prms, prms, cutfun);
 
   two_body_descriptors[type1*num_atomtypes+type2].push_back(symfun);
@@ -50,8 +51,9 @@ void DescriptorSet::add_three_body_descriptor(
   int type1, int type2, int type3, int funtype, int num_prms, double* prms,
   int cutoff_type, double cutoff)
 {
-  std::shared_ptr<CutoffFunction> cutfun = switch_cutoff_functions(cutoff_type, cutoff);
-  std::shared_ptr<ThreeBodySymmetryFunction> symfun = switch_three_body_descriptors(
+  std::shared_ptr<CutoffFunction> cutfun = switch_cutoff_functions(
+    cutoff_type, cutoff);
+  std::shared_ptr<ThreeBodyDescriptor> symfun = switch_three_body_descriptors(
     funtype, num_prms, prms, cutfun);
   // Atomtype2 and atomtype3 are sorted to maintain symmetry
   three_body_descriptors[num_atomtypes_sq*type1 + num_atomtypes*std::min(type2,type3) +
@@ -190,7 +192,7 @@ void DescriptorSet::eval(
             (xyzs[3*k+1]-xyzs[3*i+1])*(xyzs[3*k+1]-xyzs[3*j+1]) +
             (xyzs[3*k+2]-xyzs[3*i+2])*(xyzs[3*k+2]-xyzs[3*j+2]))/(rik*rjk);
 
-          // As described in add_ThreeBodySymmetryFunction() the type of the three
+          // As described in add_ThreeBodyDescriptor() the type of the three
           // body symmetry function consists of the atom type of the atom the
           // function is centered on an the sorted pair of atom types of the two
           // remaining atoms.
@@ -604,7 +606,7 @@ void DescriptorSet::eval_with_derivatives(
           costheta_j = (dot_j/(rjk*rij));
           costheta_k = (dot_k/(rik*rjk));
 
-          // As described in add_ThreeBodySymmetryFunction() the type of the three
+          // As described in add_ThreeBodyDescriptor() the type of the three
           // body symmetry function consists of the atom type of the atom the
           // function is centered on an the sorted pair of atom types of the two
           // remaining atoms.

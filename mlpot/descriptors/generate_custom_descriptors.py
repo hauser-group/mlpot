@@ -4,12 +4,12 @@ import re
 rij, rik, costheta = _sp.symbols('rij rik costheta')
 
 HEADER_TWO_BODY = """
-class {0}: public TwoBodySymmetryFunction
+class {0}: public TwoBodyDescriptor
 {{
     public:
         {0}(int num_prms, double* prms,
           std::shared_ptr<CutoffFunction> cutfun):
-          TwoBodySymmetryFunction(num_prms, prms, cutfun){{}};
+          TwoBodyDescriptor(num_prms, prms, cutfun){{}};
         double eval(double rij);
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
@@ -17,12 +17,12 @@ class {0}: public TwoBodySymmetryFunction
 """
 
 HEADER_THREE_BODY = """
-class {0}: public ThreeBodySymmetryFunction
+class {0}: public ThreeBodyDescriptor
 {{
   public:
     {0}(int num_prms, double* prms,
       std::shared_ptr<CutoffFunction> cutfun):
-      ThreeBodySymmetryFunction(num_prms, prms, cutfun){{}};
+      ThreeBodyDescriptor(num_prms, prms, cutfun){{}};
     double eval(double rij, double rik, double costheta);
     double drij(double rij, double rik, double costheta);
     double drik(double rij, double rik, double costheta);

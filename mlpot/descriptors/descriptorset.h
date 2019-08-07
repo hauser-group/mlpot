@@ -1,4 +1,4 @@
-#include "symmetryFunctions.h"
+#include "descriptors.h"
 #include <vector>
 #include <memory>
 
@@ -34,10 +34,10 @@ class DescriptorSet
   private:
     int num_atomtypes, num_atomtypes_sq;
     std::vector<int> num_descriptors;
-    std::vector <std::vector<std::shared_ptr<TwoBodySymmetryFunction> > >
+    std::vector <std::vector<std::shared_ptr<TwoBodyDescriptor> > >
       two_body_descriptors;
     std::vector<int> pos_two_body;
-    std::vector <std::vector<std::shared_ptr<ThreeBodySymmetryFunction> > >
+    std::vector <std::vector<std::shared_ptr<ThreeBodyDescriptor> > >
       three_body_descriptors;
     std::vector<int> pos_three_body;
     std::vector<double> max_cutoff;
