@@ -118,7 +118,7 @@ with open('custom_descriptors.txt', 'r') as fin:
             three_body_descriptors.append(
                 Descriptor(sp[1], int(sp[2]), ' '.join(sp[3::])))
 
-with open('symmetryFunctions.h', 'r') as fin:
+with open('descriptors.h', 'r') as fin:
     lines = fin.readlines()
 
 CUSTOM_TWO_BODY_START = '// AUTOMATIC custom TwoBodyDescriptors start\n'
@@ -132,7 +132,7 @@ lines = (lines[0:(lines.index(CUSTOM_TWO_BODY_START)+1)] +
 lines = (lines[0:(lines.index(CUSTOM_THREE_BODY_START)+1)] +
          lines[lines.index(CUSTOM_THREE_BODY_END)::])
 
-with open('symmetryFunctions.h', 'w') as fout:
+with open('descriptors.h', 'w') as fout:
     for line in lines:
         fout.write(line)
         if line.startswith(CUSTOM_TWO_BODY_START):
@@ -142,7 +142,7 @@ with open('symmetryFunctions.h', 'w') as fout:
             for descriptor in three_body_descriptors:
                 fout.write(HEADER_THREE_BODY.format(descriptor.name))
 
-with open('symmetryFunctions.cpp', 'r') as fin:
+with open('descriptors.cpp', 'r') as fin:
     lines = fin.readlines()
 
 SWITCH_TWO_BODY_START = '// AUTOMATIC switch TwoBodyDescriptors start\n'
@@ -175,7 +175,7 @@ lines = (lines[0:(lines.index(GET_TWO_BODY_START)+1)] +
 lines = (lines[0:(lines.index(GET_THREE_BODY_START)+1)] +
          lines[lines.index(GET_THREE_BODY_END)::])
 
-with open('symmetryFunctions.cpp', 'w') as fout:
+with open('descriptors.cpp', 'w') as fout:
     for line in lines:
         fout.write(line)
         if line.startswith(CUSTOM_TWO_BODY_START):
