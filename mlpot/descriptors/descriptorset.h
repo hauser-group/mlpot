@@ -72,7 +72,7 @@ extern "C" {
     ds->print_descriptors();
   }
   void descriptor_set_available_descriptors(){
-    available_symFuns();
+    available_descriptors();
   }
   int descriptor_set_get_cutoff_function_by_name(const char* name)
   {

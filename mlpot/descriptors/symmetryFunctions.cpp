@@ -49,7 +49,7 @@ SymmetryFunction& SymmetryFunction::operator=(const SymmetryFunction& other) //C
   return *this;
 };
 
-// AUTOMATIC Start of custom TwoBodySymFuns
+// AUTOMATIC custom TwoBodyDescriptors start
 
 double BehlerG0::eval(double rij)
 {
@@ -170,9 +170,9 @@ void radialTest::eval_with_derivatives(double rij, double &G, double &dGdrij)
   G = rij;
   dGdrij = 1;
 };
-// AUTOMATIC End of custom TwoBodySymFuns
+// AUTOMATIC custom TwoBodyDescriptors end
 
-// AUTOMATIC Start of custom ThreeBodySymFuns
+// AUTOMATIC custom ThreeBodyDescriptors start
 
 double BehlerG3::eval(double rij, double rik, double costheta)
 {
@@ -358,9 +358,9 @@ void BehlerG5mod::derivatives(double rij, double rik, double costheta,
   dGdrik = x1*x3*x6*x8*(x2*x5*x7 + cutfun->derivative(rik));
   dGdcostheta = prms[0]*prms[1]*pow(x0, prms[1] - 1)*x3*x9;
 };
-// AUTOMATIC End of custom ThreeBodySymFuns
+// AUTOMATIC custom ThreeBodyDescriptors end
 
-std::shared_ptr<CutoffFunction> switch_CutFun(
+std::shared_ptr<CutoffFunction> switch_cutoff_functions(
   int cutoff_type, double cutoff)
 {
   std::shared_ptr<CutoffFunction> cutfun;
@@ -393,12 +393,13 @@ std::shared_ptr<CutoffFunction> switch_CutFun(
   return cutfun;
 }
 
-std::shared_ptr<TwoBodySymmetryFunction> switch_TwoBodySymFun(int funtype,
-  int num_prms, double* prms, std::shared_ptr<CutoffFunction> cutfun)
+std::shared_ptr<TwoBodySymmetryFunction> switch_two_body_descriptors(
+  int funtype, int num_prms, double* prms,
+  std::shared_ptr<CutoffFunction> cutfun)
 {
   std::shared_ptr<TwoBodySymmetryFunction> symFun;
   switch (funtype){
-// AUTOMATIC TwoBodySymmetryFunction switch start
+// AUTOMATIC switch TwoBodyDescriptors start
     case 0:
       symFun = std::make_shared<BehlerG0>(num_prms, prms, cutfun);
       break;
@@ -420,19 +421,20 @@ std::shared_ptr<TwoBodySymmetryFunction> switch_TwoBodySymFun(int funtype,
     case 6:
       symFun = std::make_shared<radialTest>(num_prms, prms, cutfun);
       break;
-// AUTOMATIC TwoBodySymmetryFunction switch end
+// AUTOMATIC switch TwoBodyDescriptors end
     default:
       printf("No function type %d\n", funtype);
   }
   return symFun;
 }
 
-std::shared_ptr<ThreeBodySymmetryFunction> switch_ThreeBodySymFun(int funtype,
-  int num_prms, double* prms, std::shared_ptr<CutoffFunction> cutfun)
+std::shared_ptr<ThreeBodySymmetryFunction> switch_three_body_descriptors(
+  int funtype, int num_prms, double* prms,
+  std::shared_ptr<CutoffFunction> cutfun)
 {
   std::shared_ptr<ThreeBodySymmetryFunction> symFun;
   switch (funtype){
-// AUTOMATIC ThreeBodySymmetryFunction switch start
+// AUTOMATIC switch ThreeBodyDescriptors start
     case 0:
       symFun = std::make_shared<BehlerG3>(num_prms, prms, cutfun);
       break;
@@ -442,7 +444,7 @@ std::shared_ptr<ThreeBodySymmetryFunction> switch_ThreeBodySymFun(int funtype,
     case 2:
       symFun = std::make_shared<BehlerG5mod>(num_prms, prms, cutfun);
       break;
-// AUTOMATIC ThreeBodySymmetryFunction switch end
+// AUTOMATIC switch ThreeBodyDescriptors end
     default:
       printf("No function type %d\n", funtype);
   }
@@ -483,7 +485,7 @@ int get_cutoff_function_by_name(const char* name)
 int get_two_body_descriptor_by_name(const char* name)
 {
   int id = -1;
-// AUTOMATIC get_TwoBodySymFuns start
+// AUTOMATIC get_two_body_descriptor start
   if (strcmp(name, "BehlerG0") == 0)
   {
     id = 0;
@@ -512,14 +514,14 @@ int get_two_body_descriptor_by_name(const char* name)
   {
     id = 6;
   }
-// AUTOMATIC get_TwoBodySymFuns end
+// AUTOMATIC get_two_body_descriptor end
   return id;
 }
 
 int get_three_body_descriptor_by_name(const char* name)
 {
   int id = -1;
-// AUTOMATIC get_ThreeBodySymFuns start
+// AUTOMATIC get_three_body_descriptor start
   if (strcmp(name, "BehlerG3") == 0)
   {
     id = 0;
@@ -532,13 +534,13 @@ int get_three_body_descriptor_by_name(const char* name)
   {
     id = 2;
   }
-// AUTOMATIC get_ThreeBodySymFuns end
+// AUTOMATIC get_three_body_descriptor end
   return id;
 }
 
-void available_symFuns()
+void available_descriptors()
 {
-// AUTOMATIC available_symFuns start
+// AUTOMATIC available_descriptors start
   printf("TwoBodySymmetryFunctions: (key: name, # of parameters)\n");
   printf("0: BehlerG0, 0\n");
   printf("1: BehlerG1, 1\n");
@@ -551,5 +553,5 @@ void available_symFuns()
   printf("0: BehlerG3, 3\n");
   printf("1: BehlerG4, 3\n");
   printf("2: BehlerG5mod, 5\n");
-// AUTOMATIC available_symFuns end
+// AUTOMATIC available_descriptors end
 }

@@ -25,8 +25,8 @@ void DescriptorSet::add_two_body_descriptor(
   int type1, int type2, int funtype, int num_prms, double* prms,
   int cutoff_type, double cutoff)
 {
-  std::shared_ptr<CutoffFunction> cutfun = switch_CutFun(cutoff_type, cutoff);
-  std::shared_ptr<TwoBodySymmetryFunction> symfun = switch_TwoBodySymFun(
+  std::shared_ptr<CutoffFunction> cutfun = switch_cutoff_functions(cutoff_type, cutoff);
+  std::shared_ptr<TwoBodySymmetryFunction> symfun = switch_two_body_descriptors(
     funtype, num_prms, prms, cutfun);
 
   two_body_descriptors[type1*num_atomtypes+type2].push_back(symfun);
@@ -50,8 +50,8 @@ void DescriptorSet::add_three_body_descriptor(
   int type1, int type2, int type3, int funtype, int num_prms, double* prms,
   int cutoff_type, double cutoff)
 {
-  std::shared_ptr<CutoffFunction> cutfun = switch_CutFun(cutoff_type, cutoff);
-  std::shared_ptr<ThreeBodySymmetryFunction> symfun = switch_ThreeBodySymFun(
+  std::shared_ptr<CutoffFunction> cutfun = switch_cutoff_functions(cutoff_type, cutoff);
+  std::shared_ptr<ThreeBodySymmetryFunction> symfun = switch_three_body_descriptors(
     funtype, num_prms, prms, cutfun);
   // Atomtype2 and atomtype3 are sorted to maintain symmetry
   three_body_descriptors[num_atomtypes_sq*type1 + num_atomtypes*std::min(type2,type3) +

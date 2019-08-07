@@ -182,15 +182,15 @@ class BehlerG5mod: public ThreeBodySymmetryFunction
 };
 // AUTOMATIC End of custom ThreeBodySymFuns
 
-std::shared_ptr<CutoffFunction> switch_CutFun(
+std::shared_ptr<CutoffFunction> switch_cutoff_functions(
   int cutoff_type, double cutoff);
-std::shared_ptr<TwoBodySymmetryFunction> switch_TwoBodySymFun(
+std::shared_ptr<TwoBodySymmetryFunction> switch_two_body_descriptors(
   int funtype, int num_prms, double* prms,
   std::shared_ptr<CutoffFunction> cutfun);
-std::shared_ptr<ThreeBodySymmetryFunction> switch_ThreeBodySymFun(
+std::shared_ptr<ThreeBodySymmetryFunction> switch_three_body_descriptors(
   int funtype, int num_prms, double* prms,
   std::shared_ptr<CutoffFunction> cutfun);
 int get_cutoff_function_by_name(const char* name);
 int get_two_body_descriptor_by_name(const char* name);
 int get_three_body_descriptor_by_name(const char* name);
-void available_symFuns();
+void available_descriptors();
