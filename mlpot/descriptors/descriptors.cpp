@@ -449,12 +449,12 @@ int get_cutoff_function_by_name(const char* name)
   int id = -1;
   if (strcmp(name, "const") == 0) id = 0;
   else if (strcmp(name, "cos") == 0) id = 1;
-  } else if (strcmp(name, "tanh") == 0) id = 2;
-  } else if (strcmp(name, "polynomial") == 0) id = 3;
-  } else if (strcmp(name, "smooth") == 0) id = 4;
-  } else if (strcmp(name, "smooth2") == 0) id = 5;
-  } else if (strcmp(name, "shortRange") == 0) id = 6;
-  } else if (strcmp(name, "longRange") == 0) id = 7;
+  else if (strcmp(name, "tanh") == 0) id = 2;
+  else if (strcmp(name, "polynomial") == 0) id = 3;
+  else if (strcmp(name, "smooth") == 0) id = 4;
+  else if (strcmp(name, "smooth2") == 0) id = 5;
+  else if (strcmp(name, "shortRange") == 0) id = 6;
+  else if (strcmp(name, "longRange") == 0) id = 7;
   return id;
 }
 
