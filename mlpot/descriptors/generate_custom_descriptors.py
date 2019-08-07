@@ -128,7 +128,7 @@ with open('symmetryFunctions.h', 'w') as fout:
         if line.startswith(CUSTOM_TWO_BODY_START):
             for symfun in twoBodySymFuns:
                 fout.write(header_twoBody.format(symfun[0]))
-        if line.startswith(CUSTOM_TWO_BODY_START):
+        if line.startswith(CUSTOM_THREE_BODY_START):
             for symfun in threeBodySymFuns:
                 fout.write(header_threeBody.format(symfun[0]))
 
