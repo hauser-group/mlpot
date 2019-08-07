@@ -5,6 +5,12 @@ import numpy as np
 
 class LibraryTest(unittest.TestCase):
 
+    def test_print_functions(self):
+        with DescriptorSet(['C', 'H', 'O']) as ds:
+            ds.available_descriptors()
+            ds.add_Artrith_Kolpak_set()
+            ds.print_descriptors()
+
     def test_dimer_cos(self):
         with DescriptorSet(['Au'], cutoff=7.) as ds:
             types = ['Au', 'Au']
