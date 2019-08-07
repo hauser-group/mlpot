@@ -71,16 +71,13 @@ void {}::eval_with_derivatives(double rij, double rik, double costheta,
 }};
 """
 
-CASE_STRING = """    case {}:
-      symFun = std::make_shared<{}>(num_prms, prms, cutfun);
-      break;
-"""
+IF_FUN_ID = ('  if (funtype == {}) '
+             + 'symFun = std::make_shared<{}>(num_prms, prms, cutfun);\n')
+ELIF_FUN_ID = ('  else if (funtype == {}) '
+               + 'symFun = std::make_shared<{}>(num_prms, prms, cutfun);\n')
 
-SWITCH_STRING = """  if (strcmp(name, "{}") == 0)
-  {{
-    id = {};
-  }}
-"""
+IF_STRING = '  if (strcmp(name, "{}") == 0) id = {};\n'
+ELIF_STRING = '  else if (strcmp(name, "{}") == 0) id = {};\n'
 
 user_funs = {'fcut': 'cutfun->eval', 'dfcut': 'cutfun->derivative'}
 
@@ -183,7 +180,7 @@ lines = (lines[0:(lines.index(GET_THREE_BODY_START)+1)] +
          lines[lines.index(GET_THREE_BODY_END)::])
 
 with open('descriptors.cpp', 'w') as fout:
-    for line in lines:
+    for line_i, line in enumerate(lines):
         fout.write(line)
         if line.startswith(CUSTOM_TWO_BODY_START):
             for descriptor in two_body_descriptors:
@@ -327,24 +324,51 @@ with open('descriptors.cpp', 'w') as fout:
 
                 fout.write(DERIVATIVES_THREE_BODY.format(
                     descriptor.name, ';\n  '.join(method_body)))
-        elif line.startswith(AVAILABLE_TWO_BODY_START):
-            for i, descriptor in enumerate(two_body_descriptors):
-                fout.write('  printf("{}: {}, {}\\n");\n'.format(
-                    i, descriptor.name, descriptor.num_prms))
-        elif line.startswith(AVAILABLE_THREE_BODY_START):
-            for i, descriptor in enumerate(three_body_descriptors):
-                fout.write('  printf("{}: {}, {}\\n");\n'.format(
-                    i, descriptor.name, descriptor.num_prms))
 
         elif line.startswith(SWITCH_TWO_BODY_START):
+            # Check for hard coded descriptors to offset the ids
+            m = re.search('\\(funtype == (\\d)\\)', lines[line_i-1])
+            offset = int(m.group(1)) + 1 if m is not None else 0
             for i, descriptor in enumerate(two_body_descriptors):
-                fout.write(CASE_STRING.format(i, descriptor.name))
+                if i + offset == 0:
+                    fout.write(IF_FUN_ID.format(i + offset, descriptor.name))
+                else:
+                    fout.write(ELIF_FUN_ID.format(i + offset, descriptor.name))
         elif line.startswith(SWITCH_THREE_BODY_START):
+            m = re.search('\\(funtype == (\\d)\\)', lines[line_i-1])
+            offset = int(m.group(1)) + 1 if m is not None else 0
             for i, descriptor in enumerate(three_body_descriptors):
-                fout.write(CASE_STRING.format(i, descriptor.name))
+                if i + offset == 0:
+                    fout.write(IF_FUN_ID.format(i + offset, descriptor.name))
+                else:
+                    fout.write(ELIF_FUN_ID.format(i + offset, descriptor.name))
         elif line.startswith(GET_TWO_BODY_START):
+            m = re.search('== 0\\) id = (\\d);', lines[line_i-1])
+            offset = int(m.group(1)) + 1 if m is not None else 0
             for i, descriptor in enumerate(two_body_descriptors):
-                fout.write(SWITCH_STRING.format(descriptor.name, i))
+                if i + offset == 0:
+                    fout.write(IF_STRING.format(descriptor.name, i + offset))
+                else:
+                    fout.write(ELIF_STRING.format(descriptor.name, i + offset))
         elif line.startswith(GET_THREE_BODY_START):
+            m = re.search('== 0\\) id = (\\d);', lines[line_i-1])
+            offset = int(m.group(1)) + 1 if m is not None else 0
             for i, descriptor in enumerate(three_body_descriptors):
-                fout.write(SWITCH_STRING.format(descriptor.name, i))
+                if i + offset == 0:
+                    fout.write(IF_STRING.format(descriptor.name, i + offset))
+                else:
+                    fout.write(ELIF_STRING.format(descriptor.name, i + offset))
+
+        elif line.startswith(AVAILABLE_TWO_BODY_START):
+            # Check for hard coded descriptors to offset the ids
+            m = re.search('printf\\("(\\d):', lines[line_i-1])
+            offset = int(m.group(1)) + 1 if m is not None else 0
+            for i, descriptor in enumerate(two_body_descriptors):
+                fout.write('  printf("{}: {}, {}\\n");\n'.format(
+                    i + offset, descriptor.name, descriptor.num_prms))
+        elif line.startswith(AVAILABLE_THREE_BODY_START):
+            m = re.search('printf\\("(\\d):', lines[line_i-1])
+            offset = int(m.group(1)) + 1 if m is not None else 0
+            for i, descriptor in enumerate(three_body_descriptors):
+                fout.write('  printf("{}: {}, {}\\n");\n'.format(
+                    i + offset, descriptor.name, descriptor.num_prms))
