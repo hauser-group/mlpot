@@ -130,7 +130,7 @@ class LibraryTest(unittest.TestCase):
             zetas = [1.0, 4.0]
 
             ds.add_G2_functions(rss, radial_etas)
-            ds.add_G4_functions(angular_etas, zetas, lambs)
+            ds.add_G5_functions(angular_etas, zetas, lambs)
             f0 = ds.eval(types, x0.reshape((-1, 3)))
             df = ds.eval_derivatives(types, x0.reshape((-1, 3)))
             eps = np.sqrt(np.finfo(float).eps)
@@ -183,7 +183,7 @@ class LibraryTest(unittest.TestCase):
             etas = [1.0, 0.01, 0.0001]
 
             ds.add_G2_functions(rss, etas)
-            ds.add_G4_functions(etas, [1.0], [1.0])
+            ds.add_G5_functions(etas, [1.0], [1.0])
 
             out_cpp = ds.eval(types, pos)
             analytical_derivatives = ds.eval_derivatives(types, pos)

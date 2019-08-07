@@ -5,8 +5,10 @@
 ! descriptor is the interatomic distance rij.
 
 TwoBodyDescriptor BehlerG0 0 fcut(rij)
-TwoBodyDescriptor BehlerG1 1 exp(-prm0*(rij)**2)*fcut(rij)
+TwoBodyDescriptor BehlerG1 0 fcut(rij)
+TwoBodyDescriptor BehlerG1old 1 exp(-prm0*(rij)**2)*fcut(rij)
 TwoBodyDescriptor BehlerG2 2 exp(-prm0*(rij-prm1)**2)*fcut(rij)
+TwoBodyDescriptor BehlerG3 1 cos(prm0*rij)*fcut(rij)
 TwoBodyDescriptor OneOverR6 0 1/rij**6*fcut(rij)
 TwoBodyDescriptor OneOverR8 0 1/rij**8*fcut(rij)
 TwoBodyDescriptor OneOverR10 0 1/rij**10*fcut(rij)
@@ -21,7 +23,7 @@ TwoBodyDescriptor radialTest 0 rij
 ! interatomic distance rjk can be calculated as:
 ! sqrt(rij**2+rik**2-2*rij*rik*costheta)
 
-ThreeBodyDescriptors BehlerG3 3 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*(2*rij**2+2*rik**2-2*rij*rik*costheta))*fcut(rij)*fcut(rik)*fcut(sqrt(rij**2+rik**2-2*rij*rik*costheta))
-ThreeBodyDescriptors BehlerG4 3 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*(rij**2+rik**2))*fcut(rij)*fcut(rik)
+ThreeBodyDescriptors BehlerG4 3 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*(2*rij**2+2*rik**2-2*rij*rik*costheta))*fcut(rij)*fcut(rik)*fcut(sqrt(rij**2+rik**2-2*rij*rik*costheta))
+ThreeBodyDescriptors BehlerG5 3 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*(rij**2+rik**2))*fcut(rij)*fcut(rik)
 ! Modified BehlerG5 function introducing a center for the radial Gaussians
 ThreeBodyDescriptors BehlerG5mod 5 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*((rij-prm3)**2+(rik-prm4)**2))*fcut(rij)*fcut(rik)

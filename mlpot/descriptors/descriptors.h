@@ -59,10 +59,32 @@ class BehlerG1: public TwoBodyDescriptor
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
 };
 
+class BehlerG1old: public TwoBodyDescriptor
+{
+    public:
+        BehlerG1old(int num_prms, double* prms,
+          std::shared_ptr<CutoffFunction> cutfun):
+          TwoBodyDescriptor(num_prms, prms, cutfun){};
+        double eval(double rij);
+        double drij(double rij);
+        void eval_with_derivatives(double rij, double &G, double &dGdrij);
+};
+
 class BehlerG2: public TwoBodyDescriptor
 {
     public:
         BehlerG2(int num_prms, double* prms,
+          std::shared_ptr<CutoffFunction> cutfun):
+          TwoBodyDescriptor(num_prms, prms, cutfun){};
+        double eval(double rij);
+        double drij(double rij);
+        void eval_with_derivatives(double rij, double &G, double &dGdrij);
+};
+
+class BehlerG3: public TwoBodyDescriptor
+{
+    public:
+        BehlerG3(int num_prms, double* prms,
           std::shared_ptr<CutoffFunction> cutfun):
           TwoBodyDescriptor(num_prms, prms, cutfun){};
         double eval(double rij);
@@ -134,10 +156,10 @@ class ThreeBodyDescriptor: public Descriptor
 
 // AUTOMATIC custom ThreeBodyDescriptors start
 
-class BehlerG3: public ThreeBodyDescriptor
+class BehlerG4: public ThreeBodyDescriptor
 {
   public:
-    BehlerG3(int num_prms, double* prms,
+    BehlerG4(int num_prms, double* prms,
       std::shared_ptr<CutoffFunction> cutfun):
       ThreeBodyDescriptor(num_prms, prms, cutfun){};
     double eval(double rij, double rik, double costheta);
@@ -150,10 +172,10 @@ class BehlerG3: public ThreeBodyDescriptor
       double &G, double &dGdrij, double &dGdrik, double &dGdcostheta);
 };
 
-class BehlerG4: public ThreeBodyDescriptor
+class BehlerG5: public ThreeBodyDescriptor
 {
   public:
-    BehlerG4(int num_prms, double* prms,
+    BehlerG5(int num_prms, double* prms,
       std::shared_ptr<CutoffFunction> cutfun):
       ThreeBodyDescriptor(num_prms, prms, cutfun){};
     double eval(double rij, double rik, double costheta);

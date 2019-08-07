@@ -1,6 +1,7 @@
 from os.path import dirname, abspath, join, normpath
 from inspect import getsourcefile
 from itertools import product, combinations_with_replacement
+from warnings import warn
 import numpy as _np
 import ctypes as _ct
 
@@ -102,6 +103,8 @@ class DescriptorSet(object):
 
     def add_two_body_descriptor(self, type1, type2, funtype, prms,
                                 cuttype="cos", cutoff=None):
+        warn('The Behler atom-centered symmetry functions have been renamed ' +
+             'and now follow the convention of J. Behler, JCP 134 074106')
         if cutoff is None:
             cutoff = self.cutoff
         cutid = lib.descriptor_set_get_cutoff_function_by_name(
@@ -121,6 +124,8 @@ class DescriptorSet(object):
 
     def add_three_body_descriptor(self, type1, type2, type3, funtype, prms,
                                   cuttype="cos", cutoff=None):
+        warn('The Behler atom-centered symmetry functions have been renamed ' +
+             'and now follow the convention of J. Behler, JCP 134 074106')
         if cutoff is None:
             cutoff = self.cutoff
         cutid = lib.descriptor_set_get_cutoff_function_by_name(
@@ -150,7 +155,7 @@ class DescriptorSet(object):
         etas = [2./(self.cutoff/(N-1))**2]*N
         self.add_radial_functions(rss, etas)
 
-    def add_G4_functions(self, etas, zetas, lambs, cuttype="cos", cutoff=None):
+    def add_G5_functions(self, etas, zetas, lambs, cuttype="cos", cutoff=None):
         for eta in etas:
             for zeta in zetas:
                 for lamb in lambs:
@@ -158,18 +163,17 @@ class DescriptorSet(object):
                         for (tj, tk) in combinations_with_replacement(
                                 self.atomtypes, 2):
                             self.add_three_body_descriptor(
-                                ti, tj, tk, "BehlerG4", [lamb, zeta, eta],
+                                ti, tj, tk, "BehlerG5", [lamb, zeta, eta],
                                 cuttype=cuttype, cutoff=cutoff)
 
     def add_Artrith_Kolpak_set(self):
         # Parameters from Artrith and Kolpak Nano Lett. 2014, 14, 2670
         etas = [0.0009, 0.01, 0.02, 0.035, 0.06, 0.1, 0.2]
-        rss = [0.0]*len(etas)
         for t1 in self.atomtypes:
             for t2 in self.atomtypes:
-                for eta, rs in zip(etas, rss):
+                for eta in etas:
                     self.add_two_body_descriptor(
-                        t1, t2, 'BehlerG2', [eta, rs], cuttype='cos',
+                        t1, t2, 'BehlerG2', [eta, 0.0], cuttype='cos',
                         cutoff=6.5)
 
         ang_etas = [0.0001, 0.003, 0.008]
@@ -181,7 +185,7 @@ class DescriptorSet(object):
                     for zeta in zetas:
                         for lamb in [-1.0, 1.0]:
                             self.add_three_body_descriptor(
-                                ti, tj, tk, "BehlerG3",
+                                ti, tj, tk, "BehlerG4",
                                 [lamb, zeta, eta], cuttype='cos', cutoff=6.5)
 
     def print_descriptors(self):

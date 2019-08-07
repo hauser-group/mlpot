@@ -15,7 +15,7 @@ class LibraryTest(unittest.TestCase):
             # Parameters from Artrith and Kolpak Nano Lett. 2014, 14, 2670
             etas = np.array([0.0009, 0.01, 0.02, 0.035, 0.06, 0.1, 0.2])
             for eta in etas:
-                ds.add_two_body_descriptor('Ag', 'Ag', 'BehlerG1', [eta],
+                ds.add_two_body_descriptor('Ag', 'Ag', 'BehlerG2', [eta, 0.0],
                                            cuttype='cos')
 
             ang_etas = np.array([0.0001, 0.003, 0.008])
@@ -24,15 +24,15 @@ class LibraryTest(unittest.TestCase):
                 for lamb in [-1.0, 1.0]:
                     for zeta in zetas:
                         ds.add_three_body_descriptor(
-                            'Ag', 'Ag', 'Ag', 'BehlerG3',
+                            'Ag', 'Ag', 'Ag', 'BehlerG4',
                             [lamb, zeta, ang_eta], cuttype='cos')
 
-            # Also test BehlerG4
+            # Also test BehlerG5
             for ang_eta in ang_etas:
                 for lamb in [-1.0, 1.0]:
                     for zeta in zetas:
                         ds.add_three_body_descriptor(
-                            'Ag', 'Ag', 'Ag', 'BehlerG4',
+                            'Ag', 'Ag', 'Ag', 'BehlerG5',
                             [lamb, zeta, ang_eta], cuttype='cos')
 
             N = 30
