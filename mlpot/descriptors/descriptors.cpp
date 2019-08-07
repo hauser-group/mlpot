@@ -49,24 +49,6 @@ Descriptor& Descriptor::operator=(const Descriptor& other) //Copy assignment
   return *this;
 };
 
-// AUTOMATIC custom TwoBodyDescriptors start
-
-double BehlerG0::eval(double rij)
-{
-  return cutfun->eval(rij);
-};
-
-double BehlerG0::drij(double rij)
-{
-  return cutfun->derivative(rij);
-};
-
-void BehlerG0::eval_with_derivatives(double rij, double &G, double &dGdrij)
-{
-  G = cutfun->eval(rij);
-  dGdrij = cutfun->derivative(rij);
-};
-
 double BehlerG1::eval(double rij)
 {
   return cutfun->eval(rij);
@@ -83,23 +65,7 @@ void BehlerG1::eval_with_derivatives(double rij, double &G, double &dGdrij)
   dGdrij = cutfun->derivative(rij);
 };
 
-double BehlerG1old::eval(double rij)
-{
-  return cutfun->eval(rij)*exp(-prms[0]*pow(rij, 2));
-};
-
-double BehlerG1old::drij(double rij)
-{
-  return (-2*prms[0]*rij*cutfun->eval(rij) + cutfun->derivative(rij))*exp(-prms[0]*pow(rij, 2));
-};
-
-void BehlerG1old::eval_with_derivatives(double rij, double &G, double &dGdrij)
-{
-  auto x0 = cutfun->eval(rij);
-  auto x1 = exp(-prms[0]*pow(rij, 2));
-  G = x0*x1;
-  dGdrij = x1*(-2*prms[0]*rij*x0 + cutfun->derivative(rij));
-};
+// AUTOMATIC custom TwoBodyDescriptors start
 
 double BehlerG2::eval(double rij)
 {
@@ -137,6 +103,24 @@ void BehlerG3::eval_with_derivatives(double rij, double &G, double &dGdrij)
   auto x2 = cos(x1);
   G = x0*x2;
   dGdrij = -prms[0]*x0*sin(x1) + x2*cutfun->derivative(rij);
+};
+
+double BehlerG1old::eval(double rij)
+{
+  return cutfun->eval(rij)*exp(-prms[0]*pow(rij, 2));
+};
+
+double BehlerG1old::drij(double rij)
+{
+  return (-2*prms[0]*rij*cutfun->eval(rij) + cutfun->derivative(rij))*exp(-prms[0]*pow(rij, 2));
+};
+
+void BehlerG1old::eval_with_derivatives(double rij, double &G, double &dGdrij)
+{
+  auto x0 = cutfun->eval(rij);
+  auto x1 = exp(-prms[0]*pow(rij, 2));
+  G = x0*x1;
+  dGdrij = x1*(-2*prms[0]*rij*x0 + cutfun->derivative(rij));
 };
 
 double OneOverR6::eval(double rij)
@@ -415,16 +399,15 @@ std::shared_ptr<TwoBodyDescriptor> switch_two_body_descriptors(
   std::shared_ptr<CutoffFunction> cutfun)
 {
   std::shared_ptr<TwoBodyDescriptor> symFun;
+  if (funtype == 0) symFun = std::make_shared<BehlerG1>(num_prms, prms, cutfun);
 // AUTOMATIC switch TwoBodyDescriptors start
-  if (funtype == 0) symFun = std::make_shared<BehlerG0>(num_prms, prms, cutfun);
-  else if (funtype == 1) symFun = std::make_shared<BehlerG1>(num_prms, prms, cutfun);
-  else if (funtype == 2) symFun = std::make_shared<BehlerG1old>(num_prms, prms, cutfun);
-  else if (funtype == 3) symFun = std::make_shared<BehlerG2>(num_prms, prms, cutfun);
-  else if (funtype == 4) symFun = std::make_shared<BehlerG3>(num_prms, prms, cutfun);
-  else if (funtype == 5) symFun = std::make_shared<OneOverR6>(num_prms, prms, cutfun);
-  else if (funtype == 6) symFun = std::make_shared<OneOverR8>(num_prms, prms, cutfun);
-  else if (funtype == 7) symFun = std::make_shared<OneOverR10>(num_prms, prms, cutfun);
-  else if (funtype == 8) symFun = std::make_shared<radialTest>(num_prms, prms, cutfun);
+  else if (funtype == 1) symFun = std::make_shared<BehlerG2>(num_prms, prms, cutfun);
+  else if (funtype == 2) symFun = std::make_shared<BehlerG3>(num_prms, prms, cutfun);
+  else if (funtype == 3) symFun = std::make_shared<BehlerG1old>(num_prms, prms, cutfun);
+  else if (funtype == 4) symFun = std::make_shared<OneOverR6>(num_prms, prms, cutfun);
+  else if (funtype == 5) symFun = std::make_shared<OneOverR8>(num_prms, prms, cutfun);
+  else if (funtype == 6) symFun = std::make_shared<OneOverR10>(num_prms, prms, cutfun);
+  else if (funtype == 7) symFun = std::make_shared<radialTest>(num_prms, prms, cutfun);
 // AUTOMATIC switch TwoBodyDescriptors end
   else printf("No function type %d\n", funtype);
   return symFun;
@@ -461,16 +444,15 @@ int get_cutoff_function_by_name(const char* name)
 int get_two_body_descriptor_by_name(const char* name)
 {
   int id = -1;
+  if (strcmp(name, "BehlerG1") == 0) id = 0;
 // AUTOMATIC get_two_body_descriptor start
-  if (strcmp(name, "BehlerG0") == 0) id = 0;
-  else if (strcmp(name, "BehlerG1") == 0) id = 1;
-  else if (strcmp(name, "BehlerG1old") == 0) id = 2;
-  else if (strcmp(name, "BehlerG2") == 0) id = 3;
-  else if (strcmp(name, "BehlerG3") == 0) id = 4;
-  else if (strcmp(name, "OneOverR6") == 0) id = 5;
-  else if (strcmp(name, "OneOverR8") == 0) id = 6;
-  else if (strcmp(name, "OneOverR10") == 0) id = 7;
-  else if (strcmp(name, "radialTest") == 0) id = 8;
+  else if (strcmp(name, "BehlerG2") == 0) id = 1;
+  else if (strcmp(name, "BehlerG3") == 0) id = 2;
+  else if (strcmp(name, "BehlerG1old") == 0) id = 3;
+  else if (strcmp(name, "OneOverR6") == 0) id = 4;
+  else if (strcmp(name, "OneOverR8") == 0) id = 5;
+  else if (strcmp(name, "OneOverR10") == 0) id = 6;
+  else if (strcmp(name, "radialTest") == 0) id = 7;
 // AUTOMATIC get_two_body_descriptor end
   return id;
 }
@@ -489,16 +471,15 @@ int get_three_body_descriptor_by_name(const char* name)
 void available_descriptors()
 {
   printf("TwoBodyDescriptors: (key: name, # of parameters)\n");
+  printf("0: BehlerG1, 0\n");
 // AUTOMATIC available_two_body_descriptors start
-  printf("0: BehlerG0, 0\n");
-  printf("1: BehlerG1, 0\n");
-  printf("2: BehlerG1old, 1\n");
-  printf("3: BehlerG2, 2\n");
-  printf("4: BehlerG3, 1\n");
-  printf("5: OneOverR6, 0\n");
-  printf("6: OneOverR8, 0\n");
-  printf("7: OneOverR10, 0\n");
-  printf("8: radialTest, 0\n");
+  printf("1: BehlerG2, 2\n");
+  printf("2: BehlerG3, 1\n");
+  printf("3: BehlerG1old, 1\n");
+  printf("4: OneOverR6, 0\n");
+  printf("5: OneOverR8, 0\n");
+  printf("6: OneOverR10, 0\n");
+  printf("7: radialTest, 0\n");
 // AUTOMATIC available_two_body_descriptors end
   printf("ThreeBodyDescriptors: (key: name, # of parameters)\n");
 // AUTOMATIC available_three_body_descriptors start

@@ -35,19 +35,6 @@ class TwoBodyDescriptor: public Descriptor
           double rij, double &G, double &dGdrij) = 0;
 };
 
-// AUTOMATIC custom TwoBodyDescriptors start
-
-class BehlerG0: public TwoBodyDescriptor
-{
-    public:
-        BehlerG0(int num_prms, double* prms,
-          std::shared_ptr<CutoffFunction> cutfun):
-          TwoBodyDescriptor(num_prms, prms, cutfun){};
-        double eval(double rij);
-        double drij(double rij);
-        void eval_with_derivatives(double rij, double &G, double &dGdrij);
-};
-
 class BehlerG1: public TwoBodyDescriptor
 {
     public:
@@ -59,16 +46,7 @@ class BehlerG1: public TwoBodyDescriptor
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
 };
 
-class BehlerG1old: public TwoBodyDescriptor
-{
-    public:
-        BehlerG1old(int num_prms, double* prms,
-          std::shared_ptr<CutoffFunction> cutfun):
-          TwoBodyDescriptor(num_prms, prms, cutfun){};
-        double eval(double rij);
-        double drij(double rij);
-        void eval_with_derivatives(double rij, double &G, double &dGdrij);
-};
+// AUTOMATIC custom TwoBodyDescriptors start
 
 class BehlerG2: public TwoBodyDescriptor
 {
@@ -85,6 +63,17 @@ class BehlerG3: public TwoBodyDescriptor
 {
     public:
         BehlerG3(int num_prms, double* prms,
+          std::shared_ptr<CutoffFunction> cutfun):
+          TwoBodyDescriptor(num_prms, prms, cutfun){};
+        double eval(double rij);
+        double drij(double rij);
+        void eval_with_derivatives(double rij, double &G, double &dGdrij);
+};
+
+class BehlerG1old: public TwoBodyDescriptor
+{
+    public:
+        BehlerG1old(int num_prms, double* prms,
           std::shared_ptr<CutoffFunction> cutfun):
           TwoBodyDescriptor(num_prms, prms, cutfun){};
         double eval(double rij);
