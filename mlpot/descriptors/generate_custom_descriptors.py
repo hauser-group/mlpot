@@ -111,32 +111,29 @@ with open('custom_descriptors.txt', 'r') as fin:
 with open('symmetryFunctions.h', 'r') as fin:
     lines = fin.readlines()
 
-lines = (
-    lines[0:(lines.index('// AUTOMATIC Start of custom TwoBodySymFuns\n')+1)] +
-    lines[lines.index('// AUTOMATIC End of custom TwoBodySymFuns\n')::])
-lines = (
-    lines[
-        0:(lines.index('// AUTOMATIC Start of custom ThreeBodySymFuns\n')+1)] +
-    lines[lines.index('// AUTOMATIC End of custom ThreeBodySymFuns\n')::])
-
-with open('symmetryFunctions.h', 'w') as fout:
-    for line in lines:
-        fout.write(line)
-        if line.startswith('// AUTOMATIC Start of custom TwoBodySymFuns'):
-            for symfun in twoBodySymFuns:
-                fout.write(header_twoBody.format(symfun[0]))
-        if line.startswith('// AUTOMATIC Start of custom ThreeBodySymFuns'):
-            for symfun in threeBodySymFuns:
-                fout.write(header_threeBody.format(symfun[0]))
-
-with open('symmetryFunctions.cpp', 'r') as fin:
-    lines = fin.readlines()
-
 CUSTOM_TWO_BODY_START = '// AUTOMATIC custom TwoBodyDescriptors start\n'
 CUSTOM_TWO_BODY_END = '// AUTOMATIC custom TwoBodyDescriptors end\n'
 
 CUSTOM_THREE_BODY_START = '// AUTOMATIC custom ThreeBodyDescriptors start\n'
 CUSTOM_THREE_BODY_END = '// AUTOMATIC custom ThreeBodyDescriptors end\n'
+
+lines = (lines[0:(lines.index(CUSTOM_TWO_BODY_START)+1)] +
+         lines[lines.index(CUSTOM_TWO_BODY_END)::])
+lines = (lines[0:(lines.index(CUSTOM_THREE_BODY_START)+1)] +
+         lines[lines.index(CUSTOM_THREE_BODY_END)::])
+
+with open('symmetryFunctions.h', 'w') as fout:
+    for line in lines:
+        fout.write(line)
+        if line.startswith(CUSTOM_TWO_BODY_START):
+            for symfun in twoBodySymFuns:
+                fout.write(header_twoBody.format(symfun[0]))
+        if line.startswith(CUSTOM_TWO_BODY_START):
+            for symfun in threeBodySymFuns:
+                fout.write(header_threeBody.format(symfun[0]))
+
+with open('symmetryFunctions.cpp', 'r') as fin:
+    lines = fin.readlines()
 
 SWITCH_TWO_BODY_START = '// AUTOMATIC switch TwoBodyDescriptors start\n'
 SWITCH_TWO_BODY_END = '// AUTOMATIC switch TwoBodyDescriptors end\n'

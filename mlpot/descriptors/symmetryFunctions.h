@@ -34,7 +34,7 @@ class TwoBodySymmetryFunction: public SymmetryFunction
           double rij, double &G, double &dGdrij) = 0;
 };
 
-// AUTOMATIC Start of custom TwoBodySymFuns
+// AUTOMATIC custom TwoBodyDescriptors start
 
 class BehlerG0: public TwoBodySymmetryFunction
 {
@@ -112,7 +112,7 @@ class radialTest: public TwoBodySymmetryFunction
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
 };
-// AUTOMATIC End of custom TwoBodySymFuns
+// AUTOMATIC custom TwoBodyDescriptors end
 
 class ThreeBodySymmetryFunction: public SymmetryFunction
 {
@@ -131,7 +131,7 @@ class ThreeBodySymmetryFunction: public SymmetryFunction
         double &G, double &dGdrij, double &dGdrik, double &dGdcostheta) = 0;
 };
 
-// AUTOMATIC Start of custom ThreeBodySymFuns
+// AUTOMATIC custom ThreeBodyDescriptors start
 
 class BehlerG3: public ThreeBodySymmetryFunction
 {
@@ -180,7 +180,7 @@ class BehlerG5mod: public ThreeBodySymmetryFunction
     void eval_with_derivatives(double rij, double rik, double costheta,
       double &G, double &dGdrij, double &dGdrik, double &dGdcostheta);
 };
-// AUTOMATIC End of custom ThreeBodySymFuns
+// AUTOMATIC custom ThreeBodyDescriptors end
 
 std::shared_ptr<CutoffFunction> switch_cutoff_functions(
   int cutoff_type, double cutoff);
