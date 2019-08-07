@@ -65,8 +65,6 @@ void BehlerG1::eval_with_derivatives(double rij, double &G, double &dGdrij)
   dGdrij = cutfun->derivative(rij);
 };
 
-// AUTOMATIC custom TwoBodyDescriptors start
-
 double BehlerG2::eval(double rij)
 {
   return cutfun->eval(rij)*exp(-prms[0]*pow(-prms[1] + rij, 2));
@@ -104,6 +102,8 @@ void BehlerG3::eval_with_derivatives(double rij, double &G, double &dGdrij)
   G = x0*x2;
   dGdrij = -prms[0]*x0*sin(x1) + x2*cutfun->derivative(rij);
 };
+
+// AUTOMATIC custom TwoBodyDescriptors start
 
 double BehlerG1old::eval(double rij)
 {
@@ -400,9 +400,9 @@ std::shared_ptr<TwoBodyDescriptor> switch_two_body_descriptors(
 {
   std::shared_ptr<TwoBodyDescriptor> symFun;
   if (funtype == 0) symFun = std::make_shared<BehlerG1>(num_prms, prms, cutfun);
-// AUTOMATIC switch TwoBodyDescriptors start
   else if (funtype == 1) symFun = std::make_shared<BehlerG2>(num_prms, prms, cutfun);
   else if (funtype == 2) symFun = std::make_shared<BehlerG3>(num_prms, prms, cutfun);
+// AUTOMATIC switch TwoBodyDescriptors start
   else if (funtype == 3) symFun = std::make_shared<BehlerG1old>(num_prms, prms, cutfun);
   else if (funtype == 4) symFun = std::make_shared<OneOverR6>(num_prms, prms, cutfun);
   else if (funtype == 5) symFun = std::make_shared<OneOverR8>(num_prms, prms, cutfun);
@@ -445,9 +445,9 @@ int get_two_body_descriptor_by_name(const char* name)
 {
   int id = -1;
   if (strcmp(name, "BehlerG1") == 0) id = 0;
-// AUTOMATIC get_two_body_descriptor start
   else if (strcmp(name, "BehlerG2") == 0) id = 1;
   else if (strcmp(name, "BehlerG3") == 0) id = 2;
+// AUTOMATIC get_two_body_descriptor start
   else if (strcmp(name, "BehlerG1old") == 0) id = 3;
   else if (strcmp(name, "OneOverR6") == 0) id = 4;
   else if (strcmp(name, "OneOverR8") == 0) id = 5;
@@ -472,9 +472,9 @@ void available_descriptors()
 {
   printf("TwoBodyDescriptors: (key: name, # of parameters)\n");
   printf("0: BehlerG1, 0\n");
-// AUTOMATIC available_two_body_descriptors start
   printf("1: BehlerG2, 2\n");
   printf("2: BehlerG3, 1\n");
+// AUTOMATIC available_two_body_descriptors start
   printf("3: BehlerG1old, 1\n");
   printf("4: OneOverR6, 0\n");
   printf("5: OneOverR8, 0\n");

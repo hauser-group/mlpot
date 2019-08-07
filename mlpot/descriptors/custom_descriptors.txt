@@ -4,8 +4,6 @@
 ! Add arbitrary two body descriptors here. The only argument of a two body
 ! descriptor is the interatomic distance rij.
 
-TwoBodyDescriptor BehlerG2 2 exp(-prm0*(rij-prm1)**2)*fcut(rij)
-TwoBodyDescriptor BehlerG3 1 cos(prm0*rij)*fcut(rij)
 TwoBodyDescriptor BehlerG1old 1 exp(-prm0*(rij)**2)*fcut(rij)
 TwoBodyDescriptor OneOverR6 0 1/rij**6*fcut(rij)
 TwoBodyDescriptor OneOverR8 0 1/rij**8*fcut(rij)

@@ -46,8 +46,6 @@ class BehlerG1: public TwoBodyDescriptor
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
 };
 
-// AUTOMATIC custom TwoBodyDescriptors start
-
 class BehlerG2: public TwoBodyDescriptor
 {
     public:
@@ -69,6 +67,8 @@ class BehlerG3: public TwoBodyDescriptor
         double drij(double rij);
         void eval_with_derivatives(double rij, double &G, double &dGdrij);
 };
+
+// AUTOMATIC custom TwoBodyDescriptors start
 
 class BehlerG1old: public TwoBodyDescriptor
 {
