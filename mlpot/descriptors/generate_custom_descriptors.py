@@ -3,37 +3,6 @@ import re
 
 rij, rik, costheta = _sp.symbols('rij rik costheta')
 
-HEADER_TWO_BODY = """
-class {0}: public TwoBodyDescriptor
-{{
-    public:
-        {0}(int num_prms, double* prms,
-          std::shared_ptr<CutoffFunction> cutfun):
-          TwoBodyDescriptor(num_prms, prms, cutfun){{}};
-        double eval(double rij);
-        double drij(double rij);
-        void eval_with_derivatives(double rij, double &G, double &dGdrij);
-}};
-"""
-
-HEADER_THREE_BODY = """
-class {0}: public ThreeBodyDescriptor
-{{
-  public:
-    {0}(int num_prms, double* prms,
-      std::shared_ptr<CutoffFunction> cutfun):
-      ThreeBodyDescriptor(num_prms, prms, cutfun){{}};
-    double eval(double rij, double rik, double costheta);
-    double drij(double rij, double rik, double costheta);
-    double drik(double rij, double rik, double costheta);
-    double dcostheta(double rij, double rik, double costheta);
-    void derivatives(double rij, double rik, double costheta,
-      double &dGdrij, double &dGdrik, double &dGdcostheta);
-    void eval_with_derivatives(double rij, double rik, double costheta,
-      double &G, double &dGdrij, double &dGdrik, double &dGdcostheta);
-}};
-"""
-
 METHOD_TWO_BODY = """
 double {}::{}(double rij)
 {{
@@ -89,16 +58,72 @@ def format_prms(num_prms, s):
     return s
 
 
-def format_py(s):
-    return s
-
-
 class Descriptor():
 
     def __init__(self, name, num_prms, expr):
         self.name = name
+        self.HEADER = self.HEADER.format(name)
         self.num_prms = num_prms
-        self.expr = expr
+        self.expr = _sp.simplify(_sp.sympify(expr))
+        self.calculate_derivatives()
+
+    def to_c_code(self, expr):
+        return format_prms(self.num_prms,
+                           _sp.ccode(expr, user_functions=user_funs))
+
+    def calculate_derivatives(self):
+        pass
+
+
+class TwoBodyDescriptor(Descriptor):
+    HEADER = """
+class {0}: public TwoBodyDescriptor
+{{
+    public:
+        {0}(int num_prms, double* prms,
+          std::shared_ptr<CutoffFunction> cutfun):
+          TwoBodyDescriptor(num_prms, prms, cutfun){{}};
+        double eval(double rij);
+        double drij(double rij);
+        void eval_with_derivatives(double rij, double &G, double &dGdrij);
+}};
+"""
+
+    def calculate_derivatives(self):
+        self.derivs = [
+            _sp.simplify(_sp.Derivative(self.expr, rij).doit().replace(
+                _sp.sympify('Derivative(fcut(rij), rij)'),
+                _sp.sympify('dfcut(rij)')))]
+
+
+class ThreeBodyDescriptor(Descriptor):
+    HEADER = """
+class {0}: public ThreeBodyDescriptor
+{{
+  public:
+    {0}(int num_prms, double* prms,
+      std::shared_ptr<CutoffFunction> cutfun):
+      ThreeBodyDescriptor(num_prms, prms, cutfun){{}};
+    double eval(double rij, double rik, double costheta);
+    double drij(double rij, double rik, double costheta);
+    double drik(double rij, double rik, double costheta);
+    double dcostheta(double rij, double rik, double costheta);
+    void derivatives(double rij, double rik, double costheta,
+      double &dGdrij, double &dGdrik, double &dGdcostheta);
+    void eval_with_derivatives(double rij, double rik, double costheta,
+      double &G, double &dGdrij, double &dGdrik, double &dGdcostheta);
+}};
+"""
+
+    def calculate_derivatives(self):
+        # There is probably a nicer way to do this double replacement
+        self.derivs = [
+            _sp.simplify(_sp.Derivative(self.expr, var).doit().replace(
+                _sp.sympify('Derivative(fcut(rij), rij)'),
+                _sp.sympify('dfcut(rij)')
+            ).replace(
+                _sp.sympify('Derivative(fcut(rik), rik)'),
+                _sp.sympify('dfcut(rik)'))) for var in [rij, rik, costheta]]
 
 
 # Read custom descriptor file
@@ -109,11 +134,11 @@ with open('custom_descriptors.txt', 'r') as fin:
         if line.startswith('TwoBodyDescriptor'):
             sp = line.split()
             two_body_descriptors.append(
-                Descriptor(sp[1], int(sp[2]), ' '.join(sp[3::])))
+                TwoBodyDescriptor(sp[1], int(sp[2]), ' '.join(sp[3::])))
         if line.startswith('ThreeBodyDescriptor'):
             sp = line.split()
             three_body_descriptors.append(
-                Descriptor(sp[1], int(sp[2]), ' '.join(sp[3::])))
+                ThreeBodyDescriptor(sp[1], int(sp[2]), ' '.join(sp[3::])))
 
 with open('descriptors.h', 'r') as fin:
     lines = fin.readlines()
@@ -134,10 +159,10 @@ with open('descriptors.h', 'w') as fout:
         fout.write(line)
         if line.startswith(CUSTOM_TWO_BODY_START):
             for descriptor in two_body_descriptors:
-                fout.write(HEADER_TWO_BODY.format(descriptor.name))
+                fout.write(descriptor.HEADER)
         if line.startswith(CUSTOM_THREE_BODY_START):
             for descriptor in three_body_descriptors:
-                fout.write(HEADER_THREE_BODY.format(descriptor.name))
+                fout.write(descriptor.HEADER)
 
 with open('descriptors.cpp', 'r') as fin:
     lines = fin.readlines()
@@ -185,26 +210,15 @@ with open('descriptors.cpp', 'w') as fout:
         if line.startswith(CUSTOM_TWO_BODY_START):
             for descriptor in two_body_descriptors:
                 parsed_descriptor = _sp.sympify(descriptor.expr)
-                fout.write(METHOD_TWO_BODY.format(descriptor.name, 'eval',
-                           format_prms(descriptor.num_prms, _sp.ccode(
-                                descriptor.expr, user_functions=user_funs))))
-                deriv = str(_sp.simplify(
-                    _sp.Derivative(parsed_descriptor, rij).doit()))
-                deriv = deriv.replace(
-                    'Derivative(fcut(rij), rij)', 'dfcut(rij)')
+                fout.write(METHOD_TWO_BODY.format(
+                            descriptor.name, 'eval',
+                            descriptor.to_c_code(descriptor.expr)))
                 fout.write(METHOD_TWO_BODY.format(
                     descriptor.name, 'drij',
-                    format_prms(descriptor.num_prms,
-                                _sp.ccode(deriv, user_functions=user_funs))))
+                    descriptor.to_c_code(descriptor.derivs[0])))
 
-                results = [_sp.simplify(parsed_descriptor),
-                           _sp.simplify(_sp.Derivative(
-                                parsed_descriptor, rij).doit())]
-
-                simplified_results = [result.replace(
-                    'Derivative(fcut(rij), rij)', 'dfcut(rij)') for result
-                    in results]
-                sub_exprs, simplified_results = _sp.cse(simplified_results)
+                results = [descriptor.expr] + descriptor.derivs
+                sub_exprs, simplified_results = _sp.cse(results)
                 method_body = []
                 for sub_expr in sub_exprs:
                     method_body.append(
@@ -227,56 +241,21 @@ with open('descriptors.cpp', 'w') as fout:
                 parsed_descriptor = _sp.sympify(descriptor.expr)
                 fout.write(METHOD_THREE_BODY.format(
                     descriptor.name, 'eval',
-                    format_prms(descriptor.num_prms,
-                                _sp.ccode(descriptor.expr,
-                                          user_functions=user_funs))))
+                    descriptor.to_c_code(descriptor.expr)))
                 # Derivative with respect to rij
-                deriv = _sp.simplify(
-                    _sp.Derivative(parsed_descriptor, rij).doit())
-                deriv = _sp.sympify(re.sub(
-                    'Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)',  # NOQA
-                    'dfcut(\g<arg>)', str(deriv))).doit()
                 fout.write(METHOD_THREE_BODY.format(
                     descriptor.name, 'drij',
-                    format_prms(descriptor.num_prms,
-                                _sp.ccode(deriv, user_functions=user_funs))))
+                    descriptor.to_c_code(descriptor.derivs[0])))
                 # Derivative with respect to rik
-                deriv = _sp.simplify(
-                    _sp.Derivative(parsed_descriptor, rik).doit())
-                deriv = _sp.sympify(re.sub(
-                    'Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)',  # NOQA
-                    'dfcut(\g<arg>)', str(deriv))).doit()
                 fout.write(METHOD_THREE_BODY.format(
                     descriptor.name, 'drik',
-                    format_prms(descriptor.num_prms,
-                                _sp.ccode(deriv, user_functions=user_funs))))
+                    descriptor.to_c_code(descriptor.derivs[1])))
                 # Derivative with respect to costheta
-                deriv = _sp.simplify(
-                    _sp.Derivative(parsed_descriptor, costheta).doit())
-                deriv = _sp.sympify(re.sub(
-                    'Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)',  # NOQA
-                    'dfcut(\g<arg>)', str(deriv))).doit()
                 fout.write(METHOD_THREE_BODY.format(
                     descriptor.name, 'dcostheta',
-                    format_prms(descriptor.num_prms,
-                                _sp.ccode(deriv, user_functions=user_funs))))
+                    descriptor.to_c_code(descriptor.derivs[2])))
 
-                # Combined eval and derivatives
-                results = [
-                    _sp.simplify(parsed_descriptor),
-                    _sp.simplify(
-                        _sp.Derivative(parsed_descriptor, rij).doit()),
-                    _sp.simplify(
-                        _sp.Derivative(parsed_descriptor, rik).doit()),
-                    _sp.simplify(
-                        _sp.Derivative(parsed_descriptor, costheta).doit())]
-                # Ugly work around to allow working with regex. Should maybe be
-                # redone.
-                results = [
-                    _sp.sympify(re.sub(
-                        'Derivative\(fcut\((?P<arg>.*?)\), (?P=arg)\)',  # NOQA
-                        'dfcut(\g<arg>)', str(result))).doit()
-                    for result in results]
+                results = [descriptor.expr] + descriptor.derivs
                 sub_exprs, simplified_results = _sp.cse(results)
                 method_body = []
                 for sub_expr in sub_exprs:
