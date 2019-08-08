@@ -177,6 +177,22 @@ class BehlerG5: public ThreeBodyDescriptor
 
 // AUTOMATIC custom ThreeBodyDescriptors start
 
+class BehlerG4old: public ThreeBodyDescriptor
+{
+  public:
+    BehlerG4old(int num_prms, double* prms,
+      std::shared_ptr<CutoffFunction> cutfun):
+      ThreeBodyDescriptor(num_prms, prms, cutfun){};
+    double eval(double rij, double rik, double costheta);
+    double drij(double rij, double rik, double costheta);
+    double drik(double rij, double rik, double costheta);
+    double dcostheta(double rij, double rik, double costheta);
+    void derivatives(double rij, double rik, double costheta,
+      double &dGdrij, double &dGdrik, double &dGdcostheta);
+    void eval_with_derivatives(double rij, double rik, double costheta,
+      double &G, double &dGdrij, double &dGdrik, double &dGdcostheta);
+};
+
 class BehlerG5mod: public ThreeBodyDescriptor
 {
   public:

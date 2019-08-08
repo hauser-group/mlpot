@@ -320,6 +320,79 @@ void BehlerG5::derivatives(double rij, double rik, double costheta,
 
 // AUTOMATIC custom ThreeBodyDescriptors start
 
+double BehlerG4old::eval(double rij, double rik, double costheta)
+{
+  return pow(costheta*prms[0] + 1, prms[1])*exp2(1 - prms[1])*cutfun->eval(rij)*cutfun->eval(rik)*cutfun->eval(sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2)))*exp(-2*(-costheta*rij*rik + pow(rij, 2) + pow(rik, 2))*prms[2]);
+};
+
+double BehlerG4old::drij(double rij, double rik, double costheta)
+{
+  return pow(costheta*prms[0] + 1, prms[1])*(-(costheta*rik - rij)*cutfun->derivative(sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2)))*cutfun->eval(rij) + (2*(costheta*rik - 2*rij)*cutfun->eval(rij)*prms[2] + cutfun->derivative(rij))*sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2))*cutfun->eval(sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2))))*exp2(1 - prms[1])*cutfun->eval(rik)*exp(-2*(-costheta*rij*rik + pow(rij, 2) + pow(rik, 2))*prms[2])/sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2));
+};
+
+double BehlerG4old::drik(double rij, double rik, double costheta)
+{
+  return pow(costheta*prms[0] + 1, prms[1])*(-(costheta*rij - rik)*cutfun->derivative(sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2)))*cutfun->eval(rik) + (2*(costheta*rij - 2*rik)*cutfun->eval(rik)*prms[2] + cutfun->derivative(rik))*sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2))*cutfun->eval(sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2))))*exp2(1 - prms[1])*cutfun->eval(rij)*exp(-2*(-costheta*rij*rik + pow(rij, 2) + pow(rik, 2))*prms[2])/sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2));
+};
+
+double BehlerG4old::dcostheta(double rij, double rik, double costheta)
+{
+  return (2*rij*rik*pow(costheta*prms[0] + 1, prms[1] + 1)*sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2))*cutfun->eval(sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2)))*prms[2] - rij*rik*pow(costheta*prms[0] + 1, prms[1] + 1)*cutfun->derivative(sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2))) + pow(costheta*prms[0] + 1, prms[1])*sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2))*cutfun->eval(sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2)))*prms[0]*prms[1])*exp2(1 - prms[1])*cutfun->eval(rij)*cutfun->eval(rik)*exp(-2*(-costheta*rij*rik + pow(rij, 2) + pow(rik, 2))*prms[2])/((costheta*prms[0] + 1)*sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2)));
+};
+
+void BehlerG4old::eval_with_derivatives(double rij, double rik, double costheta,
+  double &G, double &dGdrij, double &dGdrik, double &dGdcostheta)
+{
+  auto x0 = 2*rij;
+  auto x1 = costheta*rik;
+  auto x2 = pow(rij, 2) + pow(rik, 2);
+  auto x3 = sqrt(-x0*x1 + x2);
+  auto x4 = cutfun->eval(x3);
+  auto x5 = cutfun->eval(rij);
+  auto x6 = cutfun->eval(rik);
+  auto x7 = costheta*prms[0] + 1;
+  auto x8 = pow(x7, prms[1]);
+  auto x9 = 2*prms[2];
+  auto x10 = exp(-x9*(-rij*x1 + x2));
+  auto x11 = exp2(1 - prms[1]);
+  auto x12 = x10*x11*x6*x8;
+  auto x13 = 1.0/x3;
+  auto x14 = cutfun->derivative(x3);
+  auto x15 = x3*x4;
+  auto x16 = costheta*rij;
+  auto x17 = x10*x11*x13*x5;
+  auto x18 = rik*pow(x7, prms[1] + 1);
+  G = x12*x4*x5;
+  dGdrij = x12*x13*(-x14*x5*(-rij + x1) + x15*(x5*x9*(-x0 + x1) + cutfun->derivative(rij)));
+  dGdrik = x17*x8*(-x14*x6*(-rik + x16) + x15*(x6*x9*(-2*rik + x16) + cutfun->derivative(rik)));
+  dGdcostheta = x17*x6*(-rij*x14*x18 + x0*x15*x18*prms[2] + x15*x8*prms[0]*prms[1])/x7;
+};
+
+void BehlerG4old::derivatives(double rij, double rik, double costheta,
+  double &dGdrij, double &dGdrik, double &dGdcostheta)
+{
+  auto x0 = cutfun->eval(rik);
+  auto x1 = cutfun->eval(rij);
+  auto x2 = costheta*rik;
+  auto x3 = 2*rij;
+  auto x4 = pow(rij, 2) + pow(rik, 2);
+  auto x5 = sqrt(-x2*x3 + x4);
+  auto x6 = cutfun->derivative(x5);
+  auto x7 = 2*prms[2];
+  auto x8 = x5*cutfun->eval(x5);
+  auto x9 = costheta*prms[0] + 1;
+  auto x10 = pow(x9, prms[1]);
+  auto x11 = 1.0/x5;
+  auto x12 = exp(-x7*(-rij*x2 + x4));
+  auto x13 = exp2(1 - prms[1]);
+  auto x14 = x10*x11*x12*x13;
+  auto x15 = costheta*rij;
+  auto x16 = rik*pow(x9, prms[1] + 1);
+  dGdrij = x0*x14*(-x1*x6*(-rij + x2) + x8*(x1*x7*(x2 - x3) + cutfun->derivative(rij)));
+  dGdrik = x1*x14*(-x0*x6*(-rik + x15) + x8*(x0*x7*(-2*rik + x15) + cutfun->derivative(rik)));
+  dGdcostheta = x0*x1*x11*x12*x13*(-rij*x16*x6 + x10*x8*prms[0]*prms[1] + x16*x3*x8*prms[2])/x9;
+};
+
 double BehlerG5mod::eval(double rij, double rik, double costheta)
 {
   return pow(costheta*prms[0] + 1, prms[1])*exp2(1 - prms[1])*cutfun->eval(rij)*cutfun->eval(rik)*exp(-(pow(rij - prms[3], 2) + pow(rik - prms[4], 2))*prms[2]);
@@ -420,7 +493,8 @@ std::shared_ptr<ThreeBodyDescriptor> switch_three_body_descriptors(
   if (funtype == 0) descriptor = std::make_shared<BehlerG4>(num_prms, prms, cutfun);
   else if (funtype == 1) descriptor = std::make_shared<BehlerG5>(num_prms, prms, cutfun);
 // AUTOMATIC switch ThreeBodyDescriptors start
-  else if (funtype == 2) descriptor = std::make_shared<BehlerG5mod>(num_prms, prms, cutfun);
+  else if (funtype == 2) descriptor = std::make_shared<BehlerG4old>(num_prms, prms, cutfun);
+  else if (funtype == 3) descriptor = std::make_shared<BehlerG5mod>(num_prms, prms, cutfun);
 // AUTOMATIC switch ThreeBodyDescriptors end
   else printf("No function type %d\n", funtype);
   return descriptor;
@@ -462,7 +536,8 @@ int get_three_body_descriptor_by_name(const char* name)
   if (strcmp(name, "BehlerG4") == 0) id = 0;
   else if (strcmp(name, "BehlerG5") == 0) id = 1;
 // AUTOMATIC get_three_body_descriptor start
-  else if (strcmp(name, "BehlerG5mod") == 0) id = 2;
+  else if (strcmp(name, "BehlerG4old") == 0) id = 2;
+  else if (strcmp(name, "BehlerG5mod") == 0) id = 3;
 // AUTOMATIC get_three_body_descriptor end
   return id;
 }
@@ -484,6 +559,7 @@ void available_descriptors()
   printf("0: BehlerG4, 3\n");
   printf("1: BehlerG5, 3\n");
 // AUTOMATIC available_three_body_descriptors start
-  printf("2: BehlerG5mod, 5\n");
+  printf("2: BehlerG4old, 3\n");
+  printf("3: BehlerG5mod, 5\n");
 // AUTOMATIC available_three_body_descriptors end
 }
