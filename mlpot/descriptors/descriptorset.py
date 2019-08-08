@@ -46,11 +46,9 @@ try:
                                 flags="C_CONTIGUOUS"),
         _np.ctypeslib.ndpointer(dtype=_np.float64, ndim=3,
                                 flags="C_CONTIGUOUS"))
-    lib.descriptor_set_get_cutoff_function_by_name.argtypes = (_ct.c_char_p,)
-    lib.descriptor_set_get_two_body_descriptor_by_name.argtypes = (
-        _ct.c_char_p,)
-    lib.descriptor_set_get_three_body_descriptor_by_name.argtypes = (
-        _ct.c_char_p,)
+    lib.get_cutoff_function_by_name.argtypes = (_ct.c_char_p,)
+    lib.get_two_body_descriptor_by_name.argtypes = (_ct.c_char_p,)
+    lib.get_three_body_descriptor_by_name.argtypes = (_ct.c_char_p,)
     lib.descriptor_set_get_G_vector_size.argtypes = (
         _ct.c_void_p, _ct.c_int, _ct.POINTER(_ct.c_int))
     lib.descriptor_set_print_descriptors.argtypes = (_ct.c_void_p,)
@@ -107,12 +105,10 @@ class DescriptorSet(object):
              'and now follow the convention of J. Behler, JCP 134 074106')
         if cutoff is None:
             cutoff = self.cutoff
-        cutid = lib.descriptor_set_get_cutoff_function_by_name(
-            cuttype.encode('utf-8'))
+        cutid = lib.get_cutoff_function_by_name(cuttype.encode('utf-8'))
         if cutid == -1:
             raise TypeError("Unknown cutoff function type {}".format(cuttype))
-        funid = lib.descriptor_set_get_two_body_descriptor_by_name(
-            funtype.encode('utf-8'))
+        funid = lib.get_two_body_descriptor_by_name(funtype.encode('utf-8'))
         if funid == -1:
             raise TypeError("Unknown two body descriptor type: {}".format(
                 funtype))
@@ -128,12 +124,10 @@ class DescriptorSet(object):
              'and now follow the convention of J. Behler, JCP 134 074106')
         if cutoff is None:
             cutoff = self.cutoff
-        cutid = lib.descriptor_set_get_cutoff_function_by_name(
-            cuttype.encode('utf-8'))
+        cutid = lib.get_cutoff_function_by_name(cuttype.encode('utf-8'))
         if cutid == -1:
             raise TypeError("Unknown cutoff function type {}".format(cuttype))
-        funid = lib.descriptor_set_get_three_body_descriptor_by_name(
-            funtype.encode('utf-8'))
+        funid = lib.get_three_body_descriptor_by_name(funtype.encode('utf-8'))
         if funid == -1:
             raise TypeError(
                 "Unknown three body descriptor type: {}".format(funtype))
