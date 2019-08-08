@@ -71,18 +71,18 @@ extern "C" {
   void descriptor_set_print_descriptors(DescriptorSet* ds){
     ds->print_descriptors();
   }
-  void available_descriptors(){
+  void descriptor_set_available_descriptors(){
     available_descriptors();
   }
-  int get_cutoff_function_by_name(const char* name)
+  int descriptor_set_get_cutoff_function_by_name(const char* name)
   {
     return get_cutoff_function_by_name(name);
   }
-  int get_two_body_descriptor_by_name(const char* name)
+  int descriptor_set_get_two_body_descriptor_by_name(const char* name)
   {
     return get_two_body_descriptor_by_name(name);
   }
-  int get_three_body_descriptor_by_name(const char* name)
+  int descriptor_set_get_three_body_descriptor_by_name(const char* name)
   {
     return get_three_body_descriptor_by_name(name);
   }
