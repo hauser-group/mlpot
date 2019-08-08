@@ -320,27 +320,27 @@ void BehlerG5::derivatives(double rij, double rik, double costheta,
 
 // AUTOMATIC custom ThreeBodyDescriptors start
 
-double BehlerG4old::eval(double rij, double rik, double costheta)
+double BehlerG4auto::eval(double rij, double rik, double costheta)
 {
   return pow(costheta*prms[0] + 1, prms[1])*exp2(1 - prms[1])*cutfun->eval(rij)*cutfun->eval(rik)*cutfun->eval(sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2)))*exp(-2*(-costheta*rij*rik + pow(rij, 2) + pow(rik, 2))*prms[2]);
 };
 
-double BehlerG4old::drij(double rij, double rik, double costheta)
+double BehlerG4auto::drij(double rij, double rik, double costheta)
 {
   return pow(costheta*prms[0] + 1, prms[1])*(-(costheta*rik - rij)*cutfun->derivative(sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2)))*cutfun->eval(rij) + (2*(costheta*rik - 2*rij)*cutfun->eval(rij)*prms[2] + cutfun->derivative(rij))*sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2))*cutfun->eval(sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2))))*exp2(1 - prms[1])*cutfun->eval(rik)*exp(-2*(-costheta*rij*rik + pow(rij, 2) + pow(rik, 2))*prms[2])/sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2));
 };
 
-double BehlerG4old::drik(double rij, double rik, double costheta)
+double BehlerG4auto::drik(double rij, double rik, double costheta)
 {
   return pow(costheta*prms[0] + 1, prms[1])*(-(costheta*rij - rik)*cutfun->derivative(sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2)))*cutfun->eval(rik) + (2*(costheta*rij - 2*rik)*cutfun->eval(rik)*prms[2] + cutfun->derivative(rik))*sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2))*cutfun->eval(sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2))))*exp2(1 - prms[1])*cutfun->eval(rij)*exp(-2*(-costheta*rij*rik + pow(rij, 2) + pow(rik, 2))*prms[2])/sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2));
 };
 
-double BehlerG4old::dcostheta(double rij, double rik, double costheta)
+double BehlerG4auto::dcostheta(double rij, double rik, double costheta)
 {
   return (2*rij*rik*pow(costheta*prms[0] + 1, prms[1] + 1)*sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2))*cutfun->eval(sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2)))*prms[2] - rij*rik*pow(costheta*prms[0] + 1, prms[1] + 1)*cutfun->derivative(sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2))) + pow(costheta*prms[0] + 1, prms[1])*sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2))*cutfun->eval(sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2)))*prms[0]*prms[1])*exp2(1 - prms[1])*cutfun->eval(rij)*cutfun->eval(rik)*exp(-2*(-costheta*rij*rik + pow(rij, 2) + pow(rik, 2))*prms[2])/((costheta*prms[0] + 1)*sqrt(-2*costheta*rij*rik + pow(rij, 2) + pow(rik, 2)));
 };
 
-void BehlerG4old::eval_with_derivatives(double rij, double rik, double costheta,
+void BehlerG4auto::eval_with_derivatives(double rij, double rik, double costheta,
   double &G, double &dGdrij, double &dGdrik, double &dGdcostheta)
 {
   auto x0 = 2*rij;
@@ -368,7 +368,7 @@ void BehlerG4old::eval_with_derivatives(double rij, double rik, double costheta,
   dGdcostheta = x17*x6*(-rij*x14*x18 + x0*x15*x18*prms[2] + x15*x8*prms[0]*prms[1])/x7;
 };
 
-void BehlerG4old::derivatives(double rij, double rik, double costheta,
+void BehlerG4auto::derivatives(double rij, double rik, double costheta,
   double &dGdrij, double &dGdrik, double &dGdcostheta)
 {
   auto x0 = cutfun->eval(rik);
@@ -493,7 +493,7 @@ std::shared_ptr<ThreeBodyDescriptor> switch_three_body_descriptors(
   if (funtype == 0) descriptor = std::make_shared<BehlerG4>(num_prms, prms, cutfun);
   else if (funtype == 1) descriptor = std::make_shared<BehlerG5>(num_prms, prms, cutfun);
 // AUTOMATIC switch ThreeBodyDescriptors start
-  else if (funtype == 2) descriptor = std::make_shared<BehlerG4old>(num_prms, prms, cutfun);
+  else if (funtype == 2) descriptor = std::make_shared<BehlerG4auto>(num_prms, prms, cutfun);
   else if (funtype == 3) descriptor = std::make_shared<BehlerG5mod>(num_prms, prms, cutfun);
 // AUTOMATIC switch ThreeBodyDescriptors end
   else printf("No function type %d\n", funtype);
@@ -536,7 +536,7 @@ int get_three_body_descriptor_by_name(const char* name)
   if (strcmp(name, "BehlerG4") == 0) id = 0;
   else if (strcmp(name, "BehlerG5") == 0) id = 1;
 // AUTOMATIC get_three_body_descriptor start
-  else if (strcmp(name, "BehlerG4old") == 0) id = 2;
+  else if (strcmp(name, "BehlerG4auto") == 0) id = 2;
   else if (strcmp(name, "BehlerG5mod") == 0) id = 3;
 // AUTOMATIC get_three_body_descriptor end
   return id;
@@ -559,7 +559,7 @@ void available_descriptors()
   printf("0: BehlerG4, 3\n");
   printf("1: BehlerG5, 3\n");
 // AUTOMATIC available_three_body_descriptors start
-  printf("2: BehlerG4old, 3\n");
+  printf("2: BehlerG4auto, 3\n");
   printf("3: BehlerG5mod, 5\n");
 // AUTOMATIC available_three_body_descriptors end
 }
