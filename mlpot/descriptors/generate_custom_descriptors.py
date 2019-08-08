@@ -51,13 +51,6 @@ ELIF_STRING = '  else if (strcmp(name, "{}") == 0) id = {};\n'
 user_funs = {'fcut': 'cutfun->eval', 'dfcut': 'cutfun->derivative'}
 
 
-def format_prms(num_prms, s):
-    # Replace prm0 with prms[0]
-    for i in range(num_prms):
-        s = s.replace('prm{:d}'.format(i), 'prms[{:d}]'.format(i))
-    return s
-
-
 class Descriptor():
 
     def __init__(self, name, num_prms, expr):
@@ -224,15 +217,13 @@ with open('descriptors.cpp', 'w') as fout:
                     method_body.append(
                         'auto {} = {}'.format(
                             sub_expr[0],
-                            format_prms(descriptor.num_prms,
-                                        _sp.ccode(sub_expr[1],
-                                                  user_functions=user_funs))))
-                method_body.append('G = {}'.format(format_prms(
-                    descriptor.num_prms, _sp.ccode(
-                        simplified_results[0], user_functions=user_funs))))
-                method_body.append('dGdrij = {}'.format(format_prms(
-                    descriptor.num_prms, _sp.ccode(
-                        simplified_results[1], user_functions=user_funs))))
+                            _sp.ccode(sub_expr[1], user_functions=user_funs)))
+                method_body.append('G = {}'.format(
+                    _sp.ccode(simplified_results[0],
+                              user_functions=user_funs)))
+                method_body.append('dGdrij = {}'.format(
+                    _sp.ccode(simplified_results[1],
+                              user_functions=user_funs)))
 
                 fout.write(EVAL_WITH_DERIVATIVES_TWO_BODY.format(
                     descriptor.name, ';\n  '.join(method_body)))
@@ -259,24 +250,17 @@ with open('descriptors.cpp', 'w') as fout:
                 sub_exprs, simplified_results = _sp.cse(results)
                 method_body = []
                 for sub_expr in sub_exprs:
-                    method_body.append(
-                        'auto {} = {}'.format(
-                            sub_expr[0],
-                            format_prms(descriptor.num_prms,
-                                        _sp.ccode(sub_expr[1],
-                                                  user_functions=user_funs))))
-                method_body.append('G = {}'.format(format_prms(
-                    descriptor.num_prms, _sp.ccode(
-                        simplified_results[0], user_functions=user_funs))))
-                method_body.append('dGdrij = {}'.format(format_prms(
-                    descriptor.num_prms, _sp.ccode(
-                        simplified_results[1], user_functions=user_funs))))
-                method_body.append('dGdrik = {}'.format(format_prms(
-                    descriptor.num_prms, _sp.ccode(
-                        simplified_results[2], user_functions=user_funs))))
-                method_body.append('dGdcostheta = {}'.format(
-                    format_prms(descriptor.num_prms, _sp.ccode(
-                        simplified_results[3], user_functions=user_funs))))
+                    method_body.append('auto {} = {}'.format(
+                        sub_expr[0],
+                        _sp.ccode(sub_expr[1], user_functions=user_funs)))
+                method_body.append('G = {}'.format(_sp.ccode(
+                    simplified_results[0], user_functions=user_funs)))
+                method_body.append('dGdrij = {}'.format(_sp.ccode(
+                    simplified_results[1], user_functions=user_funs)))
+                method_body.append('dGdrik = {}'.format(_sp.ccode(
+                    simplified_results[2], user_functions=user_funs)))
+                method_body.append('dGdcostheta = {}'.format(_sp.ccode(
+                    simplified_results[3], user_functions=user_funs)))
 
                 fout.write(EVAL_WITH_DERIVATIVES_THREE_BODY.format(
                     descriptor.name, ';\n  '.join(method_body)))
@@ -285,21 +269,15 @@ with open('descriptors.cpp', 'w') as fout:
                 sub_exprs, simplified_derivs = _sp.cse(results[1::])
                 method_body = []
                 for sub_expr in sub_exprs:
-                    method_body.append(
-                        'auto {} = {}'.format(
-                            sub_expr[0],
-                            format_prms(descriptor.num_prms,
-                                        _sp.ccode(sub_expr[1],
-                                                  user_functions=user_funs))))
-                method_body.append('dGdrij = {}'.format(format_prms(
-                    descriptor.num_prms, _sp.ccode(
-                        simplified_derivs[0], user_functions=user_funs))))
-                method_body.append('dGdrik = {}'.format(format_prms(
-                    descriptor.num_prms, _sp.ccode(
-                        simplified_derivs[1], user_functions=user_funs))))
+                    method_body.append('auto {} = {}'.format(
+                        sub_expr[0],
+                        _sp.ccode(sub_expr[1], user_functions=user_funs)))
+                method_body.append('dGdrij = {}'.format(_sp.ccode(
+                    simplified_derivs[0], user_functions=user_funs)))
+                method_body.append('dGdrik = {}'.format(_sp.ccode(
+                    simplified_derivs[1], user_functions=user_funs)))
                 method_body.append('dGdcostheta = {}'.format(
-                    format_prms(descriptor.num_prms, _sp.ccode(
-                        simplified_derivs[2], user_functions=user_funs))))
+                    _sp.ccode(simplified_derivs[2], user_functions=user_funs)))
 
                 fout.write(DERIVATIVES_THREE_BODY.format(
                     descriptor.name, ';\n  '.join(method_body)))
