@@ -109,14 +109,18 @@ class {0}: public ThreeBodyDescriptor
 """
 
     def calculate_derivatives(self):
-        # There is probably a nicer way to do this double replacement
+        # There is probably a nicer way to do this replacement instead of
+        # converting to string and back
         self.derivs = [
-            _sp.simplify(_sp.Derivative(self.expr, var).doit().replace(
-                _sp.sympify('Derivative(fcut(rij), rij)'),
-                _sp.sympify('dfcut(rij)')
-            ).replace(
-                _sp.sympify('Derivative(fcut(rik), rik)'),
-                _sp.sympify('dfcut(rik)'))) for var in [rij, rik, costheta]]
+            _sp.simplify(
+                _sp.sympify(
+                    re.sub('Derivative\\(fcut\\((?P<arg>.*?)\\), (?P=arg)\\)',
+                           'dfcut(\\g<arg>)',
+                           str(_sp.Derivative(self.expr, var).doit())),
+                    locals={'prms': _sp.IndexedBase('prms',
+                                                    shape=self.num_prms)}
+                ).doit()
+            ) for var in [rij, rik, costheta]]
 
 
 # Read custom descriptor file
