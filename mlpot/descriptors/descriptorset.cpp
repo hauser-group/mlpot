@@ -192,7 +192,7 @@ void DescriptorSet::eval(
             (xyzs[3*k+1]-xyzs[3*i+1])*(xyzs[3*k+1]-xyzs[3*j+1]) +
             (xyzs[3*k+2]-xyzs[3*i+2])*(xyzs[3*k+2]-xyzs[3*j+2]))/(rik*rjk);
 
-          // As described in add_ThreeBodyDescriptor() the type of the three
+          // As described in add_three_body_descriptor() the type of the three
           // body symmetry function consists of the atom type of the atom the
           // function is centered on an the sorted pair of atom types of the two
           // remaining atoms.
@@ -606,7 +606,7 @@ void DescriptorSet::eval_with_derivatives(
           costheta_j = (dot_j/(rjk*rij));
           costheta_k = (dot_k/(rik*rjk));
 
-          // As described in add_ThreeBodyDescriptor() the type of the three
+          // As described in add_three_body_descriptor() the type of the three
           // body symmetry function consists of the atom type of the atom the
           // function is centered on an the sorted pair of atom types of the two
           // remaining atoms.
