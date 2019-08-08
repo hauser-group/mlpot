@@ -397,33 +397,33 @@ std::shared_ptr<TwoBodyDescriptor> switch_two_body_descriptors(
   int funtype, int num_prms, double* prms,
   std::shared_ptr<CutoffFunction> cutfun)
 {
-  std::shared_ptr<TwoBodyDescriptor> symFun;
-  if (funtype == 0) symFun = std::make_shared<BehlerG1>(num_prms, prms, cutfun);
-  else if (funtype == 1) symFun = std::make_shared<BehlerG2>(num_prms, prms, cutfun);
-  else if (funtype == 2) symFun = std::make_shared<BehlerG3>(num_prms, prms, cutfun);
+  std::shared_ptr<TwoBodyDescriptor> descriptor;
+  if (funtype == 0) descriptor = std::make_shared<BehlerG1>(num_prms, prms, cutfun);
+  else if (funtype == 1) descriptor = std::make_shared<BehlerG2>(num_prms, prms, cutfun);
+  else if (funtype == 2) descriptor = std::make_shared<BehlerG3>(num_prms, prms, cutfun);
 // AUTOMATIC switch TwoBodyDescriptors start
-  else if (funtype == 3) symFun = std::make_shared<BehlerG1old>(num_prms, prms, cutfun);
-  else if (funtype == 4) symFun = std::make_shared<OneOverR6>(num_prms, prms, cutfun);
-  else if (funtype == 5) symFun = std::make_shared<OneOverR8>(num_prms, prms, cutfun);
-  else if (funtype == 6) symFun = std::make_shared<OneOverR10>(num_prms, prms, cutfun);
-  else if (funtype == 7) symFun = std::make_shared<radialTest>(num_prms, prms, cutfun);
+  else if (funtype == 3) descriptor = std::make_shared<BehlerG1old>(num_prms, prms, cutfun);
+  else if (funtype == 4) descriptor = std::make_shared<OneOverR6>(num_prms, prms, cutfun);
+  else if (funtype == 5) descriptor = std::make_shared<OneOverR8>(num_prms, prms, cutfun);
+  else if (funtype == 6) descriptor = std::make_shared<OneOverR10>(num_prms, prms, cutfun);
+  else if (funtype == 7) descriptor = std::make_shared<radialTest>(num_prms, prms, cutfun);
 // AUTOMATIC switch TwoBodyDescriptors end
   else printf("No function type %d\n", funtype);
-  return symFun;
+  return descriptor;
 }
 
 std::shared_ptr<ThreeBodyDescriptor> switch_three_body_descriptors(
   int funtype, int num_prms, double* prms,
   std::shared_ptr<CutoffFunction> cutfun)
 {
-  std::shared_ptr<ThreeBodyDescriptor> symFun;
-  if (funtype == 0) symFun = std::make_shared<BehlerG4>(num_prms, prms, cutfun);
-  else if (funtype == 1) symFun = std::make_shared<BehlerG5>(num_prms, prms, cutfun);
+  std::shared_ptr<ThreeBodyDescriptor> descriptor;
+  if (funtype == 0) descriptor = std::make_shared<BehlerG4>(num_prms, prms, cutfun);
+  else if (funtype == 1) descriptor = std::make_shared<BehlerG5>(num_prms, prms, cutfun);
 // AUTOMATIC switch ThreeBodyDescriptors start
-  else if (funtype == 2) symFun = std::make_shared<BehlerG5mod>(num_prms, prms, cutfun);
+  else if (funtype == 2) descriptor = std::make_shared<BehlerG5mod>(num_prms, prms, cutfun);
 // AUTOMATIC switch ThreeBodyDescriptors end
   else printf("No function type %d\n", funtype);
-  return symFun;
+  return descriptor;
 }
 
 int get_cutoff_function_by_name(const char* name)

@@ -40,10 +40,10 @@ void {}::eval_with_derivatives(double rij, double rik, double costheta,
 }};
 """
 
-IF_FUN_ID = ('  if (funtype == {}) '
-             + 'symFun = std::make_shared<{}>(num_prms, prms, cutfun);\n')
-ELIF_FUN_ID = ('  else if (funtype == {}) '
-               + 'symFun = std::make_shared<{}>(num_prms, prms, cutfun);\n')
+IF_FUN_ID = ('  if (funtype == {}) descriptor = '
+             + 'std::make_shared<{}>(num_prms, prms, cutfun);\n')
+ELIF_FUN_ID = ('  else if (funtype == {}) descriptor = '
+               + 'std::make_shared<{}>(num_prms, prms, cutfun);\n')
 
 IF_STRING = '  if (strcmp(name, "{}") == 0) id = {};\n'
 ELIF_STRING = '  else if (strcmp(name, "{}") == 0) id = {};\n'
