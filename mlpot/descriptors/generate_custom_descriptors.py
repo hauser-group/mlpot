@@ -64,12 +64,12 @@ class Descriptor():
         self.name = name
         self.HEADER = self.HEADER.format(name)
         self.num_prms = num_prms
-        self.expr = _sp.simplify(_sp.sympify(expr))
+        self.expr = _sp.simplify(_sp.sympify(
+            expr, locals={'prms': _sp.IndexedBase('prms', shape=num_prms)}))
         self.calculate_derivatives()
 
     def to_c_code(self, expr):
-        return format_prms(self.num_prms,
-                           _sp.ccode(expr, user_functions=user_funs))
+        return _sp.ccode(expr, user_functions=user_funs)
 
     def calculate_derivatives(self):
         pass

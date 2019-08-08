@@ -4,7 +4,7 @@
 ! Add arbitrary two body descriptors here. The only argument of a two body
 ! descriptor is the interatomic distance rij.
 
-TwoBodyDescriptor BehlerG1old 1 exp(-prm0*(rij)**2)*fcut(rij)
+TwoBodyDescriptor BehlerG1old 1 exp(-prms[0]*(rij)**2)*fcut(rij)
 TwoBodyDescriptor OneOverR6 0 1/rij**6*fcut(rij)
 TwoBodyDescriptor OneOverR8 0 1/rij**8*fcut(rij)
 TwoBodyDescriptor OneOverR10 0 1/rij**10*fcut(rij)
@@ -20,4 +20,4 @@ TwoBodyDescriptor radialTest 0 rij
 ! sqrt(rij**2+rik**2-2*rij*rik*costheta)
 
 ! Modified BehlerG5 function introducing a center for the radial Gaussians
-ThreeBodyDescriptors BehlerG5mod 5 exp2(1-prm1)*(1+prm0*costheta)**prm1*exp(-prm2*((rij-prm3)**2+(rik-prm4)**2))*fcut(rij)*fcut(rik)
+ThreeBodyDescriptors BehlerG5mod 5 exp2(1-prms[1])*(1+prms[0]*costheta)**prms[1]*exp(-prms[2]*((rij-prms[3])**2+(rik-prms[4])**2))*fcut(rij)*fcut(rik)

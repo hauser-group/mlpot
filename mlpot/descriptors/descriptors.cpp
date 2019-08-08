@@ -107,20 +107,20 @@ void BehlerG3::eval_with_derivatives(double rij, double &G, double &dGdrij)
 
 double BehlerG1old::eval(double rij)
 {
-  return cutfun->eval(rij)*exp(-prms[0]*pow(rij, 2));
+  return cutfun->eval(rij)*exp(-pow(rij, 2)*prms[0]);
 };
 
 double BehlerG1old::drij(double rij)
 {
-  return (-2*prms[0]*rij*cutfun->eval(rij) + cutfun->derivative(rij))*exp(-prms[0]*pow(rij, 2));
+  return (-2*rij*cutfun->eval(rij)*prms[0] + cutfun->derivative(rij))*exp(-pow(rij, 2)*prms[0]);
 };
 
 void BehlerG1old::eval_with_derivatives(double rij, double &G, double &dGdrij)
 {
   auto x0 = cutfun->eval(rij);
-  auto x1 = exp(-prms[0]*pow(rij, 2));
+  auto x1 = exp(-pow(rij, 2)*prms[0]);
   G = x0*x1;
-  dGdrij = x1*(-2*prms[0]*rij*x0 + cutfun->derivative(rij));
+  dGdrij = x1*(-2*rij*x0*prms[0] + cutfun->derivative(rij));
 };
 
 double OneOverR6::eval(double rij)
@@ -322,22 +322,22 @@ void BehlerG5::derivatives(double rij, double rik, double costheta,
 
 double BehlerG5mod::eval(double rij, double rik, double costheta)
 {
-  return pow(costheta*prms[0] + 1, prms[1])*exp2(1 - prms[1])*cutfun->eval(rij)*cutfun->eval(rik)*exp(-prms[2]*(pow(prms[3] - rij, 2) + pow(prms[4] - rik, 2)));
+  return pow(costheta*prms[0] + 1, prms[1])*exp2(1 - prms[1])*cutfun->eval(rij)*cutfun->eval(rik)*exp(-(pow(rij - prms[3], 2) + pow(rik - prms[4], 2))*prms[2]);
 };
 
 double BehlerG5mod::drij(double rij, double rik, double costheta)
 {
-  return pow(costheta*prms[0] + 1, prms[1])*(2*prms[2]*(prms[3] - rij)*cutfun->eval(rij) + cutfun->derivative(rij))*exp2(1 - prms[1])*cutfun->eval(rik)*exp(-prms[2]*(pow(prms[3] - rij, 2) + pow(prms[4] - rik, 2)));
+  return pow(costheta*prms[0] + 1, prms[1])*(-2*(rij - prms[3])*cutfun->eval(rij)*prms[2] + cutfun->derivative(rij))*exp2(1 - prms[1])*cutfun->eval(rik)*exp(-(pow(rij - prms[3], 2) + pow(rik - prms[4], 2))*prms[2]);
 };
 
 double BehlerG5mod::drik(double rij, double rik, double costheta)
 {
-  return pow(costheta*prms[0] + 1, prms[1])*(2*prms[2]*(prms[4] - rik)*cutfun->eval(rik) + cutfun->derivative(rik))*exp2(1 - prms[1])*cutfun->eval(rij)*exp(-prms[2]*(pow(prms[3] - rij, 2) + pow(prms[4] - rik, 2)));
+  return pow(costheta*prms[0] + 1, prms[1])*(-2*(rik - prms[4])*cutfun->eval(rik)*prms[2] + cutfun->derivative(rik))*exp2(1 - prms[1])*cutfun->eval(rij)*exp(-(pow(rij - prms[3], 2) + pow(rik - prms[4], 2))*prms[2]);
 };
 
 double BehlerG5mod::dcostheta(double rij, double rik, double costheta)
 {
-  return prms[0]*prms[1]*pow(costheta*prms[0] + 1, prms[1] - 1)*exp2(1 - prms[1])*cutfun->eval(rij)*cutfun->eval(rik)*exp(-prms[2]*(pow(prms[3] - rij, 2) + pow(prms[4] - rik, 2)));
+  return pow(costheta*prms[0] + 1, prms[1] - 1)*exp2(1 - prms[1])*cutfun->eval(rij)*cutfun->eval(rik)*exp(-(pow(rij - prms[3], 2) + pow(rik - prms[4], 2))*prms[2])*prms[0]*prms[1];
 };
 
 void BehlerG5mod::eval_with_derivatives(double rij, double rik, double costheta,
@@ -347,34 +347,34 @@ void BehlerG5mod::eval_with_derivatives(double rij, double rik, double costheta,
   auto x1 = cutfun->eval(rik);
   auto x2 = costheta*prms[0] + 1;
   auto x3 = pow(x2, prms[1]);
-  auto x4 = prms[3] - rij;
-  auto x5 = prms[4] - rik;
-  auto x6 = exp(-prms[2]*(pow(x4, 2) + pow(x5, 2)));
+  auto x4 = rij - prms[3];
+  auto x5 = rik - prms[4];
+  auto x6 = exp(-(pow(x4, 2) + pow(x5, 2))*prms[2]);
   auto x7 = exp2(1 - prms[1]);
   auto x8 = x1*x3*x6*x7;
   auto x9 = 2*prms[2];
   auto x10 = x0*x6*x7;
   G = x0*x8;
-  dGdrij = x8*(x0*x4*x9 + cutfun->derivative(rij));
-  dGdrik = x10*x3*(x1*x5*x9 + cutfun->derivative(rik));
-  dGdcostheta = prms[0]*prms[1]*x1*x10*pow(x2, prms[1] - 1);
+  dGdrij = x8*(-x0*x4*x9 + cutfun->derivative(rij));
+  dGdrik = x10*x3*(-x1*x5*x9 + cutfun->derivative(rik));
+  dGdcostheta = x1*x10*pow(x2, prms[1] - 1)*prms[0]*prms[1];
 };
 
 void BehlerG5mod::derivatives(double rij, double rik, double costheta,
   double &dGdrij, double &dGdrik, double &dGdcostheta)
 {
   auto x0 = cutfun->eval(rik);
-  auto x1 = prms[3] - rij;
+  auto x1 = rij - prms[3];
   auto x2 = cutfun->eval(rij);
   auto x3 = 2*prms[2];
   auto x4 = costheta*prms[0] + 1;
-  auto x5 = prms[4] - rik;
-  auto x6 = exp(-prms[2]*(pow(x1, 2) + pow(x5, 2)));
+  auto x5 = rik - prms[4];
+  auto x6 = exp(-(pow(x1, 2) + pow(x5, 2))*prms[2]);
   auto x7 = exp2(1 - prms[1]);
   auto x8 = pow(x4, prms[1])*x6*x7;
-  dGdrij = x0*x8*(x1*x2*x3 + cutfun->derivative(rij));
-  dGdrik = x2*x8*(x0*x3*x5 + cutfun->derivative(rik));
-  dGdcostheta = prms[0]*prms[1]*x0*x2*pow(x4, prms[1] - 1)*x6*x7;
+  dGdrij = x0*x8*(-x1*x2*x3 + cutfun->derivative(rij));
+  dGdrik = x2*x8*(-x0*x3*x5 + cutfun->derivative(rik));
+  dGdcostheta = x0*x2*pow(x4, prms[1] - 1)*x6*x7*prms[0]*prms[1];
 };
 // AUTOMATIC custom ThreeBodyDescriptors end
 
