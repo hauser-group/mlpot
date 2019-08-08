@@ -63,21 +63,27 @@ class LibraryTest(unittest.TestCase):
                         [2**(1.-zetas)*np.exp(-eta*(rij**2+rik**2)) *
                          (1.+lamb*np.cos(ti))**zetas*fcut(rij)*fcut(rik)
                          for eta in ang_etas for lamb in [-1.0, 1.0]])
-                    np.testing.assert_allclose(Gs, Gs_atomwise)
-                    np.testing.assert_allclose(Gs[0], Gs_ref)
-                    np.testing.assert_allclose(Gs_atomwise[0], Gs_ref)
+                    np.testing.assert_allclose(Gs, Gs_atomwise,
+                                               equal_nan=False)
+                    np.testing.assert_allclose(Gs[0], Gs_ref,
+                                               equal_nan=False)
+                    np.testing.assert_allclose(Gs_atomwise[0], Gs_ref,
+                                               equal_nan=False)
 
                     dGs = ds.eval_derivatives(types, xyzs)
                     dGs_atomwise = ds.eval_derivatives_atomwise(types, xyzs)
                     # Adding the equal_nan=False option shows a bug for
                     # descriptors using rik as input
-                    np.testing.assert_allclose(dGs, dGs_atomwise)
+                    np.testing.assert_allclose(dGs, dGs_atomwise,
+                                               equal_nan=False)
 
                     Gs, dGs = ds.eval_with_derivatives(types, xyzs)
                     Gs_atomwise, dGs_atomwise = (
                         ds.eval_with_derivatives_atomwise(types, xyzs))
-                    np.testing.assert_allclose(Gs, Gs_atomwise)
-                    np.testing.assert_allclose(dGs, dGs_atomwise)
+                    np.testing.assert_allclose(Gs, Gs_atomwise,
+                                               equal_nan=False)
+                    np.testing.assert_allclose(dGs, dGs_atomwise,
+                                               equal_nan=False)
 
 
 if __name__ == '__main__':

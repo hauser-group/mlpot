@@ -23,10 +23,11 @@ class CutoffTest(unittest.TestCase):
                     dGs.append(ds.eval_geometry_derivatives(geo))
                 np.testing.assert_allclose(
                     np.array(Gs)[:, 0, 0],
-                    self.function(r_vec, ds.cutoff))
+                    self.function(r_vec, ds.cutoff), equal_nan=False)
                 np.testing.assert_allclose(
                     np.array(dGs)[:, 0, 0, 1, -1],
-                    self.function_derivative(r_vec, ds.cutoff), atol=1e-12)
+                    self.function_derivative(r_vec, ds.cutoff),
+                    atol=1e-12, equal_nan=False)
 
 
 class ConstCutoffTest(CutoffTest.CutoffTest):
