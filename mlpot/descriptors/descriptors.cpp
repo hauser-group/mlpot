@@ -322,7 +322,7 @@ void BehlerG5::derivatives(double rij, double rik, double costheta,
 
 double BehlerG5mod::eval(double rij, double rik, double costheta)
 {
-  return pow(costheta*prms[0] + 1, prms[1])*exp2(-prms[1] + 1)*cutfun->eval(rij)*cutfun->eval(rik)*exp(-prms[2]*(pow(-prms[3] + rij, 2) + pow(-prms[4] + rik, 2)));
+  return pow(costheta*prms[0] + 1, prms[1])*exp2(-prms[1] + 1)*cutfun->eval(rij)*cutfun->eval(rik)*exp(-prms[2]*(pow(prms[3] - rij, 2) + pow(prms[4] - rik, 2)));
 };
 
 double BehlerG5mod::drij(double rij, double rik, double costheta)
