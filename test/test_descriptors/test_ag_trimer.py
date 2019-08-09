@@ -3,7 +3,7 @@ from mlpot.descriptors import DescriptorSet
 import numpy as np
 
 
-class LibraryTest(unittest.TestCase):
+class AgTrimerTest(unittest.TestCase):
 
     def test_trimer(self):
         with DescriptorSet(['Ag'], cutoff=8.0) as ds:
@@ -41,21 +41,22 @@ class LibraryTest(unittest.TestCase):
             for ri in r_vec:
                 for ti in theta_vec:
                     xyzs = np.array([[0.0, 0.0, 0.0],
-                                    [ri, 0.0, 0.0],
+                                    [0.5*ri, 0.0, 0.0],
                                     [ri*np.cos(ti), ri*np.sin(ti), 0.0]])
 
                     rij = np.linalg.norm(xyzs[0, :]-xyzs[1, :])
                     rik = np.linalg.norm(xyzs[0, :]-xyzs[2, :])
                     rjk = np.linalg.norm(xyzs[1, :]-xyzs[2, :])
                     np.testing.assert_allclose(
-                        np.linalg.norm(xyzs[1, :]-xyzs[2, :]),
+                        rjk,
                         np.sqrt(rij**2+rik**2-2.*rij*rik*np.cos(ti)),
                         atol=1E-12)
 
                     Gs = ds.eval(types, xyzs)
                     Gs_atomwise = ds.eval_atomwise(types, xyzs)
                     Gs_ref = np.concatenate(
-                        [2*np.exp(-etas*ri**2)*fcut(ri)] +
+                        [np.exp(-etas*rij**2)*fcut(rij)
+                         + np.exp(-etas*rik**2)*fcut(rik)] +
                         [2**(1.-zetas)*np.exp(-eta*(rij**2+rik**2+rjk**2)) *
                          (1.+lamb*np.cos(ti))**zetas *
                          fcut(rij)*fcut(rik)*fcut(rjk)
@@ -83,7 +84,38 @@ class LibraryTest(unittest.TestCase):
                     np.testing.assert_allclose(Gs, Gs_atomwise,
                                                equal_nan=False)
                     np.testing.assert_allclose(dGs, dGs_atomwise,
+                                               equal_nan=False, atol=1e-15)
+
+    def test_equidistant_trimer(self):
+        with DescriptorSet(['Ag'], cutoff=8.0) as ds:
+            types = ['Ag', 'Ag', 'Ag']
+
+            N = 30
+            r_vec = np.linspace(1., 5., N)
+            theta_vec = np.linspace(0.0*np.pi, 2.*np.pi, N, endpoint=True)
+            for ri in r_vec:
+                for ti in theta_vec:
+                    xyzs = np.array([[0.0, 0.0, 0.0],
+                                    [ri, 0.0, 0.0],
+                                    [ri*np.cos(ti), ri*np.sin(ti), 0.0]])
+
+                    Gs = ds.eval(types, xyzs)
+                    Gs_atomwise = ds.eval_atomwise(types, xyzs)
+                    np.testing.assert_allclose(Gs, Gs_atomwise,
                                                equal_nan=False)
+
+                    dGs = ds.eval_derivatives(types, xyzs)
+                    dGs_atomwise = ds.eval_derivatives_atomwise(types, xyzs)
+                    np.testing.assert_allclose(dGs, dGs_atomwise,
+                                               equal_nan=False)
+
+                    Gs, dGs = ds.eval_with_derivatives(types, xyzs)
+                    Gs_atomwise, dGs_atomwise = (
+                        ds.eval_with_derivatives_atomwise(types, xyzs))
+                    np.testing.assert_allclose(Gs, Gs_atomwise,
+                                               equal_nan=False)
+                    np.testing.assert_allclose(dGs, dGs_atomwise,
+                                               equal_nan=False, atol=1e-15)
 
 
 if __name__ == '__main__':
