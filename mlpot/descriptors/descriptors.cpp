@@ -234,7 +234,7 @@ double BehlerG4::dcostheta(double rij, double rik, double costheta)
          * exp(-2*prms[2]*(rij*rij + rik*rik - rij*rik*costheta))
          * pow(cos_term, prms[1] - 1)
          * cutfun->eval(rij)*cutfun->eval(rik)
-         * (prms[0]*prms[1] + 2*rij*rik*prms[2]*cos_term*cutfun->eval(rjk)
+         * ((prms[0]*prms[1] + 2*rij*rik*prms[2]*cos_term)*cutfun->eval(rjk)
             - rij*rik*cos_term*cutfun->derivative(rjk)/
               (rjk + std::numeric_limits<double>::epsilon()));
   };
@@ -260,7 +260,7 @@ void BehlerG4::eval_with_derivatives(double rij, double rik, double costheta,
                 (rjk + std::numeric_limits<double>::epsilon()));
   dGdcostheta = prefactor * pow(cos_term, prms[1] - 1)
                 * cutfun->eval(rij)*cutfun->eval(rik)
-                * (prms[0]*prms[1] + 2*rij*rik*prms[2]*cos_term*cutfun->eval(rjk)
+                * ((prms[0]*prms[1] + 2*rij*rik*prms[2]*cos_term)*cutfun->eval(rjk)
                    - rij*rik*cos_term*cutfun->derivative(rjk)/
                      (rjk + std::numeric_limits<double>::epsilon()));
 };
@@ -284,7 +284,7 @@ void BehlerG4::derivatives(double rij, double rik, double costheta,
                 (rjk + std::numeric_limits<double>::epsilon()));
   dGdcostheta = prefactor * pow(cos_term, prms[1] - 1)
                 * cutfun->eval(rij)*cutfun->eval(rik)
-                * (prms[0]*prms[1] + 2*rij*rik*prms[2]*cos_term*cutfun->eval(rjk)
+                * ((prms[0]*prms[1] + 2*rij*rik*prms[2]*cos_term)*cutfun->eval(rjk)
                    - rij*rik*cos_term*cutfun->derivative(rjk)/
                      (rjk + std::numeric_limits<double>::epsilon()));
 };
