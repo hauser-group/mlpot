@@ -411,18 +411,19 @@ def oie_ml_neb(neb, ml_calc, optimizer=FIRE, steps=100, ml_steps=150,
                 converged, ind = step_H()
                 # In case of early stopping evaluate image that caused early
                 # stopping
-                if not converged:
+                if not converged and ind is not None:
                     eval_image(ind)
                 else:  # Evaluate climbing image
                     eval_image(ml_neb.imax)
-
         # Step H: Relaxation phase
-        print('Step H')
-        converged, ind = step_H()
-        # In case of early stopping evaluate image that caused early stopping
-        if not converged:
-            eval_image(ind)
-        else:  # Evaluate image with highest uncertainty
-            eval_highest_variance()
+        else:
+            print('Step H')
+            converged, ind = step_H()
+            # In case of early stopping evaluate image that caused early
+            # stopping
+            if not converged and ind is not None:
+                eval_image(ind)
+            else:  # Evaluate image with highest uncertainty
+                eval_highest_variance()
     # No convergence reached
     return False
