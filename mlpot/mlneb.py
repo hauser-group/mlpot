@@ -175,6 +175,8 @@ def _relaxation_phase(ml_neb, ml_calc, steps, t_mep_ml, t_ci_on, r_max,
         old_positions = [image.get_positions()
                          for image
                          in ml_neb.images[1:-1]]
+    # Not converged
+    return False, None
 
 
 def aie_ml_neb(neb, ml_calc, steps=150, ml_steps=150, t_mep=0.3, t_ci=0.01,
