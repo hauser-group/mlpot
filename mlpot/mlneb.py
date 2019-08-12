@@ -366,7 +366,8 @@ def oie_ml_neb(neb, ml_calc, optimizer=FIRE, steps=100, ml_steps=150,
             # Use imax-1 since forces only contains intermediate images
             if ((forces**2).sum(axis=2).max() < t_mep**2 and
                     (forces[neb.imax-1, :, :]**2).sum(axis=1).max() < t_ci):
-                # Converged
+                print('Converged. Final number of training points:',
+                      len(ml_calc.atoms_train))
                 return True
 
         # Step E: refit the machine learning model:
@@ -377,12 +378,18 @@ def oie_ml_neb(neb, ml_calc, optimizer=FIRE, steps=100, ml_steps=150,
 
         # Step F:
         print('Step F')
+        evaluated_images = [im.calc.calculation_required(
+                                im, ['energy', 'forces']) for im in images]
         tmp_neb = NEB(
-            [ml_im if im.calc.calculation_required(im, ['energy', 'forces'])
-             else im for im, ml_im in zip(images, ml_images)])
+            [ml_im if eval else im for eval, im, ml_im in zip(
+                evaluated_images, images, ml_images)])
         approx_forces = tmp_neb.get_forces().reshape(
             (len(ml_neb.images) - 2, -1, 3))
-        print(np.sqrt((approx_forces**2).sum(axis=2).max(axis=1)))
+        print('Maximum force on a atom (in eV/A) for each image, * indicates '
+              'approximation by machine learning model')
+        print(' '.join(['%.4f*' % f if eval else '%.4f' % f for eval, f in zip(
+                evaluated_images[1:-1],
+                np.sqrt((approx_forces**2).sum(axis=2).max(axis=1)))]))
 
         # Step G:
         print('Step G')
