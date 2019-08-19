@@ -170,9 +170,9 @@ class GPRCalculator(MLCalculator):
         L, alpha = self._cholesky(k_mat)
         # Following Rasmussen Algorithm 2.1 the determinant in 2.30 can be
         # expressed as a sum over the Cholesky decomposition L
-        log_mag_likelihood = (-0.5*self._target_vector.dot(alpha) -
-                              np.log(np.diag(L)).sum() -
-                              L.shape[0] / 2. * np.log(2 * np.pi))
+        log_mag_likelihood = (- 0.5 * self._target_vector.dot(alpha)
+                              - np.log(np.diag(L)).sum()
+                              - 0.5 * L.shape[0] * np.log(2 * np.pi))
 
         # summation inspired form scikit-learn Gaussian process regression
         temp = (np.multiply.outer(alpha, alpha) -
