@@ -10,12 +10,13 @@ class GAPCalculator(GPRCalculator):
                  label=None, atoms=None, C1=1.0, C2=1.0,
                  descriptor_set=None, kernel=None, opt_method='L-BFGS-B',
                  opt_restarts=0, normalize_y=False, normalize_input=False,
-                 **kwargs):
+                 mean_model=None, **kwargs):
         GPRCalculator.__init__(self, restart, ignore_bad_restart_file, label,
                                atoms, C1, C2, kernel=kernel,
                                opt_method=opt_method,
                                opt_restarts=opt_restarts,
-                               normalize_y=normalize_y, **kwargs)
+                               normalize_y=normalize_y, mean_model=mean_model,
+                               **kwargs)
 
         if descriptor_set is None:
             raise NotImplementedError('For now a descriptor set has to be ' +
@@ -58,9 +59,20 @@ class GAPCalculator(GPRCalculator):
 
         # Call the super class routine after checking for empty trainings set!
         MLCalculator.add_data(self, atoms)
-        self.E_train = np.append(self.E_train, atoms.get_potential_energy())
-        self.F_train = np.append(self.F_train, atoms.get_forces().flatten())
+        # Call forces first in case forces and energy are calculated at the
+        # same time by the calculator
+        if self.mean_model is None:
+            F = atoms.get_forces().flatten()
+            E = atoms.get_potential_energy()
+        else:
+            F = (atoms.get_forces().flatten()
+                 - self.mean_model.get_forces(atoms=atoms).flatten())
+            E = (atoms.get_potential_energy()
+                 - self.mean_model.get_potential_energy(atoms=atoms))
+        self.E_train = np.append(self.E_train, E)
+        self.F_train = np.append(self.F_train, F)
 
+        # TODO: change to transform_input by replacing append with extend
         Gs_by_type, dGs_by_type = self._transform_input_old(atoms)
         for t in self.atomtypes:
             self.Gs[t].append(np.array(Gs_by_type[t]))

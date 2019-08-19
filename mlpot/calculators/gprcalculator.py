@@ -9,7 +9,7 @@ class GPRCalculator(MLCalculator):
     def __init__(self, restart=None, ignore_bad_restart_file=False,
                  label=None, atoms=None, C1=1.0, C2=1.0,
                  kernel=None,  opt_method='L-BFGS-B',
-                 opt_restarts=0, normalize_y=False, **kwargs):
+                 opt_restarts=0, normalize_y=False, mean_model=None, **kwargs):
         MLCalculator.__init__(self, restart, ignore_bad_restart_file, label,
                               atoms, C1, C2, **kwargs)
 
@@ -17,6 +17,7 @@ class GPRCalculator(MLCalculator):
         self.opt_method = opt_method
         self.opt_restarts = opt_restarts
         self.normalize_y = normalize_y
+        self.mean_model = mean_model
 
     def add_data(self, atoms):
         # If the trainings set is empty: setup the numpy arrays
@@ -35,8 +36,18 @@ class GPRCalculator(MLCalculator):
         MLCalculator.add_data(self, atoms)
         self.x_train = np.append(
             self.x_train, self._transform_input(atoms), axis=0)
-        self.E_train = np.append(self.E_train, atoms.get_potential_energy())
-        self.F_train = np.append(self.F_train, atoms.get_forces().flatten())
+        # Call forces first in case forces and energy are calculated at the
+        # same time by the calculator
+        if self.mean_model is None:
+            F = atoms.get_forces().flatten()
+            E = atoms.get_potential_energy()
+        else:
+            F = (atoms.get_forces().flatten()
+                 - self.mean_model.get_forces(atoms=atoms).flatten())
+            E = (atoms.get_potential_energy()
+                 - self.mean_model.get_potential_energy(atoms=atoms))
+        self.E_train = np.append(self.E_train, E)
+        self.F_train = np.append(self.F_train, F)
 
     def _transform_input(self, atoms):
         return atoms.get_positions().reshape((1, -1))
@@ -186,8 +197,10 @@ class GPRCalculator(MLCalculator):
         # Prediction
         X_star = self._normalize_input(self._transform_input(atoms))
         y = self.alpha.dot(self.build_kernel_matrix(X_star=X_star))
-        E = y[0] + self.intercept
-        F = -y[1:].reshape((-1, 3))
+        E = (y[0]
+             + self.intercept
+             + self.mean_model.get_potential_energy(atoms=atoms))
+        F = -y[1:].reshape((-1, 3)) + self.mean_model.get_force(atoms=atoms)
         return E, F
 
     def predict_var(self, atoms):
@@ -214,6 +227,7 @@ class GPRCalculator(MLCalculator):
                 'alpha': self.alpha,
                 'L': self.L,
                 'intercept': self.intercept,
+                'mean_model': self.mean_model,
                 'hyperparameters': self.kernel.theta}
 
     def set_params(self, **params):
@@ -223,6 +237,7 @@ class GPRCalculator(MLCalculator):
         self.alpha = params['alpha']
         self.L = params['L']
         self.intercept = params['intercept']
+        self.mean_model = params['mean_model']
         self.kernel.theta = params['hyperparameters']
 
     def build_kernel_matrix(self, X_star=None, eval_gradient=False):
