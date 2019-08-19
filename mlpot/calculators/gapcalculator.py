@@ -96,8 +96,18 @@ class GAPCalculator(GPRCalculator):
 
         # Call the super class routine after checking for empty trainings set!
         MLCalculator.add_data(self, atoms)
-        self.E_train = np.append(self.E_train, atoms.get_potential_energy())
-        self.F_train = np.append(self.F_train, atoms.get_forces().flatten())
+        # Call forces first in case forces and energy are calculated at the
+        # same time by the calculator
+        if self.mean_model is None:
+            F = atoms.get_forces().flatten()
+            E = atoms.get_potential_energy()
+        else:
+            F = (atoms.get_forces().flatten()
+                 - self.mean_model.get_forces(atoms=atoms).flatten())
+            E = (atoms.get_potential_energy()
+                 - self.mean_model.get_potential_energy(atoms=atoms))
+        self.E_train = np.append(self.E_train, E)
+        self.F_train = np.append(self.F_train, F)
 
         Gs_by_type, dGs_by_type = self._transform_input(atoms)
         for t in self.atomtypes:
