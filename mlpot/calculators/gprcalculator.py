@@ -200,7 +200,7 @@ class GPRCalculator(MLCalculator):
         E = (y[0]
              + self.intercept
              + self.mean_model.get_potential_energy(atoms=atoms))
-        F = -y[1:].reshape((-1, 3)) + self.mean_model.get_force(atoms=atoms)
+        F = -y[1:].reshape((-1, 3)) + self.mean_model.get_forces(atoms=atoms)
         return E, F
 
     def predict_var(self, atoms):
