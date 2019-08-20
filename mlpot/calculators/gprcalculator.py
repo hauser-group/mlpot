@@ -197,10 +197,11 @@ class GPRCalculator(MLCalculator):
         # Prediction
         X_star = self._normalize_input(self._transform_input(atoms))
         y = self.alpha.dot(self.build_kernel_matrix(X_star=X_star))
-        E = (y[0]
-             + self.intercept
-             + self.mean_model.get_potential_energy(atoms=atoms))
-        F = -y[1:].reshape((-1, 3)) + self.mean_model.get_forces(atoms=atoms)
+        E = y[0] + self.intercept
+        F = -y[1:].reshape((-1, 3))
+        if self.mean_model is not None:
+            E += self.mean_model.get_potential_energy(atoms=atoms)
+            F += self.mean_model.get_forces(atoms=atoms)
         return E, F
 
     def predict_var(self, atoms):
