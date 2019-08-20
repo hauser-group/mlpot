@@ -387,6 +387,7 @@ def oie_ml_neb(neb, ml_calc, optimizer=FIRE, steps=100, ml_steps=150,
                 evaluated_images, images, ml_images)])
         approx_forces = tmp_neb.get_forces().reshape(
             (len(ml_neb.images) - 2, -1, 3))
+        print('Highest energy image is number %d' % tmp_neb.imax)
         print('Maximum force on a atom (in eV/A) for each image, * indicates '
               'approximation by machine learning model')
         print(' '.join(['%.4f*' % f if eval else '%.4f' % f for eval, f in zip(
