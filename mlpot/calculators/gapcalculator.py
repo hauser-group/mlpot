@@ -41,43 +41,6 @@ class GAPCalculator(GPRCalculator):
             self.Gs_norm2[t] = np.ones(self.descriptor_set.num_Gs[
                 self.descriptor_set.type_dict[t]])
 
-    def add_data_old(self, atoms):
-        """The data structure for the descriptors is somewhat complicated.
-        Needs a more extensive description!!!"""
-        # If the trainings set is empty: setup the numpy arrays
-        if not self.atoms_train:
-            self.n_dim = 3*len(atoms)
-            self.E_train = np.zeros(0)
-            self.F_train = np.zeros(0)
-            self.Gs = {t: [] for t in self.atomtypes}
-            self.dGs = {t: [] for t in self.atomtypes}
-        # else: check if the new atoms object has the same length as previous
-        else:
-            if not 3*len(atoms) == self.n_dim:
-                raise ValueError('New data does not have the same number of'
-                                 'atoms as previously added data.')
-
-        # Call the super class routine after checking for empty trainings set!
-        MLCalculator.add_data(self, atoms)
-        # Call forces first in case forces and energy are calculated at the
-        # same time by the calculator
-        if self.mean_model is None:
-            F = atoms.get_forces().flatten()
-            E = atoms.get_potential_energy()
-        else:
-            F = (atoms.get_forces().flatten()
-                 - self.mean_model.get_forces(atoms=atoms).flatten())
-            E = (atoms.get_potential_energy()
-                 - self.mean_model.get_potential_energy(atoms=atoms))
-        self.E_train = np.append(self.E_train, E)
-        self.F_train = np.append(self.F_train, F)
-
-        # TODO: change to transform_input by replacing append with extend
-        Gs_by_type, dGs_by_type = self._transform_input_old(atoms)
-        for t in self.atomtypes:
-            self.Gs[t].append(np.array(Gs_by_type[t]))
-            self.dGs[t].append(np.array(dGs_by_type[t]))
-
     def add_data(self, atoms):
         """The data structure for the descriptors is somewhat complicated.
         Needs a more extensive description!!!"""
@@ -114,17 +77,6 @@ class GAPCalculator(GPRCalculator):
             self.Gs[t].extend(Gs_by_type[t])
             self.dGs[t].extend(dGs_by_type[t])
 
-    def _transform_input_old(self, atoms):
-        # TODO: extend to allow transforming a list of atoms
-        types = atoms.get_chemical_symbols()
-        Gs, dGs = self.descriptor_set.eval_ase(atoms, derivatives=True)
-        Gs_by_type = {t: [] for t in self.atomtypes}
-        dGs_by_type = {t: [] for t in self.atomtypes}
-        for Gi, dGi, ti in zip(Gs, dGs, types):
-            Gs_by_type[ti].append(Gi)
-            dGs_by_type[ti].append(dGi.reshape((-1, self.n_dim)))
-        return Gs_by_type, dGs_by_type
-
     def _transform_input(self, atoms):
         # TODO: extend to allow transforming a list of atoms
         types = atoms.get_chemical_symbols()
@@ -138,30 +90,6 @@ class GAPCalculator(GPRCalculator):
             Gs_by_type[t] = [np.array(Gs_by_type[t])]
             dGs_by_type[t] = [np.array(dGs_by_type[t])]
         return Gs_by_type, dGs_by_type
-
-    def _normalize_input_old(self, Gs, dGs):
-        """Copies the input an returns a normalized version"""
-        Gs_norm = copy.deepcopy(Gs)
-        dGs_norm = copy.deepcopy(dGs)
-        # Iterate over atomtypes
-        for t in self.atomtypes:
-            # Iterate over number of data points
-            for i in range(len(Gs_norm[t])):
-                if (self.normalize_input == 'mean' or
-                        self.normalize_input == 'min_max'):
-                    Gs_norm[t][i] = (
-                        Gs_norm[t][i]-self.Gs_norm1[t])/self.Gs_norm2[t]
-                    dGs_norm[t][i] = np.einsum('ijk,j->ijk', dGs_norm[t][i],
-                                               1.0/self.Gs_norm2[t])
-                elif self.normalize_input == 'norm':
-                    norm_i = np.linalg.norm(Gs_norm[t][i], axis=1)
-                    Gs_norm[t][i] = (Gs_norm[t][i]/norm_i[:, np.newaxis])
-                    dGs_norm[t][i] = np.einsum('ijk,i->ijk', dGs_norm[t][i],
-                                               1.0/norm_i)
-                # Reshaping can only be done here as the separate descriptor
-                # dimension is needed for normalization
-                dGs_norm[t][i] = dGs_norm[t][i].reshape((-1, self.n_dim))
-        return Gs_norm, dGs_norm
 
     def _normalize_input(self, x):
         """Copies the input an returns a normalized version"""
@@ -205,20 +133,6 @@ class GAPCalculator(GPRCalculator):
         self.Gs_norm, self.dGs_norm = self._normalize_input(
             (self.Gs, self.dGs))
         GPRCalculator.fit(self)
-
-    def predict_old(self, atoms):
-        # Prediction
-        Gs_X_star = {t: [] for t in self.atomtypes}
-        dGs_X_star = {t: [] for t in self.atomtypes}
-        Gs_by_type, dGs_by_type = self._transform_input_old(atoms)
-        for t in self.atomtypes:
-            Gs_X_star[t].append(np.array(Gs_by_type[t]))
-            dGs_X_star[t].append(np.array(dGs_by_type[t]))
-        X_star = self._normalize_input_old(Gs_X_star, dGs_X_star)
-        y = self.alpha.dot(self.build_kernel_matrix(X_star=X_star))
-        E = y[0] + self.intercept
-        F = -y[1:].reshape((-1, 3))
-        return E, F
 
     def get_params(self):
         return {'atoms_train': self.atoms_train,
