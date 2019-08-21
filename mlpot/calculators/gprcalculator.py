@@ -93,7 +93,7 @@ class GPRCalculator(MLCalculator):
                             lower_bound, upper_bound, 1)
                 print('Starting hyperparameter optimization %d/%d' % (
                             ii+1, self.opt_restarts),
-                      'with parameters: ', initial_hyper_parameters)
+                      'with parameters: ', np.exp(initial_hyper_parameters))
                 try:
                     opt_res = self._opt_routine(initial_hyper_parameters)
                     opt_hyper_parameter.append(opt_res.x)
@@ -101,7 +101,7 @@ class GPRCalculator(MLCalculator):
                     print('Finished hyperparameter optimization after',
                           '%d iterations' % opt_res.nit,
                           ' with value: ', opt_res.fun,
-                          ' and parameters:', opt_res.x)
+                          ' and parameters:', np.exp(opt_res.x))
                 except np.linalg.LinAlgError as E:
                     print('Cholesky factorization failed for parameters:',
                           self.kernel.theta)
