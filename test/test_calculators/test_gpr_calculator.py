@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 
 from ase.atoms import Atoms
+from ase.build import molecule
 from ase.calculators.emt import EMT
 from mlpot.calculators.gprcalculator import GPRCalculator
 from mlpot.kernels import RBFKernel
@@ -60,6 +61,58 @@ class GPRCalculatorTest(unittest.TestCase):
         prediction_var = [calc.predict_var(im)[0] for im in images_test]
         max_var = np.argmax(prediction_var)
         np.testing.assert_equal(r_test[max_var], 1.2)
+
+    def test_log_marginal_likelihood_derivative(self):
+
+        kernel = RBFKernel(length_scale=2.1) + RBFKernel(length_scale=.345)
+        theta0 = np.exp(kernel.theta)
+        calc = GPRCalculator(kernel=kernel, C1=1e8, C2=1e8, opt_restarts=0)
+        atoms = molecule('C2H6')
+        atoms.set_calculator(EMT())
+
+        calc.add_data(atoms)
+        calc.fit()
+
+        dt = 1e-5
+        L, dL = calc.log_marginal_likelihood()
+        dL_num = np.zeros_like(dL)
+        for i in range(len(theta0)):
+            dti = np.zeros(len(theta0))
+            dti[i] = dt
+            calc.kernel.theta = np.log(theta0 + dti)
+            L_plus = calc.log_marginal_likelihood()[0]
+            calc.kernel.theta = np.log(theta0 - dti)
+            L_minus = calc.log_marginal_likelihood()[0]
+            calc.kernel.theta = np.log(theta0)
+            dL_num[i] = (L_plus - L_minus)/(2*dt)
+
+        np.testing.assert_allclose(dL, dL_num)
+
+    def test_log_predictive_probability_derivative(self):
+
+        kernel = RBFKernel(length_scale=2.1)# + RBFKernel(length_scale=.345)
+        theta0 = np.exp(kernel.theta)
+        calc = GPRCalculator(kernel=kernel, C1=1e8, C2=1e8, opt_restarts=0)
+        atoms = molecule('C2H6')
+        atoms.set_calculator(EMT())
+
+        calc.add_data(atoms)
+        calc.fit()
+
+        dt = 1e-5
+        L, dL = calc.log_predictive_probability()
+        dL_num = np.zeros_like(dL)
+        for i in range(len(theta0)):
+            dti = np.zeros(len(theta0))
+            dti[i] = dt
+            calc.kernel.theta = np.log(theta0 + dti)
+            L_plus = calc.log_predictive_probability()[0]
+            calc.kernel.theta = np.log(theta0 - dti)
+            L_minus = calc.log_predictive_probability()[0]
+            calc.kernel.theta = np.log(theta0)
+            dL_num[i] = (L_plus - L_minus)/(2*dt)
+
+        np.testing.assert_allclose(dL, dL_num)
 
 
 if __name__ == '__main__':
