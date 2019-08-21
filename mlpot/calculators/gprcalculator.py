@@ -166,7 +166,7 @@ class GPRCalculator(MLCalculator):
 
         return -log_marginal_likelihood, -d_log_marginal_likelihood
 
-    def log_marginal_likelihood(self, derivative=False):
+    def log_marginal_likelihood(self):
         """
         calculate the log marignal likelihood
         :return: log marinal likelihood, derivative of the log marignal
