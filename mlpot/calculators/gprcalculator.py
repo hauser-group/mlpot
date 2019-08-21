@@ -48,6 +48,9 @@ class GPRCalculator(MLCalculator):
                  - self.mean_model.get_potential_energy(atoms=atoms))
         self.E_train = np.append(self.E_train, E)
         self.F_train = np.append(self.F_train, F)
+        # TODO: find better way for this update, probably should be a
+        # property of mlcalculator
+        self.n_samples = len(self.atoms_train)
 
     def _transform_input(self, atoms):
         return atoms.get_positions().reshape((1, -1))
@@ -57,7 +60,6 @@ class GPRCalculator(MLCalculator):
 
     def fit(self):
         print('Fit called with %d geometries.' % len(self.atoms_train))
-        self.n_samples = len(self.atoms_train)
 
         if self.normalize_y == 'mean':
             self.intercept = np.mean(self.E_train)
@@ -192,6 +194,32 @@ class GPRCalculator(MLCalculator):
         d_log_mag_likelihood = d_log_mag_likelihood.sum(-1)
 
         return log_mag_likelihood, d_log_mag_likelihood
+
+    def log_predictive_probability(self):
+        """Leave one out log predictive probability according to Rasmussen
+        and Williams"""
+        k_mat, k_grad = self.build_kernel_matrix(eval_gradient=True)
+        k_mat[:self.n_samples, :self.n_samples] += np.eye(
+            self.n_samples)/self.C1
+        k_mat[self.n_samples:, self.n_samples:] += np.eye(
+            self.n_samples*self.n_dim)/self.C2
+        L, alpha = self._cholesky(k_mat)
+
+        # From scikit-learn implementation for the variances:
+        L_inv = solve_triangular(L.T, np.eye(L.shape[0]))
+        K_inv = L_inv.dot(L_inv.T)
+        sigma2 = 1.0/K_inv.diagonal()
+        log_pred_prob = np.sum(- 0.5*np.log(sigma2)
+                               - 0.5*(alpha/K_inv.diagonal())**2/(sigma2)
+                               - 0.5*np.log(2*np.pi))
+        Z = K_inv.dot(k_grad)
+        d_log_pred_prob = np.sum(
+            (alpha[:, np.newaxis]*alpha.dot(Z)
+             - 0.5*(1 + alpha**2/K_inv.diagonal())[:, np.newaxis]
+               * K_inv.dot(Z).diagonal().T
+             )/K_inv.diagonal()[:, np.newaxis], axis=0)
+        return log_pred_prob, d_log_pred_prob
+
 
     def predict(self, atoms):
         # Prediction
