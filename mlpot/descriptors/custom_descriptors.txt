@@ -1,0 +1,25 @@
+!
+! TwoBodyDescriptors
+!
+! Add arbitrary two body descriptors here. The only argument of a two body
+! descriptor is the interatomic distance rij.
+
+TwoBodyDescriptor BehlerG1old 1 exp(-prms[0]*(rij)**2)*fcut(rij)
+TwoBodyDescriptor OneOverR6 0 1/rij**6*fcut(rij)
+TwoBodyDescriptor OneOverR8 0 1/rij**8*fcut(rij)
+TwoBodyDescriptor OneOverR10 0 1/rij**10*fcut(rij)
+TwoBodyDescriptor radialTest 0 rij
+
+!
+! ThreeBodyDescriptors
+!
+! Add arbitrary three body descriptors here. The arguments of a three body
+! descriptor are the interatomic distances rij and rik as well as the cosine
+! of the angle theta (costheta) between these vectors rij and rik. The last
+! interatomic distance rjk can be calculated as:
+! sqrt(rij**2+rik**2-2*rij*rik*costheta)
+
+! Used to test the hard coded implementation of BehlerG4
+ThreeBodyDescriptor BehlerG4auto 3 exp2(1-prms[1])*(1+prms[0]*costheta)**prms[1]*exp(-prms[2]*(2*rij**2+2*rik**2-2*rij*rik*costheta))*fcut(rij)*fcut(rik)*fcut(sqrt(rij**2+rik**2-2*rij*rik*costheta))
+! Modified BehlerG5 function introducing a center for the radial Gaussians
+ThreeBodyDescriptor BehlerG5mod 5 exp2(1-prms[1])*(1+prms[0]*costheta)**prms[1]*exp(-prms[2]*((rij-prms[3])**2+(rik-prms[4])**2))*fcut(rij)*fcut(rik)
