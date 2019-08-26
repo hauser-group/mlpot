@@ -216,10 +216,9 @@ class GPRCalculator(MLCalculator):
         d_log_pred_prob = np.sum(
             (alpha[:, np.newaxis]*alpha.dot(Z)
              - 0.5*(1 + alpha**2/K_inv.diagonal())[:, np.newaxis]
-               * K_inv.dot(Z).diagonal().T
+             * K_inv.dot(Z).diagonal().T
              )/K_inv.diagonal()[:, np.newaxis], axis=0)
         return log_pred_prob, d_log_pred_prob
-
 
     def predict(self, atoms):
         # Prediction

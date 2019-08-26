@@ -90,7 +90,7 @@ class GPRCalculatorTest(unittest.TestCase):
 
     def test_log_predictive_probability_derivative(self):
 
-        kernel = RBFKernel(length_scale=2.1)# + RBFKernel(length_scale=.345)
+        kernel = RBFKernel(length_scale=2.1)  # + RBFKernel(length_scale=.345)
         theta0 = np.exp(kernel.theta)
         calc = GPRCalculator(kernel=kernel, C1=1e8, C2=1e8, opt_restarts=0)
         atoms = molecule('C2H6')

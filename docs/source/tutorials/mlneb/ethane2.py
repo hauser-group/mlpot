@@ -6,17 +6,17 @@ from mlpot.mlneb import run_mla_neb
 from mlpot.calculators.gprcalculator import GPRCalculator
 from mlpot.kernels import RBFKernel
 
-#Optimise molecule
+# Optimise molecule
 initial = molecule('C2H6')
 initial.set_calculator(EMT())
 relax = FIRE(initial)
 relax.run(fmax=0.05)
 
-#Create final state
+# Create final state
 final = initial.copy()
 final.positions[2:5] = initial.positions[[3, 4, 2]]
 
-#Generate blank images
+# Generate blank images
 images = [initial]
 
 for i in range(9):
@@ -27,7 +27,7 @@ images.append(final)
 for image in images:
     image.set_calculator(EMT())
 
-#Run IDPP interpolation
+# Run IDPP interpolation
 neb = NEB(images)
 neb.interpolate('idpp')
 

@@ -42,4 +42,3 @@ class XTB_custom(FileIOCalculator):
                                      float(sp[2].replace('D', 'E'))])
         self.results = {'energy': energy,
                         'forces': -np.array(gradient) * ase.units.Hartree}
-

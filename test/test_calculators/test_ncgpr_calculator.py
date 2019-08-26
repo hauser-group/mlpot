@@ -25,7 +25,7 @@ class GAPCalculatorTest(unittest.TestCase):
         def to_radius(x):
             xyzs = x.get_positions()
             r = np.sqrt(np.sum((xyzs[1, :]-xyzs[0, :])**2))
-            dr = np.zeros((1,6))
+            dr = np.zeros((1, 6))
             dr[0, 0] = (xyzs[0, 0] - xyzs[1, 0])/r
             dr[0, 1] = (xyzs[0, 1] - xyzs[1, 1])/r
             dr[0, 2] = (xyzs[0, 2] - xyzs[1, 2])/r
@@ -36,7 +36,7 @@ class GAPCalculatorTest(unittest.TestCase):
 
         kernel = RBFKernel(constant=100.0, length_scale=1e-2)
         calc = NCGPRCalculator(input_transform=to_radius, kernel=kernel,
-                             C1=1e8, C2=1e8, opt_restarts=0)
+                               C1=1e8, C2=1e8, opt_restarts=0)
 
         [calc.add_data(im) for im in images_train]
         calc.fit()
@@ -61,7 +61,7 @@ class GAPCalculatorTest(unittest.TestCase):
         def to_radius(x):
             xyzs = x.get_positions()
             r = np.sqrt(np.sum((xyzs[1, :]-xyzs[0, :])**2))
-            dr = np.zeros((1,6))
+            dr = np.zeros((1, 6))
             dr[0, 0] = (xyzs[0, 0] - xyzs[1, 0])/r
             dr[0, 1] = (xyzs[0, 1] - xyzs[1, 1])/r
             dr[0, 2] = (xyzs[0, 2] - xyzs[1, 2])/r
@@ -72,14 +72,13 @@ class GAPCalculatorTest(unittest.TestCase):
 
         kernel = RBFKernel(constant=100.0, length_scale=1e-2)
         calc = NCGPRCalculator(input_transform=to_radius, kernel=kernel,
-                             C1=1e8, C2=1e8, opt_restarts=0)
+                               C1=1e8, C2=1e8, opt_restarts=0)
 
         [calc.add_data(im) for im in images_train]
         calc.fit()
         np.testing.assert_allclose(
             calc.build_kernel_diagonal((calc.q_train, calc.dq_train)),
             np.diag(calc.build_kernel_matrix()))
-
 
     def test_kernel_matrix_derivative(self):
         direction = np.array([1., 2., 3.])
@@ -92,7 +91,7 @@ class GAPCalculatorTest(unittest.TestCase):
         def to_radius(x):
             xyzs = x.get_positions()
             r = np.sqrt(np.sum((xyzs[1, :]-xyzs[0, :])**2))
-            dr = np.zeros((1,6))
+            dr = np.zeros((1, 6))
             dr[0, 0] = (xyzs[0, 0] - xyzs[1, 0])/r
             dr[0, 1] = (xyzs[0, 1] - xyzs[1, 1])/r
             dr[0, 2] = (xyzs[0, 2] - xyzs[1, 2])/r
@@ -103,7 +102,7 @@ class GAPCalculatorTest(unittest.TestCase):
 
         kernel = RBFKernel(constant=100.0, length_scale=0.23)
         calc = NCGPRCalculator(input_transform=to_radius, kernel=kernel,
-                             C1=1e8, C2=1e8, opt_restarts=0)
+                               C1=1e8, C2=1e8, opt_restarts=0)
         calc.add_data(atoms)
         K = calc.build_kernel_matrix()
         K_num = np.zeros_like(K)
@@ -141,14 +140,14 @@ class GAPCalculatorTest(unittest.TestCase):
         for i in range(6):
             dxi = np.zeros(6)
             dxi[i] = dx
-            dxi = dxi.reshape((2,3))
+            dxi = dxi.reshape((2, 3))
             # Test first derivative
             K_num[1+i, 0] = num_dx_forth_order(K_fun, x0, x0, dxi)
 
             for j in range(6):
                 dxj = np.zeros(6)
                 dxj[j] = dx
-                dxj = dxj.reshape((2,3))
+                dxj = dxj.reshape((2, 3))
                 K_num[1+i, 1+j] = num_dxdy_forth_order(K_fun, x0, x0, dxi, dxj)
 
             # Test symmetry of derivatives
