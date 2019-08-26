@@ -76,6 +76,7 @@ class GAPCalculator(GPRCalculator):
         for t in self.atomtypes:
             self.Gs[t].extend(Gs_by_type[t])
             self.dGs[t].extend(dGs_by_type[t])
+        self.n_samples = len(self.atoms_train)
 
     def _transform_input(self, atoms):
         # TODO: extend to allow transforming a list of atoms
