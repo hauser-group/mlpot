@@ -48,9 +48,6 @@ class GPRCalculator(MLCalculator):
                  - self.mean_model.get_potential_energy(atoms=atoms))
         self.E_train = np.append(self.E_train, E)
         self.F_train = np.append(self.F_train, F)
-        # TODO: find better way for this update, probably should be a
-        # property of mlcalculator
-        self.n_samples = len(self.atoms_train)
 
     def _transform_input(self, atoms):
         return atoms.get_positions().reshape((1, -1))

@@ -23,6 +23,10 @@ class MLCalculator(Calculator):
     def add_data(self, atoms):
         self.atoms_train.append(atoms)
 
+    @property
+    def n_samples(self):
+        return len(self.atoms_train)
+
     def fit(self):
         pass
 
