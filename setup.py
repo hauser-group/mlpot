@@ -22,10 +22,10 @@ class CustomBuild(build_py):
 
 setup(
     name='mlpot',
-    version='0.1',
+    version='0.2',
     description='Library for machine learning potentials',
     packages=find_packages(),
-    package_data={'mlpot': ['descriptors/libSymFunSet.so']},
+    package_data={'mlpot': ['descriptors/libDescriptorSet.so']},
     include_package_data=True,
     cmdclass={'build_py': CustomBuild}
 )

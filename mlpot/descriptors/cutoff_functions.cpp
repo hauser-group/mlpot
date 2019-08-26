@@ -1,4 +1,4 @@
-#include "cutoffFunctions.h"
+#include "cutoff_functions.h"
 #include <stdio.h>
 #include <math.h>
 
