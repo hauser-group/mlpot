@@ -34,7 +34,7 @@ def run_neb_on_ml_pes(ml_neb, training_images, optimizer=FIRE, fmax=0.5,
             # is larger than r_max
             if np.min(distances) > r_max:
                 print('Image %d exceeded r_max at step %d.' % (
-                    ni, opt.nsteps), 'Resetting to previous step.')
+                    ni + 1, opt.nsteps), 'Resetting to previous step.')
                 [ml_image.set_positions(old_pos.copy())
                  for ml_image, old_pos
                  in zip(ml_neb.images[1:-1], old_positions)]
