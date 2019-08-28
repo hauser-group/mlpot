@@ -2,7 +2,7 @@ import numpy as np
 import unittest
 from mlpot.kernels import (Sum, Product, Rescaling, Exponentiation,
                            ConstantKernel, RBFKernel,
-                           DotProductKernel)
+                           DotProductKernel, Masking)
 try:
     from test_kernels import KernelTest
 except ImportError:
@@ -218,6 +218,25 @@ class ExponentiationTest(KernelTest.KernelTest):
         K2 = kernel2(X, Y, dx=True, dy=True)
 
         np.testing.assert_allclose(K1, K2)
+
+
+class MaskingTest(KernelTest.KernelTest):
+    kernel = Product(Masking(RBFKernel(length_scale=1.5), slice(0, 6)),
+                     Masking(RBFKernel(length_scale=0.5), slice(6, 12)))
+
+    def test_versus_anisotropic_rbf(self):
+        X = np.random.randn(8, 2)
+        Y = np.random.randn(8, 2)
+
+        kernel = Product(Masking(RBFKernel(length_scale=1.5), slice(0, 1)),
+                         Masking(RBFKernel(length_scale=0.5), slice(1, 2)))
+        ref_kernel = RBFKernel(length_scale=np.array([1.5, 0.5]))
+
+        K, dK = kernel(X, Y, dx=True, dy=True, eval_gradient=True)
+        K_ref, dK_ref = ref_kernel(X, Y, dx=True, dy=True, eval_gradient=True)
+
+        np.testing.assert_allclose(K, K_ref)
+        np.testing.assert_allclose(dK, dK_ref)
 
 
 if __name__ == '__main__':
