@@ -2,12 +2,49 @@ import unittest
 import numpy as np
 
 from ase.atoms import Atoms
+from ase.build import molecule
 from ase.calculators.emt import EMT
 from mlpot.calculators.ncgprcalculator import NCGPRCalculator
+from mlpot.calculators.gprcalculator import GPRCalculator
 from mlpot.kernels import RBFKernel
 
 
 class GAPCalculatorTest(unittest.TestCase):
+
+    def test_equivalence_to_GPR(self):
+
+        def to_cartesian(atoms):
+            xyzs = atoms.get_positions().flatten()
+            return xyzs, np.eye(len(xyzs))
+
+        gpr_calc = GPRCalculator(
+            kernel=RBFKernel(constant=100.0, length_scale=0.456), C1=1e8,
+            C2=1e8, opt_restarts=1)
+        ncgpr_calc = NCGPRCalculator(
+            kernel=RBFKernel(constant=100.0, length_scale=0.456),
+            input_transform=to_cartesian,C1=1e8, C2=1e8, opt_restarts=1)
+
+        atoms = molecule('cyclobutane')
+        atoms.set_calculator(EMT())
+        xyzs = atoms.get_positions()
+        gpr_calc.add_data(atoms)
+        ncgpr_calc.add_data(atoms)
+        for i in range(8):
+            a = atoms.copy()
+            a.set_calculator(EMT())
+            a.set_positions(xyzs + 0.5*np.random.randn(*xyzs.shape))
+            gpr_calc.add_data(a)
+            ncgpr_calc.add_data(a)
+
+        np.testing.assert_allclose(ncgpr_calc.build_kernel_matrix(),
+                                   gpr_calc.build_kernel_matrix())
+
+        gpr_calc.fit()
+        ncgpr_calc.fit()
+        np.testing.assert_allclose(ncgpr_calc.kernel.theta,
+                                   gpr_calc.kernel.theta)
+        np.testing.assert_allclose(ncgpr_calc.alpha, gpr_calc.alpha)
+
     def test_co_potential_curve(self):
         direction = np.array([1., 2., 3.])
         direction /= np.linalg.norm(direction)
@@ -34,7 +71,7 @@ class GAPCalculatorTest(unittest.TestCase):
             dr[0, 5] = (xyzs[1, 2] - xyzs[0, 2])/r
             return [r], dr
 
-        kernel = RBFKernel(constant=100.0, length_scale=1e-2)
+        kernel = RBFKernel(constant=100.0, length_scale=1e-1)
         calc = NCGPRCalculator(input_transform=to_radius, kernel=kernel,
                                C1=1e8, C2=1e8, opt_restarts=0)
 
@@ -70,7 +107,7 @@ class GAPCalculatorTest(unittest.TestCase):
             dr[0, 5] = (xyzs[1, 2] - xyzs[0, 2])/r
             return [r], dr
 
-        kernel = RBFKernel(constant=100.0, length_scale=1e-2)
+        kernel = RBFKernel(constant=100.0, length_scale=1e-1)
         calc = NCGPRCalculator(input_transform=to_radius, kernel=kernel,
                                C1=1e8, C2=1e8, opt_restarts=0)
 
@@ -80,7 +117,7 @@ class GAPCalculatorTest(unittest.TestCase):
             calc.build_kernel_diagonal((calc.q_train, calc.dq_train)),
             np.diag(calc.build_kernel_matrix()))
 
-    def test_kernel_matrix_derivative(self):
+    def test_co_kernel_derivative(self):
         direction = np.array([1., 2., 3.])
         direction /= np.linalg.norm(direction)
         atoms = Atoms(
