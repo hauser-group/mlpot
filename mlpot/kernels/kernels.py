@@ -344,6 +344,85 @@ class Exponentiation(Kernel):
         return np.diag(self(X, X, dx=True, dy=True))
 
 
+class Masking(Kernel):
+
+    def __init__(self, kernel, mask):
+        self.kernel = kernel
+        self.mask = mask
+
+    @property
+    def theta(self):
+        return self.kernel.theta
+
+    @theta.setter
+    def theta(self, theta):
+        self.kernel.theta = theta
+
+    @property
+    def bounds(self):
+        return self.kernel.bounds
+
+    def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
+        n = X.shape[0]
+        m = Y.shape[0]
+        n_dim = X.shape[1]
+        X_masked = X[:, self.mask]
+        masked_dim = X_masked.shape[1]
+        Y_masked = Y[:, self.mask]
+
+        # The arguments dx and dy are deprecated and will be removed soon
+        if not (dx and dy):
+            raise NotImplementedError
+        if eval_gradient:
+            n_theta = self.kernel.theta.shape[0]
+            K_masked, dK_masked = self.kernel(
+                X_masked, Y_masked, dx=True, dy=True, eval_gradient=True)
+        else:
+            K_masked = self.kernel(X_masked, Y_masked, dx=True, dy=True)
+        K_dX = np.zeros((n, n_dim, m))
+        K_dX[:, self.mask, :] = K_masked[n:, :m].reshape(n, masked_dim, m)
+        K_dY = np.zeros((n, m, n_dim))
+        K_dY[:, :, self.mask] = K_masked[:n, m:].reshape(n, m, masked_dim)
+        K_dXdY = np.zeros((n, n_dim, m, n_dim))
+        K_dXdY[:, self.mask, :, self.mask] = K_masked[n:, m:].reshape(
+            n, masked_dim, m, masked_dim)
+
+        K = np.hstack((np.vstack((K_masked[:n, :m],
+                                  K_dX.reshape(n*n_dim, m))),
+                       np.vstack((K_dY.reshape(n, m*n_dim),
+                                  K_dXdY.reshape(n*n_dim, m*n_dim)))))
+        if eval_gradient:
+            dK_dX = np.zeros((n, n_dim, m, n_theta))
+            dK_dX[:, self.mask, :, :] = dK_masked[n:, :m, :].reshape(
+                n, masked_dim, m, n_theta)
+            dK_dY = np.zeros((n, m, n_dim, n_theta))
+            dK_dY[:, :, self.mask, :] = dK_masked[:n, m:, :].reshape(
+                n, m, masked_dim, n_theta)
+            dK_dXdY = np.zeros((n, n_dim, m, n_dim, n_theta))
+            dK_dXdY[:, self.mask, :, self.mask, :] = (
+                dK_masked[n:, m:, :].reshape(n, masked_dim, m, masked_dim,
+                                            n_theta))
+
+            dK = np.hstack(
+                (np.vstack((dK_masked[:n, :m, :],
+                            dK_dX.reshape(n*n_dim, m, n_theta))),
+                 np.vstack((dK_dY.reshape(n, m*n_dim, n_theta),
+                            dK_dXdY.reshape(n*n_dim, m*n_dim, n_theta)))))
+            return K, dK
+        return K
+
+    def diag(self, X):
+        n = X.shape[0]
+        n_dim = X.shape[1]
+        X_masked = X[:, self.mask]
+        masked_dim = X_masked.shape[1]
+
+        K_masked = self.kernel.diag(X_masked)
+        K_dXdY = np.zeros((n, n_dim))
+        K_dXdY[:, self.mask] = K_masked[n:].reshape(n, n_dim)
+
+        return np.hstack((K_masked[n:], K_dXdY.reshape(n*n_dim)))
+
 class ConstantKernel(Kernel):
 
     def __init__(self, constant=1.0, constant_bounds=(1e-3, 1e3)):
