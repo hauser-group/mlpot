@@ -55,6 +55,27 @@ class NCGPRCalculator(GPRCalculator):
     def _normalize_input(self, x):
         return x
 
+    def get_params(self):
+        return {'atoms_train': self.atoms_train,
+                'q_train': self.q_train,
+                'dq_train': self.dq_train,
+                'alpha': self.alpha,
+                'L': self.L,
+                'intercept': self.intercept,
+                'mean_model': self.mean_model,
+                'hyperparameters': self.kernel.theta}
+
+    def set_params(self, **params):
+        self.atoms_train = params['atoms_train']
+        self.q_train = params['q_train']
+        self.dq_train = params['dq_train']
+        self.n_dim = 3*len(self.atoms_train[0])
+        self.alpha = params['alpha']
+        self.L = params['L']
+        self.intercept = params['intercept']
+        self.mean_model = params['mean_model']
+        self.kernel.theta = params['hyperparameters']
+
     def build_kernel_matrix(self, X_star=None, eval_gradient=False):
         n = len(self.atoms_train)
         q_X = np.array(self.q_train)
