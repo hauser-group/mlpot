@@ -436,11 +436,14 @@ class ConstantKernel(Kernel):
 
     @property
     def theta(self):
+        if self.constant_bounds == 'fixed':
+            return np.empty(0)
         return np.log(self.constant)
 
     @theta.setter
     def theta(self, theta):
-        self.constant = np.exp(theta)
+        if not self.constant_bounds == 'fixed':
+            self.constant = np.exp(theta)
 
     @property
     def bounds(self):
@@ -448,6 +451,8 @@ class ConstantKernel(Kernel):
             return np.log(np.asarray([self.constant_bounds]))
         elif np.ndim(self.constant_bounds) == 2:
             return np.log(self.constant_bounds)
+        if self.constant_bounds == 'fixed':
+            return np.empty((0, 2))
         else:
             raise ValueError('Unexpected dimension of constant_bounds')
 
@@ -463,8 +468,9 @@ class ConstantKernel(Kernel):
         K = np.zeros((n*(1+n_dim), m*(1+n_dim)))
         K[:n, :m] = self.constant
         if eval_gradient:
-            K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim), 1))
-            K_gradient[:n, :m] = 1.0
+            K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim),
+                                   self.theta.shape[0]))
+            K_gradient[:n, :m, :] = 1.0
             return K, K_gradient
         return K
 
