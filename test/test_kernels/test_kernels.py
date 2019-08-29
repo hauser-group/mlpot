@@ -8,6 +8,10 @@ from mlpot.kernels import (ConstantKernel, RBFKernel, RBFKernel_with_factor,
 
 class KernelTest():
     class KernelTest(unittest.TestCase):
+        def numerical_derivative(self, fun, x0, dx_vec, dx):
+            return (8*fun(x0 + dx_vec) - fun(x0 + 2*dx_vec)
+                    - 8*fun(x0 - dx_vec) + fun(x0 - 2*dx_vec))/(12*dx)
+
         def test_atomic_position_gradient(self):
             atomsX = np.random.randn(1, 12)
             atomsY = np.random.randn(1, 12)
@@ -17,21 +21,29 @@ class KernelTest():
             dK_num_total[0, 0] = K[0, 0]
 
             dx = 1e-4
+
+            def kernel_X(X):
+                return self.kernel(X, atomsY, dx=True, dy=True)[0, 0]
+
+            def kernel_Y(Y):
+                return self.kernel(atomsX, Y, dx=True, dy=True)[0, 0]
+
+            def kernel_dY(X):
+                return self.kernel(X, atomsY, dx=True, dy=True)[0, 1:]
+
             for i in range(12):
                 dxi = np.zeros(12)
                 dxi[i] = dx
-                K_plus = self.kernel(atomsX+dxi, atomsY, dx=True, dy=True)
-                K_minus = self.kernel(atomsX-dxi, atomsY, dx=True, dy=True)
                 # Test first derivative
-                dK_num_total[1+i, 0] = (K_plus[0, 0] - K_minus[0, 0])/(2*dx)
+                dK_num = self.numerical_derivative(kernel_X, atomsX, dxi, dx)
+                dK_num_total[1+i, 0] = dK_num
                 # Approximate second derivative as numerical derivative of
-                # first derivative
-                dK_num_total[1+i, 1:] = (K_plus[0, 1:] - K_minus[0, 1:])/(2*dx)
-
+                # analytical first derivative
+                dK_num_total[1+i, 1:] = self.numerical_derivative(
+                    kernel_dY, atomsX, dxi, dx)
                 # Test symmetry of derivatives
-                K_plus = self.kernel(atomsX, atomsY+dxi, dx=True, dy=True)
-                K_minus = self.kernel(atomsX, atomsY-dxi, dx=True, dy=True)
-                dK_num_total[0, 1+i] = (K_plus[0, 0] - K_minus[0, 0])/(2*dx)
+                dK_num = self.numerical_derivative(kernel_Y, atomsY, dxi, dx)
+                dK_num_total[0, 1+i] = dK_num
 
             np.testing.assert_allclose(K, dK_num_total, atol=1E-9)
 
@@ -44,21 +56,21 @@ class KernelTest():
             dK_num = np.zeros_like(dK)
 
             # Derivative with respect to the hyperparameters:
-            dt = 1e-6
-            # Hyperparameters live on an exponential scale!!!
+            dt = 1e-4
+            def kernel_t(t):
+                # Hyperparameters live on an exponential scale!!!
+                self.kernel.theta = np.log(t)
+                K = self.kernel(atomsX, atomsY, dx=True, dy=True)
+                return K
+
+            t0 = np.exp(self.kernel.theta)
             for i in range(len(self.kernel.theta)):
                 dti = np.zeros(len(self.kernel.theta))
                 dti[i] = dt
-                self.kernel.theta = np.log(np.exp(self.kernel.theta) + dti)
-                K_plus = self.kernel(atomsX, atomsY, dx=True, dy=True,
-                                     eval_gradient=False)
-                self.kernel.theta = np.log(np.exp(self.kernel.theta) - 2*dti)
-                K_minus = self.kernel(atomsX, atomsY, dx=True, dy=True,
-                                      eval_gradient=False)
-                self.kernel.theta = np.log(np.exp(self.kernel.theta) + dti)
-                dK_num[:, :, i] = (K_plus - K_minus)/(2*dt)
+                dK_num[:, :, i] = self.numerical_derivative(
+                    kernel_t, t0, dti, dt)
 
-            np.testing.assert_allclose(dK, dK_num, atol=1E-8)
+            np.testing.assert_allclose(dK, dK_num, atol=1E-9)
 
         def test_hyperparameter_gradient_XisY(self):
             """ In theory the gradient with respect to the hyperparameters
@@ -72,21 +84,21 @@ class KernelTest():
             dK_num = np.zeros_like(dK)
 
             # Derivative with respect to the hyperparameters:
-            dt = 1e-6
-            # Hyperparameters live on an exponential scale!!!
+            dt = 1e-4
+            def kernel_t(t):
+                # Hyperparameters live on an exponential scale!!!
+                self.kernel.theta = np.log(t)
+                K = self.kernel(atomsX, atomsX, dx=True, dy=True)
+                return K
+
+            t0 = np.exp(self.kernel.theta)
             for i in range(len(self.kernel.theta)):
                 dti = np.zeros(len(self.kernel.theta))
                 dti[i] = dt
-                self.kernel.theta = np.log(np.exp(self.kernel.theta) + dti)
-                K_plus = self.kernel(atomsX, atomsX, dx=True, dy=True,
-                                     eval_gradient=False)
-                self.kernel.theta = np.log(np.exp(self.kernel.theta) - 2*dti)
-                K_minus = self.kernel(atomsX, atomsX, dx=True, dy=True,
-                                      eval_gradient=False)
-                self.kernel.theta = np.log(np.exp(self.kernel.theta) + dti)
-                dK_num[:, :, i] = (K_plus - K_minus)/(2*dt)
+                dK_num[:, :, i] = self.numerical_derivative(
+                    kernel_t, t0, dti, dt)
 
-            np.testing.assert_allclose(dK, dK_num, atol=1E-8)
+            np.testing.assert_allclose(dK, dK_num, atol=1E-9)
 
         def test_symmetry(self):
             atomsX = np.random.randn(1, 12)
