@@ -1287,6 +1287,64 @@ class MaternKernel(Kernel):
         return diag
 
 
+class PeriodicKernel(Kernel):
+    def __init__(self, period=1.0, length_scale=1.0):
+        self.period = period
+        self.length_scale = length_scale
+
+    @property
+    def theta(self):
+        return np.empty(0)
+
+    @theta.setter
+    def theta(self, theta):
+        pass
+
+    @property
+    def bounds(self):
+        return np.empty((0, 2))
+
+    def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
+        n = X.shape[0]
+        m = Y.shape[0]
+        n_dim = X.shape[1]
+
+        # The arguments dx and dy are deprecated and will be removed soon
+        if not (dx and dy):
+            raise NotImplementedError
+
+        # Initialize kernel matrix
+        K = np.zeros((n*(1+n_dim), m*(1+n_dim)))
+        if eval_gradient:
+            K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim),
+                                   self.theta.shape[0]))
+        for a in range(n):
+            for b in range(m):
+                # Index ranges for the derivatives are given by the following
+                # slice objects:
+                da = slice(n+a*n_dim, n+(a+1)*n_dim, 1)
+                db = slice(m+b*n_dim, m+(b+1)*n_dim, 1)
+
+                period_times_diff = self.period*(X[a, :]-Y[b, :])
+                sin_2r = np.sin(2*period_times_diff)
+                period_over_l2 = self.period/self.length_scale**2
+                K[a, b] = np.exp(-0.5 * np.sum(
+                    (np.sin(period_times_diff)/self.length_scale)**2))
+                K[da, b] = -0.5*period_over_l2*sin_2r*K[a, b]
+                K[a, db] = 0.5*period_over_l2*sin_2r*K[a, b]
+                K[da, db] = 0.25* np.outer(period_over_l2, period_over_l2)*(
+                    4*np.diag(self.length_scale**2*np.cos(2*period_times_diff))
+                    - np.outer(sin_2r, sin_2r))*K[a, b]
+
+        if eval_gradient:
+            return K, K_gradient
+        return K
+
+    def diag(self, X):
+        diag = np.ones(X.shape[0] * (1 + X.shape[1]))
+        diag[X.shape[0]:] = self.period**2/self.length_scale**2
+        return diag
+
 class SFSKernel(Kernel):
     def __init__(self, descriptor_set, factor=1.0, constant=1.0,
                  kernel='dot_product'):
