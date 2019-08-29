@@ -3,7 +3,8 @@ import numpy as np
 from mlpot.kernels import (ConstantKernel, RBFKernel, RBFKernel_with_factor,
                            MaternKernel, DotProductKernel,
                            NormalizedDotProductKernel,
-                           NormalizedDotProductKernelwithHyperparameter)
+                           NormalizedDotProductKernelwithHyperparameter,
+                           PeriodicKernel)
 
 
 class KernelTest():
@@ -257,6 +258,8 @@ class NormalizedDotProductKernelwithHyperparameterExp4Test(
         sigma0=0.321, exponent=4, constant=0.234
     )
 
+class PeriodicKernel(KernelTest.KernelTest):
+    kernel = PeriodicKernel(period=2.1, length_scale=1.23)
 
 if __name__ == '__main__':
     unittest.main()
