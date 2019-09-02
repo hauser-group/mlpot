@@ -25,13 +25,12 @@ def angle(xyzs, i, j, k, derivative=False):
     z = cross/np.linalg.norm(cross)
     t = 2 * np.arctan2(
         np.dot(cross, z),
-        norm_rji*norm_rjk + np.dot(rji, rjk))# * 180.0 / np.pi
+        norm_rji*norm_rjk + np.dot(rji, rjk))
     if derivative:
         dt = np.zeros(len(xyzs)*3)
         dt[3*i:3*(i+1)] = np.cross(rji, z)/norm_rji**2
         dt[3*k:3*(k+1)] = - np.cross(rjk, z)/norm_rjk**2
         dt[3*j:3*(j+1)] = - dt[3*i:3*(i+1)] - dt[3*k:3*(k+1)]
-        #dt *= 180.0 / np.pi
         return t, dt
     else:
         return t
@@ -48,7 +47,7 @@ def dihedral(xyzs, i, j, k, l, derivative=False):
     norm_G = np.linalg.norm(G)
     w = np.arctan2(
             np.dot(np.cross(B, A), G/norm_G),
-            np.dot(A, B)) #* 180.0 / np.pi
+            np.dot(A, B))
     if derivative:
         A_sq = np.dot(A, A)
         B_sq = np.dot(B, B)
@@ -61,7 +60,6 @@ def dihedral(xyzs, i, j, k, l, derivative=False):
                               - np.dot(F, G)/(A_sq*norm_G)*A
                               - norm_G/B_sq*B)
         dw[3*l:3*(l+1)] = norm_G/B_sq*B
-        #dw *= 180.0 / np.pi
         return w, dw
     else:
         return w
@@ -84,27 +82,23 @@ def find_angles_and_dihedrals(bonds):
                 angles.append((i, j, k))
                 # Loop over all bonds to detect circular geometries
                 for b3 in bonds[n+1:]:
-                    if not j in b3:  # Avoid impropers
+                    if not j in b3:  # Ignore impropers
                         if (i == b3[0] and k != b3[1]
                                 and not (k, j, i, b3[1]) in dihedrals):
                             dihedrals.append((b3[1], i, j, k))
-                            #print('New dihedral', dihedrals[-1])
                         elif (i == b3[1] and k != b3[0]
                                 and not (k, j, i, b3[0]) in dihedrals):
                             dihedrals.append((b3[0], i, j, k))
-                            #print('New dihedral', dihedrals[-1])
                         elif (k == b3[0] and i != b3[1]
                                 and not (b3[1], k, j, i) in dihedrals):
                             dihedrals.append((i, j, k, b3[1]))
-                            #print('New dihedral', dihedrals[-1])
                         elif (k == b3[1] and i != b3[0]
                                 and not (b3[0], k, j, i) in dihedrals):
                             dihedrals.append((i, j, k, b3[0]))
-                            #print('New dihedral', dihedrals[-1])
-    for b1, b2, b3 in combinations(bonds, 3):
-        if (len(set(b1 + b2 + b3)) == 4
-                and len(set(b1) & set(b2) & set(b3))) == 0:
-            print(b1, b2, b3)
+    # for b1, b2, b3 in combinations(bonds, 3):
+    #     if (len(set(b1 + b2 + b3)) == 4
+    #             and len(set(b1) & set(b2) & set(b3))) == 0:
+    #         print(b1, b2, b3)
     return angles, dihedrals
 
 def to_primitives_factory(bonds):
