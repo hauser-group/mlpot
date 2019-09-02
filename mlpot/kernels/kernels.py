@@ -423,6 +423,7 @@ class Masking(Kernel):
 
         return np.hstack((K_masked[n:], K_dXdY.reshape(n*n_dim)))
 
+
 class ConstantKernel(Kernel):
 
     def __init__(self, constant=1.0, constant_bounds=(1e-3, 1e3)):
@@ -1288,21 +1289,38 @@ class MaternKernel(Kernel):
 
 
 class PeriodicKernel(Kernel):
-    def __init__(self, period=1.0, length_scale=1.0):
+    def __init__(self, period=1.0, length_scale=1.0,
+                 length_scale_bounds=(1e-3, 1e3)):
         self.period = period
-        self.length_scale = length_scale
+        if np.ndim(length_scale) == 0:
+            self.length_scale = np.array([length_scale])
+        elif np.ndim(length_scale) == 1:
+            self.length_scale = np.array(length_scale)
+        else:
+            raise ValueError('Unexpected dimension of length_scale')
+        self.length_scale_bounds = length_scale_bounds
 
     @property
     def theta(self):
-        return np.empty(0)
+        if self.length_scale_bounds == 'fixed':
+            return np.empty(0)
+        return np.log(self.length_scale)
 
     @theta.setter
     def theta(self, theta):
-        pass
+        if not self.length_scale_bounds == 'fixed':
+            self.length_scale = np.exp(theta)
 
     @property
     def bounds(self):
-        return np.empty((0, 2))
+        if np.ndim(self.length_scale_bounds) == 1:
+            return np.log(np.asarray([self.length_scale_bounds]))
+        elif np.ndim(self.length_scale_bounds) == 2:
+            return np.log(self.length_scale_bounds)
+        if self.length_scale_bounds == 'fixed':
+            return np.empty((0, 2))
+        else:
+            raise ValueError('Unexpected dimension of length_scale_bounds')
 
     def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
         n = X.shape[0]
@@ -1328,13 +1346,30 @@ class PeriodicKernel(Kernel):
                 period_times_diff = self.period*(X[a, :]-Y[b, :])
                 sin_2r = np.sin(2*period_times_diff)
                 period_over_l2 = self.period/self.length_scale**2
-                K[a, b] = np.exp(-0.5 * np.sum(
-                    (np.sin(period_times_diff)/self.length_scale)**2))
+                exponent = -0.5 * np.sum(
+                    (np.sin(period_times_diff)/self.length_scale)**2)
+                K[a, b] = np.exp(exponent)
                 K[da, b] = -0.5*period_over_l2*sin_2r*K[a, b]
                 K[a, db] = 0.5*period_over_l2*sin_2r*K[a, b]
                 K[da, db] = 0.25* np.outer(period_over_l2, period_over_l2)*(
                     4*np.diag(self.length_scale**2*np.cos(2*period_times_diff))
                     - np.outer(sin_2r, sin_2r))*K[a, b]
+                if eval_gradient and not self.length_scale_bounds == 'fixed':
+                    K_gradient[a, b, 0] = np.sum(
+                            np.sin(period_times_diff)**2/self.length_scale**3
+                        )*K[a, b]
+                    K_gradient[da, b, 0] = (period_over_l2/self.length_scale
+                        * sin_2r*(1 + exponent))*K[a, b]
+                    K_gradient[a, db, 0] = -(period_over_l2/self.length_scale
+                        * sin_2r*(1 + exponent))*K[a, b]
+                    K_gradient[da, db, 0] = 0.5 * (
+                        np.outer(period_over_l2,
+                                 period_over_l2)/self.length_scale
+                        * (np.outer(sin_2r, sin_2r)*(2 + exponent)
+                           - 4*(1 + exponent)*np.diag(
+                                self.length_scale**2
+                                *np.cos(2*period_times_diff))
+                          ))*K[a, b]
 
         if eval_gradient:
             return K, K_gradient
