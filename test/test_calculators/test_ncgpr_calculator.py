@@ -199,25 +199,40 @@ class GAPCalculatorTest(unittest.TestCase):
     def test_ethane_primitives_kernel_derivative(self):
         atoms = molecule('C2H6')
         atoms.set_calculator(EMT())
+        symbols = atoms.get_chemical_symbols()
         # Add gaussian noise because of numerical problem for
         # the 180 degree angle
-        x0 = atoms.get_positions() + 1e-3*np.random.randn(8, 3)
-        atoms.set_positions(x0)
-        symbols = atoms.get_chemical_symbols()
+        images = []
+        np.random.seed(123)
+        for _ in range(4):
+            image = atoms.copy()
+            image.set_positions(
+                image.get_positions() + 0.05*np.random.randn(len(atoms), 3))
+            image.set_calculator(EMT())
+            images.append(image)
+        np.random.seed()
+        atomsX = images[:-1]
+        atomsY = images[-1:]
+        n = len(atomsX)
+        m = len(atomsY)
+
         # Ethane bonds:
         bonds = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 5), (1, 6), (1, 7)]
         transform, _, _ = to_primitives_factory(bonds)
-        kernel = RBFKernel(constant=100.0, length_scale=1.23)
+        kernel = RBFKernel(constant=0.0, length_scale=3.21)
         calc = NCGPRCalculator(input_transform=transform, kernel=kernel,
                                C1=1e8, C2=1e8, opt_restarts=0)
-        calc.add_data(atoms)
-        K = calc.build_kernel_matrix()
+
+        [calc.add_data(a) for a in atomsX]
+        qY, dqY = transform(atomsY[0])
+        K = calc.build_kernel_matrix(X_star=(qY, dqY))
 
         K_num = np.zeros_like(K)
         # kernel value is not tested:
-        K_num[0, 0] = K[0, 0]
+        K_num[:n, :m] = K[:n, :m]
         dx = 1e-4
 
+        calc.atoms_train = [atoms]
         def K_fun(x, y):
             qx, dqx = transform(Atoms(symbols, positions=x))
             calc.q_train, calc.dq_train = [qx], [dqx]
@@ -230,22 +245,23 @@ class GAPCalculatorTest(unittest.TestCase):
             return calc.build_kernel_matrix(
                 X_star=transform(Atoms(symbols, positions=y)))[0, 1:]
 
-        for i in range(len(atoms)*3):
-            dxi = np.zeros((len(atoms), 3))
-            dxi.flat[i] = dx
-            # Test first derivative
-            K_num[1+i, 0] = self.num_dx_forth_order(K_fun, x0, x0, dxi)
-            # Approximate second derivative as numerical derivative of
-            # analytical first derivative
-            K_num[1+i, 1:] = self.num_dx_forth_order(K_dY, x0, x0, dxi)
-            # for j in range(len(atoms)*3):
-            #     dxj = np.zeros((len(atoms), 3))
-            #     dxj.flat[j] = dx
-            #     K_num[1+i, 1+j] = self.num_dxdy_forth_order(
-            #         K_fun, x0, x0, dxi, dxj)
-
-            # Test symmetry of derivatives
-            K_num[0, 1+i] = self.num_dy_forth_order(K_fun, x0, x0, dxi)
+        for i in range(n):
+            x0 = atomsX[i].get_positions()
+            for j in range(m):
+                y0 = atomsY[j].get_positions()
+                for k in range(len(atoms)*3):
+                    dxk = np.zeros((len(atoms), 3))
+                    dxk.flat[k] = dx
+                    # Test first derivative
+                    K_num[n + i*calc.n_dim + k, j] = self.num_dx_forth_order(
+                        K_fun, x0, y0, dxk)
+                    # Approximate second derivative as numerical derivative of
+                    # analytical first derivative
+                    K_num[n + i*calc.n_dim + k, m:] = self.num_dx_forth_order(
+                        K_dY, x0, y0, dxk)
+                    # Test symmetry of derivatives
+                    K_num[i, m + j*calc.n_dim + k] = self.num_dy_forth_order(
+                        K_fun, x0, y0, dxk)
         np.testing.assert_allclose(K, K_num, atol=1E-5)
 
 
