@@ -77,7 +77,7 @@ class NCGPRCalculator(GPRCalculator):
         self.kernel.theta = params['hyperparameters']
 
     def build_kernel_matrix(self, X_star=None, eval_gradient=False):
-        n = len(self.atoms_train)
+        n = len(self.q_train)
         q_X = np.array(self.q_train)
         dq_X = np.array(self.dq_train)
         n_qs = q_X.shape[1]
