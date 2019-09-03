@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 
 
@@ -107,7 +108,8 @@ def find_angles_and_dihedrals(bonds):
 
 def to_primitives_factory(bonds):
     angles, dihedrals = find_angles_and_dihedrals(bonds)
-    print('Found %d angles and %d dihedrals' % (len(angles), len(dihedrals)))
+    logging.info('Found %d angles and %d dihedrals' % (len(angles),
+                                                       len(dihedrals)))
     n_q = len(bonds) + len(angles) + len(dihedrals)
 
     def to_primitives(atoms):
