@@ -1,5 +1,5 @@
 import numpy as np
-from itertools import combinations
+
 
 def dist(xyzs, i, j, derivative=False):
     rij = xyzs[i, :] - xyzs[j, :]
@@ -11,6 +11,7 @@ def dist(xyzs, i, j, derivative=False):
         return r, dr
     else:
         return r
+
 
 def angle(xyzs, i, j, k, derivative=False):
     """atom j is center of angle
@@ -35,6 +36,7 @@ def angle(xyzs, i, j, k, derivative=False):
     else:
         return t
 
+
 def dihedral(xyzs, i, j, k, l, derivative=False):
     """Follows:
     Blondel, A. and Karplus, M., J. Comput. Chem., 17: 1132-1141. (1996)
@@ -54,15 +56,16 @@ def dihedral(xyzs, i, j, k, l, derivative=False):
         dw = np.zeros(len(xyzs)*3)
         dw[3*i:3*(i+1)] = - norm_G/A_sq*A
         dw[3*j:3*(j+1)] = (norm_G/A_sq*A
-                              + np.dot(F, G)/(A_sq*norm_G)*A
-                              - np.dot(H, G)/(B_sq*norm_G)*B)
+                           + np.dot(F, G)/(A_sq*norm_G)*A
+                           - np.dot(H, G)/(B_sq*norm_G)*B)
         dw[3*k:3*(k+1)] = (np.dot(H, G)/(B_sq*norm_G)*B
-                              - np.dot(F, G)/(A_sq*norm_G)*A
-                              - norm_G/B_sq*B)
+                           - np.dot(F, G)/(A_sq*norm_G)*A
+                           - norm_G/B_sq*B)
         dw[3*l:3*(l+1)] = norm_G/B_sq*B
         return w, dw
     else:
         return w
+
 
 def find_angles_and_dihedrals(bonds):
     angles = []
@@ -82,7 +85,7 @@ def find_angles_and_dihedrals(bonds):
                 angles.append((i, j, k))
                 # Loop over all bonds to detect circular geometries
                 for b3 in bonds[n+1:]:
-                    if not j in b3:  # Ignore impropers
+                    if j not in b3:  # Ignore impropers
                         if (i == b3[0] and k != b3[1]
                                 and not (k, j, i, b3[1]) in dihedrals):
                             dihedrals.append((b3[1], i, j, k))
@@ -101,10 +104,12 @@ def find_angles_and_dihedrals(bonds):
     #         print(b1, b2, b3)
     return angles, dihedrals
 
+
 def to_primitives_factory(bonds):
     angles, dihedrals = find_angles_and_dihedrals(bonds)
     print('Found %d angles and %d dihedrals' % (len(angles), len(dihedrals)))
     n_q = len(bonds) + len(angles) + len(dihedrals)
+
     def to_primitives(atoms):
         xyzs = atoms.get_positions()
         qs = np.zeros(n_q)
