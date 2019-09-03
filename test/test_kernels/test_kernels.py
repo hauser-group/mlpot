@@ -58,6 +58,7 @@ class KernelTest():
 
             # Derivative with respect to the hyperparameters:
             dt = 1e-4
+
             def kernel_t(t):
                 # Hyperparameters live on an exponential scale!!!
                 self.kernel.theta = np.log(t)
@@ -86,6 +87,7 @@ class KernelTest():
 
             # Derivative with respect to the hyperparameters:
             dt = 1e-4
+
             def kernel_t(t):
                 # Hyperparameters live on an exponential scale!!!
                 self.kernel.theta = np.log(t)
@@ -258,8 +260,10 @@ class NormalizedDotProductKernelwithHyperparameterExp4Test(
         sigma0=0.321, exponent=4, constant=0.234
     )
 
+
 class PeriodicKernel(KernelTest.KernelTest):
     kernel = PeriodicKernel(period=2.1, length_scale=1.23)
+
 
 if __name__ == '__main__':
     unittest.main()
