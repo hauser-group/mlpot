@@ -224,17 +224,25 @@ class GAPCalculatorTest(unittest.TestCase):
             return calc.build_kernel_matrix(
                 X_star=transform(Atoms(symbols, positions=y)))[0, 0]
 
+        def K_dY(x, y):
+            qx, dqx = transform(Atoms(symbols, positions=x))
+            calc.q_train, calc.dq_train = [qx], [dqx]
+            return calc.build_kernel_matrix(
+                X_star=transform(Atoms(symbols, positions=y)))[0, 1:]
+
         for i in range(len(atoms)*3):
             dxi = np.zeros((len(atoms), 3))
             dxi.flat[i] = dx
             # Test first derivative
             K_num[1+i, 0] = self.num_dx_forth_order(K_fun, x0, x0, dxi)
-
-            for j in range(len(atoms)*3):
-                dxj = np.zeros((len(atoms), 3))
-                dxj.flat[j] = dx
-                K_num[1+i, 1+j] = self.num_dxdy_forth_order(
-                    K_fun, x0, x0, dxi, dxj)
+            # Approximate second derivative as numerical derivative of
+            # analytical first derivative
+            K_num[1+i, 1:] = self.num_dx_forth_order(K_dY, x0, x0, dxi)
+            # for j in range(len(atoms)*3):
+            #     dxj = np.zeros((len(atoms), 3))
+            #     dxj.flat[j] = dx
+            #     K_num[1+i, 1+j] = self.num_dxdy_forth_order(
+            #         K_fun, x0, x0, dxi, dxj)
 
             # Test symmetry of derivatives
             K_num[0, 1+i] = self.num_dy_forth_order(K_fun, x0, x0, dxi)
