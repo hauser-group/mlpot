@@ -70,13 +70,7 @@ class GeometryToolsTest(unittest.TestCase):
         xyzs = atoms.get_positions() + 1e-3*np.random.randn(8, 3)
         atoms.set_positions(xyzs)
         # Ethane bonds:
-        bonds = [(0, 1),
-                 (0, 2),
-                 (0, 3),
-                 (0, 4),
-                 (1, 5),
-                 (1, 6),
-                 (1, 7)]
+        bonds = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 5), (1, 6), (1, 7)]
 
         transform, angles, dihedrals = to_primitives_factory(bonds)
 
