@@ -7,7 +7,7 @@ class MLCalculator(Calculator):
     implemented_properties = ['energy', 'forces']
 
     def __init__(self, restart=None, ignore_bad_restart_file=False,
-                 label=None, atoms=None, C1=1.0, C2=1.0, **kwargs):
+                 label=None, atoms=None, C1=1e8, C2=1e8, **kwargs):
         Calculator.__init__(self, restart, ignore_bad_restart_file, label,
                             atoms, **kwargs)
 
