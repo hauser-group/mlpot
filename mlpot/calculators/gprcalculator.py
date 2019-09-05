@@ -7,12 +7,14 @@ from scipy.optimize import minimize
 class GPRCalculator(MLCalculator):
 
     def __init__(self, restart=None, ignore_bad_restart_file=False,
-                 label=None, atoms=None, kernel=None, opt_method='L-BFGS-B',
+                 label=None, atoms=None, kernel=None,
+                 opt_fun='marginal_likelihood', opt_method='L-BFGS-B',
                  opt_restarts=0, normalize_y=False, mean_model=None, **kwargs):
         MLCalculator.__init__(self, restart, ignore_bad_restart_file, label,
                               atoms, **kwargs)
 
         self.kernel = kernel
+        self.opt_fun = opt_fun
         self.opt_method = opt_method
         self.opt_restarts = opt_restarts
         self.normalize_y = normalize_y
@@ -146,7 +148,7 @@ class GPRCalculator(MLCalculator):
                                bounds=self.kernel.bounds)
         else:
             raise NotImplementedError(
-                'Method is not implemented or does not support the use of'
+                'Method is not implemented or does not support the use of '
                 'bounds use method=L-BFGS-B.')
 
         return opt_res
@@ -159,10 +161,17 @@ class GPRCalculator(MLCalculator):
                 log marignal likelihood
         """
         self.kernel.theta = hyper_parameter
-        log_marginal_likelihood, d_log_marginal_likelihood = (
-            self.log_marginal_likelihood())
-
-        return -log_marginal_likelihood, -d_log_marginal_likelihood
+        if self.opt_fun == 'marginal_likelihood':
+            log_marginal_likelihood, d_log_marginal_likelihood = (
+                self.log_marginal_likelihood())
+            return -log_marginal_likelihood, -d_log_marginal_likelihood
+        elif self.opt_fun in ['predictive_probability', 'LOO_CV']:
+            log_pred_prob, d_log_pred_prob = self.log_predictive_probability()
+            return -log_pred_prob, -d_log_pred_prob
+        else:
+            raise NotImplementedError(
+                'Method is not implemented. Use "marginal_likelihood" or '
+                '"predictive_probability"')
 
     def log_marginal_likelihood(self):
         """
