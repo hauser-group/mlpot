@@ -7,11 +7,10 @@ from scipy.optimize import minimize
 class GPRCalculator(MLCalculator):
 
     def __init__(self, restart=None, ignore_bad_restart_file=False,
-                 label=None, atoms=None, C1=1e8, C2=1e8,
-                 kernel=None,  opt_method='L-BFGS-B',
+                 label=None, atoms=None, kernel=None, opt_method='L-BFGS-B',
                  opt_restarts=0, normalize_y=False, mean_model=None, **kwargs):
         MLCalculator.__init__(self, restart, ignore_bad_restart_file, label,
-                              atoms, C1, C2, **kwargs)
+                              atoms, **kwargs)
 
         self.kernel = kernel
         self.opt_method = opt_method

@@ -8,14 +8,13 @@ import copy
 class NNCalculator(MLCalculator):
 
     def __init__(self, restart=None, ignore_bad_restart_file=False,
-                 label=None, atoms=None, C1=1.0, C2=1.0, lamb=1.0,
-                 descriptor_set=None, layers=None, offsets=None,
-                 normalize_input=False, model_dir=None, config=None,
-                 opt_restarts=1, reset_fit=False, opt_method='L-BFGS-B',
-                 maxiter=10000, maxcor=200, miniter=None,
+                 label=None, atoms=None, lamb=1.0, descriptor_set=None,
+                 layers=None, offsets=None, normalize_input=False,
+                 model_dir=None, config=None, opt_restarts=1, reset_fit=False,
+                 opt_method='L-BFGS-B', maxiter=10000, maxcor=200, miniter=None,
                  e_tol=1e-3, f_tol=5e-2, **kwargs):
         MLCalculator.__init__(self, restart, ignore_bad_restart_file, label,
-                              atoms, C1, C2, **kwargs)
+                              atoms, **kwargs)
 
         if descriptor_set is None:
             raise NotImplementedError('For now a descriptor set has to be ' +
