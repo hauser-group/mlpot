@@ -166,11 +166,13 @@ class DescriptorSet(object):
                                 ti, tj, tk, "BehlerG5", [lamb, zeta, eta],
                                 cuttype=cuttype, cutoff=cutoff)
 
-    def add_Artrith_Kolpak_set(self):
+    def add_Artrith_Kolpak_set(self, atomtypes=None):
+        # Allows to add the descriptors only on a subset of atomtypes
+        atomtypes = atomtypes or self.atomtypes
         # Parameters from Artrith and Kolpak Nano Lett. 2014, 14, 2670
         etas = [0.0009, 0.01, 0.02, 0.035, 0.06, 0.1, 0.2]
-        for t1 in self.atomtypes:
-            for t2 in self.atomtypes:
+        for t1 in atomtypes:
+            for t2 in atomtypes:
                 for eta in etas:
                     self.add_two_body_descriptor(
                         t1, t2, 'BehlerG2', [eta, 0.0], cuttype='cos',
@@ -178,9 +180,9 @@ class DescriptorSet(object):
 
         ang_etas = [0.0001, 0.003, 0.008]
         zetas = [1.0, 4.0]
-        for ti in self.atomtypes:
+        for ti in atomtypes:
             for (tj, tk) in combinations_with_replacement(
-                    self.atomtypes, 2):
+                    atomtypes, 2):
                 for eta in ang_etas:
                     for zeta in zetas:
                         for lamb in [-1.0, 1.0]:
