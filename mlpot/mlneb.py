@@ -74,8 +74,8 @@ def run_mla_neb(neb, ml_calc, optimizer=FIRE, steps=100, f_max=0.05,
                                                training_images):
         ml_image.set_calculator(copy(ml_calc))
         training_image.set_calculator(SinglePointCalculator(
-            energy=image.get_potential_energy(),
             forces=image.get_forces(apply_constraint=False),
+            energy=image.get_potential_energy(),
             atoms=training_image))
         ml_calc.add_data(training_image)
 
@@ -130,8 +130,8 @@ def run_mla_neb(neb, ml_calc, optimizer=FIRE, steps=100, f_max=0.05,
             # get_potential_energy() and get_forces() are called for the new
             # positions of 'image'.
             training_image.set_calculator(SinglePointCalculator(
-                energy=image.get_potential_energy(),
                 forces=image.get_forces(apply_constraint=False),
+                energy=image.get_potential_energy(),
                 atoms=training_image))
             training_images.append(training_image)
             ml_calc.add_data(training_image)
@@ -208,8 +208,8 @@ def aie_ml_neb(neb, ml_calc, steps=150, ml_steps=150, t_mep=0.3, t_ci=0.01,
         training_image = image.copy()
         training_image.set_calculator(SinglePointCalculator(
             training_image,
-            energy=image.get_potential_energy(),
-            forces=image.get_forces(apply_constraint=False)))
+            forces=image.get_forces(apply_constraint=False),
+            energy=image.get_potential_energy()))
         ml_calc.add_data(training_image)
 
     ml_images = [image.copy() for image in images]
@@ -228,8 +228,8 @@ def aie_ml_neb(neb, ml_calc, steps=150, ml_steps=150, t_mep=0.3, t_ci=0.01,
             training_image.set_calculator(
                 SinglePointCalculator(
                     training_image,
-                    energy=image.get_potential_energy(),
-                    forces=image.get_forces(apply_constraint=False))
+                    forces=image.get_forces(apply_constraint=False),
+                    energy=image.get_potential_energy())
             )
             ml_calc.add_data(training_image)
 
@@ -293,9 +293,8 @@ def oie_ml_neb(neb, ml_calc, optimizer=FIRE, steps=100, ml_steps=150,
         training_image = images[ind].copy()
         training_image.set_calculator(SinglePointCalculator(
             atoms=training_image,
-            energy=images[ind].get_potential_energy(),
-            forces=images[ind].get_forces(
-                apply_constraint=False)))
+            forces=images[ind].get_forces(apply_constraint=False),
+            energy=images[ind].get_potential_energy()))
         ml_calc.add_data(training_image)
 
     # Add first and last image as well as any image that does not require
