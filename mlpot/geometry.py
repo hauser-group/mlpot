@@ -127,3 +127,61 @@ def to_primitives_factory(bonds):
                                         derivative=True)
         return qs, dqs
     return to_primitives, angles, dihedrals
+
+
+def to_mass_weighted(atoms):
+    xyzs = atoms.get_positions()
+    masses = atoms.get_masses()
+    q = xyzs.flatten() * np.repeat(np.sqrt(masses), 3)
+    dq = np.eye(3*len(atoms))
+    dq *= np.repeat(np.sqrt(masses), 3)[:, None]
+    return q,  dq
+
+
+def to_COM(atoms):
+    xyzs = atoms.get_positions()
+    masses = atoms.get_masses()
+    total_mass = masses.sum()
+    rel_masses = masses/total_mass
+    com = rel_masses.dot(xyzs)
+    q = (xyzs - com).flatten()
+    dq = np.eye(3*len(atoms))
+    dq[::3, ::3] -= rel_masses
+    dq[1::3, 1::3] -= rel_masses
+    dq[2::3, 2::3] -= rel_masses
+    return q,  dq
+
+
+def to_COM_mass_weighted(atoms):
+    xyzs = atoms.get_positions()
+    masses = atoms.get_masses()
+    total_mass = masses.sum()
+    rel_masses = masses/total_mass
+    com = rel_masses.dot(xyzs)
+    q = (xyzs - com).flatten() * np.repeat(np.sqrt(masses), 3)
+    dq = np.eye(3*len(atoms))
+    dq[::3, ::3] -= rel_masses
+    dq[1::3, 1::3] -= rel_masses
+    dq[2::3, 2::3] -= rel_masses
+    dq *= np.repeat(np.sqrt(masses), 3)[:, None]
+    return q,  dq
+
+
+def to_standard_orientation(atoms):
+    """
+    Moves the center of mass to the origin and
+    aligns the moments of interia with the axes.
+    Smallest along the x-axis, largest along the
+    z-axis.
+    """
+    xyzs = atoms.get_positions()
+    masses = atoms.get_masses()
+    com = masses.dot(xyzs)/masses.sum()
+    xyzs -= com
+    inertial_tensor = np.zeros((3, 3))
+    for i in range(len(atoms)):
+        inertial_tensor += masses[i]*(
+            xyzs[i, :].dot(xyzs[i, :])*np.eye(3)
+            - np.outer(xyzs[i, :], xyzs[i, :]))
+    w, v = np.linalg.eigh(inertial_tensor)
+    return xyzs.dot(v)
