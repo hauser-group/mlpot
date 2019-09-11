@@ -69,7 +69,8 @@ class GPRCalculator(MLCalculator):
             raise NotImplementedError('Unknown option: %s' % self.normalize_y)
         self._target_vector = np.concatenate(
             [self.E_train - self.intercept, -self.F_train.flatten()])
-
+        # TODO: highly flawed implementation: The recalculation of the kernel
+        # matrix after the optimization loop has to be avoided somehow!
         if self.opt_restarts > 0:
             # TODO: Maybe it would be better to start from the same
             # initial_hyper_parameters (given at kernel initialization),
