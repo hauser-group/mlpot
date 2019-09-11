@@ -1,7 +1,8 @@
 import numpy as np
 import unittest
 from ase.build import molecule
-from mlpot.geometry import to_primitives_factory, dist, angle, dihedral
+from mlpot.geometry import (dist, angle, dihedral, to_primitives_factory,
+                            to_mass_weighted, to_COM, to_COM_mass_weighted)
 
 
 class GeometryToolsTest(unittest.TestCase):
@@ -161,6 +162,72 @@ class GeometryToolsTest(unittest.TestCase):
                 q_plus, _ = transform(atoms)
                 atoms.set_positions(xyzs - dxi)
                 q_minus, _ = transform(atoms)
+                dq_num[:, 3*i+n] = (q_plus - q_minus)/(2*dx)
+
+        np.testing.assert_allclose(dq, dq_num, atol=1e-8)
+
+    def test_to_mass_weighted_transformation(self):
+        atoms = molecule('C2H6')
+        # Add gaussian noise because of numerical problem for
+        # the 180 degree angle
+        xyzs = atoms.get_positions() + 1e-3*np.random.randn(8, 3)
+        atoms.set_positions(xyzs)
+        q, dq = to_mass_weighted(atoms)
+
+        dq_num = np.zeros_like(dq)
+        dx = 1e-5
+        for i in range(len(xyzs)):
+            for n in range(3):
+                dxi = np.zeros_like(xyzs)
+                dxi[i, n] = dx
+                atoms.set_positions(xyzs + dxi)
+                q_plus, _ = to_mass_weighted(atoms)
+                atoms.set_positions(xyzs - dxi)
+                q_minus, _ = to_mass_weighted(atoms)
+                dq_num[:, 3*i+n] = (q_plus - q_minus)/(2*dx)
+
+        np.testing.assert_allclose(dq, dq_num, atol=1e-8)
+
+    def test_to_COM_transformation(self):
+        atoms = molecule('C2H6')
+        # Add gaussian noise because of numerical problem for
+        # the 180 degree angle
+        xyzs = atoms.get_positions() + 1e-3*np.random.randn(8, 3)
+        atoms.set_positions(xyzs)
+        q, dq = to_COM(atoms)
+
+        dq_num = np.zeros_like(dq)
+        dx = 1e-5
+        for i in range(len(xyzs)):
+            for n in range(3):
+                dxi = np.zeros_like(xyzs)
+                dxi[i, n] = dx
+                atoms.set_positions(xyzs + dxi)
+                q_plus, _ = to_COM(atoms)
+                atoms.set_positions(xyzs - dxi)
+                q_minus, _ = to_COM(atoms)
+                dq_num[:, 3*i+n] = (q_plus - q_minus)/(2*dx)
+
+        np.testing.assert_allclose(dq, dq_num, atol=1e-8)
+
+    def test_to_COM_mass_weighted_transformation(self):
+        atoms = molecule('C2H6')
+        # Add gaussian noise because of numerical problem for
+        # the 180 degree angle
+        xyzs = atoms.get_positions() + 1e-3*np.random.randn(8, 3)
+        atoms.set_positions(xyzs)
+        q, dq = to_COM_mass_weighted(atoms)
+
+        dq_num = np.zeros_like(dq)
+        dx = 1e-5
+        for i in range(len(xyzs)):
+            for n in range(3):
+                dxi = np.zeros_like(xyzs)
+                dxi[i, n] = dx
+                atoms.set_positions(xyzs + dxi)
+                q_plus, _ = to_COM_mass_weighted(atoms)
+                atoms.set_positions(xyzs - dxi)
+                q_minus, _ = to_COM_mass_weighted(atoms)
                 dq_num[:, 3*i+n] = (q_plus - q_minus)/(2*dx)
 
         np.testing.assert_allclose(dq, dq_num, atol=1e-8)
