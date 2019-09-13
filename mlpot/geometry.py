@@ -129,6 +129,24 @@ def to_primitives_factory(bonds):
     return to_primitives, angles, dihedrals
 
 
+def to_dic_factory(bonds, atoms_ref):
+    transform = to_primitives_factory(bonds)[0]
+    # Wilson B matrix is just the derivative of q with respect to x
+    _, B = transform(atoms_ref)
+    # G matrix without mass weighting
+    G = B.dot(B.T)
+    w, v = np.linalg.eigh(G)
+    # Set of nonredundant eigenvectors (eigenvalue =/= 0)
+    U = v[:, w > 1e-10]
+
+    def to_dic(atoms):
+        q, dq = transform(atoms)
+        s = U.T.dot(q)
+        ds = U.T.dot(dq)
+        return s, ds
+    return to_dic
+
+
 def to_mass_weighted(atoms):
     xyzs = atoms.get_positions()
     masses = atoms.get_masses()
