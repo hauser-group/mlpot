@@ -80,7 +80,7 @@ def run_mla_neb(neb, ml_calc, optimizer=FIRE, steps=100, f_max=0.05,
         ml_calc.add_data(training_image)
 
     ml_neb = NEB(
-        ml_images, climb=neb.climb,
+        ml_images, k=neb.k, climb=neb.climb,
         remove_rotation_and_translation=neb.remove_rotation_and_translation)
 
     for step_i in range(steps):
@@ -215,7 +215,7 @@ def aie_ml_neb(neb, ml_calc, steps=150, ml_steps=150, t_mep=0.3, t_ci=0.01,
     ml_images = [image.copy() for image in images]
     [ml_image.set_calculator(copy(ml_calc)) for ml_image in ml_images]
     ml_neb = NEB(
-        ml_images, climb=neb.climb,
+        ml_images, k=neb.k, climb=neb.climb,
         remove_rotation_and_translation=neb.remove_rotation_and_translation)
 
     for i_step in range(steps):
@@ -309,7 +309,7 @@ def oie_ml_neb(neb, ml_calc, optimizer=FIRE, steps=100, ml_steps=150,
     ml_images = [image.copy() for image in images]
     [ml_image.set_calculator(copy(ml_calc)) for ml_image in ml_images]
     ml_neb = NEB(
-        ml_images, climb=neb.climb,
+        ml_images, k=neb.k, climb=neb.climb,
         remove_rotation_and_translation=neb.remove_rotation_and_translation)
 
     # Step 1: fit the machine learning model to the training images
@@ -383,7 +383,7 @@ def oie_ml_neb(neb, ml_calc, optimizer=FIRE, steps=100, ml_steps=150,
                                 im, ['energy', 'forces']) for im in images]
         tmp_neb = NEB(
             [ml_im if eval else im for eval, im, ml_im in zip(
-                evaluated_images, images, ml_images)], climb=neb.climb)
+                evaluated_images, images, ml_images)], k=neb.k, climb=neb.climb)
         approx_forces = tmp_neb.get_forces().reshape(
             (len(ml_neb.images) - 2, -1, 3))
         print('Highest energy image is number %d' % tmp_neb.imax)
