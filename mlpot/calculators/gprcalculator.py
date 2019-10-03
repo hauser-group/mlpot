@@ -23,7 +23,8 @@ class GPRCalculator(MLCalculator):
     def add_data(self, atoms):
         # If the trainings set is empty: setup the numpy arrays
         if not self.atoms_train:
-            self.n_dim = 3*len(atoms)
+            self.n_atoms = len(atoms)
+            self.n_dim = 3*self.n_atoms
             self.x_train = np.zeros((0, self.n_dim))
             self.E_train = np.zeros(0)
             self.F_train = np.zeros(0)
@@ -268,6 +269,7 @@ class GPRCalculator(MLCalculator):
         self.atoms_train = params['atoms_train']
         self.x_train = params['x_train']
         self.n_dim = self.x_train.shape[1]
+        self.n_atoms = len(self.atoms_train[0])
         self.alpha = params['alpha']
         self.L = params['L']
         self.intercept = params['intercept']
