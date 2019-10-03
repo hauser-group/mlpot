@@ -1,5 +1,6 @@
 from mlpot.calculators.mlcalculator import MLCalculator
 from mlpot.calculators.gprcalculator import GPRCalculator
+from scipy.linalg import solve_triangular
 import numpy as np
 
 
