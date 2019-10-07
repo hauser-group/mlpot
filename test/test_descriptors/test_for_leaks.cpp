@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include "symmetryFunctionSet.h"
 
-/* Compile using "g++ -g -std=c++11 test_for_leaks.cpp -I/path/to/NeuralNetworks/symmetryFunctions
--L/path/to/NeuralNetworks/symmetryFunctions -lSymFunSet -o test_for_leaks"
+/* Compile using "g++ -g -std=c++11 test_for_leaks.cpp -I/path/to/mlpot/descriptors
+-L/path/to/mlpot/descriptors -lDescriptorSet -o test_for_leaks"
 
-export LD_LIBRARY_PATH=$LD_LIBRARYPATH:/home/rmeyer/PythonModules/NeuralNetworks/NeuralNetworks/descriptors*/
+export LD_LIBRARY_PATH=$LD_LIBRARYPATH:/location/of/python/package/descriptors*/
 
 
 int main()
