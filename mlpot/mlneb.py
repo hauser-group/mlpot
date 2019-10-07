@@ -153,8 +153,8 @@ def _relaxation_phase(ml_neb, ml_calc, steps, t_mep_ml, t_ci_on, r_max,
         if not ml_neb.climb and f_max < t_ci_on:  # Step III
             print('Turning on climbing mode.')
             ml_neb.climb = True
-            return _relaxation_phase(ml_neb, ml_calc, steps - opt.nsteps,
-                                     t_mep_ml, t_ci_on, r_max)
+            return _relaxation_phase(ml_neb, ml_calc, steps, t_mep_ml, t_ci_on,
+                                     r_max)
         if ml_neb.climb and f_max < t_mep_ml:  # Step IV:
             return True, None
 
