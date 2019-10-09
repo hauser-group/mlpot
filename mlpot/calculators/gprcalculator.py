@@ -60,14 +60,20 @@ class GPRCalculator(MLCalculator):
     def fit(self):
         print('Fit called with %d geometries.' % len(self.atoms_train))
 
-        if self.normalize_y == 'mean':
-            self.intercept = np.mean(self.E_train)
-        elif self.normalize_y == 'min':
-            self.intercept = np.min(self.E_train)
-        elif self.normalize_y is False or self.normalize_y is None:
-            self.intercept = 0.
-        else:
-            raise NotImplementedError('Unknown option: %s' % self.normalize_y)
+        try:
+            self.intercept = float(self.normalize_y)
+        except ValueError:
+            if self.normalize_y == 'mean':
+                self.intercept = np.mean(self.E_train)
+            elif self.normalize_y == 'min':
+                self.intercept = np.min(self.E_train)
+            elif self.normalize_y == 'max':
+                self.intercept = np.max(self.E_train)
+            elif self.normalize_y is False or self.normalize_y is None:
+                self.intercept = 0.
+            else:
+                raise NotImplementedError(
+                    'Unknown option: %s' % self.normalize_y)
         self._target_vector = np.concatenate(
             [self.E_train - self.intercept, -self.F_train.flatten()])
         # TODO: highly flawed implementation: The recalculation of the kernel
