@@ -223,8 +223,8 @@ class Rescaling(Kernel):
     @property
     def bounds(self):
         if self.rmul:
-            return np.vstack((self.factor_bounds, self.kernel.bounds))
-        return np.vstack((self.kernel.bounds, self.factor_bounds))
+            return np.vstack((np.log(self.factor_bounds), self.kernel.bounds))
+        return np.vstack((np.log(self.kernel.bounds), self.factor_bounds))
 
     def __call__(self, X, Y, dx=False, dy=False, eval_gradient=False):
         # The arguments dx and dy are deprecated and will be removed soon
