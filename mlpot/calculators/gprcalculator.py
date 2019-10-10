@@ -69,6 +69,9 @@ class GPRCalculator(MLCalculator):
                 self.intercept = np.min(self.E_train)
             elif self.normalize_y == 'max':
                 self.intercept = np.max(self.E_train)
+            elif self.normalize_y.startswith('max+'):
+                self.intercept = (
+                    np.max(self.E_train) + float(self.normalize_y[4:]))
             elif self.normalize_y is False or self.normalize_y is None:
                 self.intercept = 0.
             else:
