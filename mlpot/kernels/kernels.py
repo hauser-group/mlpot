@@ -33,7 +33,7 @@ class Kernel(with_metaclass(ABCMeta)):
 
     def __mul__(self, b):
         if not isinstance(b, Kernel):
-            return Rescaling(self, b)
+            return Rescaling(self, b, rmul=False)
         return Product(self, b)
 
     def __rmul__(self, b):
@@ -195,7 +195,7 @@ class Product(KernelOperator):
 class Rescaling(Kernel):
 
     def __init__(self, kernel, factor=1.0, factor_bounds=(1e-3, 1e3),
-                 rmul=False):
+                 rmul=True):
         """
         rmul: Indicates that the kernel is the right object in the
               multiplication. Used for ordering of the hyperparameters.
