@@ -385,7 +385,8 @@ def oie_ml_neb(neb, ml_calc, optimizer=FIRE, steps=100, ml_steps=150,
             [ml_im if eval else im for eval, im, ml_im in zip(
                 evaluated_images, images, ml_images)],
             k=neb.k, climb=neb.climb, method=neb.method,
-            remove_rotation_and_translation=neb.remove_rotation_and_translation)
+            remove_rotation_and_translation=neb.remove_rotation_and_translation
+        )
         approx_forces = tmp_neb.get_forces().reshape(
             (len(ml_neb.images) - 2, -1, 3))
         print('Highest energy image is number %d' % tmp_neb.imax)
