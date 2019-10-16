@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+from ase.data import covalent_radii
 
 
 def dist(xyzs, i, j, derivative=False):
@@ -66,6 +67,35 @@ def dihedral(xyzs, i, j, k, l, derivative=False):
         return w, dw
     else:
         return w
+
+
+def find_connectivity(atoms, threshold=1.25):
+    bonds = []
+    N = len(atoms)
+    xyzs = atoms.get_positions()
+    types = atoms.get_atomic_numbers()
+    radii = np.array([covalent_radii[t] for t in types])
+    connected = [True] + [False]*(N-1)
+
+    r2 = np.sum((xyzs[:, np.newaxis, :] - xyzs[np.newaxis, :, :])**2, axis=2)
+    np.fill_diagonal(r2, np.inf)
+    con = r2 < threshold*(radii[:, np.newaxis] + radii[np.newaxis, :])**2
+    print(con)
+    print(np.linalg.det(con), np.linalg.matrix_rank(con))
+
+    for i in range(N):
+        for j in range(i+1, N):
+            rij = np.sum((xyzs[i, :] - xyzs[j, :])**2)
+            if (rij < threshold*(covalent_radii[types[i]]
+                                 + covalent_radii[types[j]])**2):
+                bonds.append((i, j))
+                connected[j] = connected[i]
+    # Check for disconnected fragments
+    if not all(connected):
+        print(bonds)
+        print(connected)
+        raise Exception()
+    return bonds
 
 
 def find_angles_and_dihedrals(bonds):

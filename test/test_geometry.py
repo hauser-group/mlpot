@@ -1,8 +1,9 @@
 import numpy as np
 import unittest
 from ase.build import molecule
-from mlpot.geometry import (dist, angle, dihedral, to_primitives_factory,
-                            to_dic_factory, to_mass_weighted, to_COM,
+from mlpot.geometry import (dist, angle, dihedral, find_connectivity,
+                            to_primitives_factory, to_dic_factory,
+                            to_mass_weighted, to_COM,
                             to_COM_mass_weighted)
 
 
@@ -64,6 +65,13 @@ class GeometryToolsTest(unittest.TestCase):
                 dq_num[:, 3*i+n] = (q_plus - q_minus)/(2*dx)
 
         np.testing.assert_allclose(dq, dq_num, atol=1e-8)
+
+    def test_find_connectivity(self):
+        atoms = molecule('C2H6')
+        bonds_ref = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 5), (1, 6), (1, 7)]
+
+        bonds = find_connectivity(atoms)
+        self.assertListEqual(bonds, bonds_ref)
 
     def test_primitives_factory_ethane(self):
         atoms = molecule('C2H6')
