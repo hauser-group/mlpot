@@ -71,7 +71,7 @@ class GPRCalculator(MLCalculator):
 
         try:
             self.intercept = float(self.normalize_y)
-        except ValueError:
+        except (ValueError, TypeError):
             if self.normalize_y == 'mean':
                 self.intercept = np.mean(self.E_train)
             elif self.normalize_y == 'min':
