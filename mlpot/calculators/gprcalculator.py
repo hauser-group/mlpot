@@ -51,6 +51,15 @@ class GPRCalculator(MLCalculator):
         self.E_train = np.append(self.E_train, E)
         self.F_train = np.append(self.F_train, F)
 
+    def delete_data(self, indices=None):
+        if indices is None:
+            indices = slice(len(self.atoms_train))
+        del self.atoms_train[indices]
+        self.x_train = np.delete(self.x_train, indices, 0)
+        self.E_train = np.delete(self.E_train, indices, 0)
+        self.F_train = np.delete(self.F_train.reshape(-1, self.n_dim),
+                                 indices, 0).reshape(-1)
+
     def _transform_input(self, atoms):
         return atoms.get_positions().reshape((1, -1))
 
