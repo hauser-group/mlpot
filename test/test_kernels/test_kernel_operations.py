@@ -137,7 +137,7 @@ class RescalingTest(KernelTest.KernelTest):
         factor = 10.0
 
         kernel1 = Rescaling(RBFKernel(), factor)
-        kernel2 = Product(RBFKernel(), ConstantKernel(constant=factor))
+        kernel2 = Product(ConstantKernel(constant=factor), RBFKernel())
 
         K1, dK1 = kernel1(X, Y, dx=True, dy=True, eval_gradient=True)
         K2, dK2 = kernel2(X, Y, dx=True, dy=True, eval_gradient=True)
