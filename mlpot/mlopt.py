@@ -44,8 +44,9 @@ class MLOptimizer(Optimizer):
         self.ml_calc.fit()
         # Clear previous results since fit parameters have changed
         self.ml_calc.results = {}
-        # Check if last step was downhill, otherwise start from
-        # self.previous_position
+        # If last step was downhill start from the current_positions (this is
+        # necessary as the last step might have been scaled down),
+        # otherwise start from self.previous_position
         if self.check_downhill:
             current_energy = self.atoms.get_potential_energy()
             if (self.previous_energy is not None and
@@ -53,6 +54,7 @@ class MLOptimizer(Optimizer):
                 print('Last step was uphill! Resetting position.')
                 self.ml_atoms.set_positions(self.previous_position)
             else:  # Save current energy and position for next downhill check
+                self.ml_atoms.set_positions(current_position)
                 self.previous_energy = current_energy
                 self.previous_position = self.atoms.get_positions()
         else:
