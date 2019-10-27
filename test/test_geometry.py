@@ -4,7 +4,8 @@ from ase.build import molecule
 from mlpot.geometry import (dist, angle, dihedral, find_connectivity,
                             to_primitives_factory, to_dic_factory,
                             to_mass_weighted, to_COM,
-                            to_COM_mass_weighted, to_inverse_distance_matrix)
+                            to_COM_mass_weighted, to_distance_matrix,
+                            to_inverse_distance_matrix)
 
 
 class GeometryToolsTest(unittest.TestCase):
@@ -260,6 +261,11 @@ class COMTest(TransformationTest.TransformationTest):
 class COMMassWeightedTest(TransformationTest.TransformationTest):
     def transform(self, atoms):
         return to_COM_mass_weighted(atoms)
+
+
+class DistanceMatrixTest(TransformationTest.TransformationTest):
+    def transform(self, atoms):
+        return to_distance_matrix(atoms)
 
 
 class InverseDistanceMatrixTest(TransformationTest.TransformationTest):
