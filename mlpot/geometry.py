@@ -233,3 +233,16 @@ def to_standard_orientation(atoms):
             - np.outer(xyzs[i, :], xyzs[i, :]))
     w, v = np.linalg.eigh(inertial_tensor)
     return xyzs.dot(v)
+
+
+def to_inverse_distance_matrix(atoms):
+    xyzs = atoms.get_positions()
+    N = len(atoms)
+    r_vec = xyzs[np.newaxis, :, :] - xyzs[:, np.newaxis, :]
+    r = np.sqrt(np.sum(r_vec**2, axis=2))
+    q = np.zeros((N, N))
+    q[r > 0] = 1.0/r[r > 0]
+    dq = (r_vec[:, :, np.newaxis, :]*q[:, :, np.newaxis, np.newaxis]**3
+          * (np.eye(N, N)[:, np.newaxis, :, np.newaxis]
+             - np.eye(N, N)[np.newaxis, :, :, np.newaxis]))
+    return q.flatten(), dq.reshape(-1, 3*N)
