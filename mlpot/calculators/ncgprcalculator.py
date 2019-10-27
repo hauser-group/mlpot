@@ -43,6 +43,16 @@ class NCGPRCalculator(GPRCalculator):
         self.q_train.append(q)
         self.dq_train.append(dq)
 
+    def delete_data(self, indices=None):
+        if indices is None:
+            indices = slice(len(self.atoms_train))
+        del self.atoms_train[indices]
+        del self.q_train[indices]
+        del self.dq_train[indices]
+        self.E_train = np.delete(self.E_train, indices, 0)
+        self.F_train = np.delete(self.F_train.reshape(-1, self.n_dim),
+                                 indices, 0).reshape(-1)
+
     def _transform_input(self, atoms):
         return self.input_transform(atoms)
 
