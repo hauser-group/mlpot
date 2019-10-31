@@ -208,17 +208,18 @@ class GPRCalculator(MLCalculator):
         L, alpha = self._cholesky(k_mat)
         # Following Rasmussen Algorithm 2.1 the determinant in 2.30 can be
         # expressed as a sum over the Cholesky decomposition L
-        log_mag_likelihood = (- 0.5 * self._target_vector.dot(alpha)
-                              - np.log(np.diag(L)).sum()
-                              - 0.5 * L.shape[0] * np.log(2 * np.pi))
+        log_marginal_likelihood = (- 0.5 * self._target_vector.dot(alpha)
+                                   - np.log(np.diag(L)).sum()
+                                   - 0.5 * L.shape[0] * np.log(2 * np.pi))
 
         # summation inspired form scikit-learn Gaussian process regression
         temp = (np.multiply.outer(alpha, alpha) -
                 cho_solve((L, True), np.eye(L.shape[0])))[:, :, np.newaxis]
-        d_log_mag_likelihood = 0.5 * np.einsum("ijl,ijk->kl", temp, k_grad)
-        d_log_mag_likelihood = d_log_mag_likelihood.sum(-1)
+        d_log_marginal_likelihood = 0.5 * np.einsum("ijl,ijk->kl",
+                                                    temp, k_grad)
+        d_log_marginal_likelihood = d_log_marginal_likelihood.sum(-1)
 
-        return log_mag_likelihood, d_log_mag_likelihood
+        return log_marginal_likelihood, d_log_marginal_likelihood
 
     def log_predictive_probability(self):
         """Leave one out log predictive probability according to Rasmussen
