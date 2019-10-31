@@ -9,11 +9,13 @@ class MLOptimizer(Optimizer):
     def __init__(self, atoms, ml_calc, restart=None, logfile='-',
                  trajectory=None, master=None, force_consistent=None,
                  optimizer=QuasiNewton, maxstep=0.2, check_downhill=True,
-                 callback_before_fit=None, callback_after_ml_opt=None):
+                 ml_max_steps=250, callback_before_fit=None,
+                 callback_after_ml_opt=None):
         self.ml_calc = ml_calc
         self.optimizer = optimizer
         self.check_downhill = check_downhill
         self.previous_energy = None
+        self.ml_max_steps = ml_max_steps
         self.callback_before_fit = callback_before_fit
         self.callback_after_ml_opt = callback_after_ml_opt
         self.maxstep = maxstep
@@ -61,7 +63,7 @@ class MLOptimizer(Optimizer):
             self.ml_atoms.set_positions(current_position)
 
         opt = self.optimizer(self.ml_atoms, logfile=None)
-        opt.run(self.fmax)
+        opt.run(self.fmax, steps=self.ml_max_steps)
         if self.callback_after_ml_opt is not None:
             self.callback_after_ml_opt(self.ml_calc)
 
