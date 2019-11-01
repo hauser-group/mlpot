@@ -1,7 +1,7 @@
 import numpy as np
 import unittest
 from ase.build import molecule
-from mlpot.geometry import (dist, angle, dihedral, find_connectivity,
+from mlpot.geometry import (dist, inv_dist, angle, dihedral, find_connectivity,
                             to_primitives_factory, to_dic_factory,
                             to_mass_weighted, to_COM,
                             to_COM_mass_weighted, to_distance_matrix,
@@ -201,6 +201,45 @@ class GeometryToolsTest(unittest.TestCase):
                 ds_num[:, 3*i+n] = (s_plus - s_minus)/(2*dx)
 
         np.testing.assert_allclose(ds, ds_num, atol=1e-8)
+
+
+class PrimitiveTest():
+    class PrimitiveTest(unittest.TestCase):
+
+        def test_primitive_derivative(self):
+            xyzs = np.random.randn(4, 3)
+            r, dr = self.primitive(xyzs, derivative=True)
+            dr_num = np.zeros(xyzs.size)
+
+            delta = 1e-5
+            for i in range(len(xyzs)):
+                for j in range(3):
+                    d_xyzs = np.zeros_like(xyzs)
+                    d_xyzs[i, j] = delta
+                    dr_plus = self.primitive(xyzs + d_xyzs)
+                    dr_minus = self.primitive(xyzs - d_xyzs)
+                    dr_num[3*i + j] = (dr_plus - dr_minus) / (2*delta)
+            np.testing.assert_allclose(dr, dr_num)
+
+
+class DistTest(PrimitiveTest.PrimitiveTest):
+    def primitive(self, xyzs, derivative=False):
+        return dist(xyzs, 0, 1, derivative=derivative)
+
+
+class InvDistTest(PrimitiveTest.PrimitiveTest):
+    def primitive(self, xyzs, derivative=False):
+        return inv_dist(xyzs, 0, 1, derivative=derivative)
+
+
+class AngleTest(PrimitiveTest.PrimitiveTest):
+    def primitive(self, xyzs, derivative=False):
+        return angle(xyzs, 0, 1, 2, derivative=derivative)
+
+
+class DihedralTest(PrimitiveTest.PrimitiveTest):
+    def primitive(self, xyzs, derivative=False):
+        return dihedral(xyzs, 0, 1, 2, 3, derivative=derivative)
 
 
 class TransformationTest():
