@@ -205,7 +205,11 @@ class GPRCalculator(MLCalculator):
             self.n_samples)/self.C1
         k_mat[self.n_samples:, self.n_samples:] += np.eye(
             self.n_samples*self.n_dim)/self.C2
-        L, alpha = self._cholesky(k_mat)
+        try:
+            L, alpha = self._cholesky(k_mat)
+        except np.linalg.LinAlgError:
+            print('excepted LinAlgError')
+            return -np.inf, np.zeros_like(self.kernel.theta)
         # Following Rasmussen Algorithm 2.1 the determinant in 2.30 can be
         # expressed as a sum over the Cholesky decomposition L
         log_marginal_likelihood = (- 0.5 * self._target_vector.dot(alpha)
