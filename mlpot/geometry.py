@@ -15,6 +15,18 @@ def dist(xyzs, i, j, derivative=False):
         return r
 
 
+def inv_dist(xyzs, i, j, derivative=False):
+    rij = xyzs[i, :] - xyzs[j, :]
+    q = 1.0/np.linalg.norm(rij)
+    if derivative:
+        dq = np.zeros(len(xyzs)*3)
+        dq[3*i:3*(i+1)] = -rij * q**3
+        dq[3*j:3*(j+1)] = rij * q**3
+        return q, dq
+    else:
+        return q
+
+
 def angle(xyzs, i, j, k, derivative=False):
     """atom j is center of angle
     Follows:
