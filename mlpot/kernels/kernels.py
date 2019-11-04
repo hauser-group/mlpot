@@ -401,7 +401,7 @@ class Masking(Kernel):
             dK_dXdY = np.zeros((n, n_dim, m, n_dim, n_theta))
             dK_dXdY[:, self.mask, :, self.mask, :] = (
                 dK_masked[n:, m:, :].reshape(n, masked_dim, m, masked_dim,
-                                            n_theta))
+                                             n_theta))
 
             dK = np.hstack(
                 (np.vstack((dK_masked[:n, :m, :],
@@ -415,7 +415,6 @@ class Masking(Kernel):
         n = X.shape[0]
         n_dim = X.shape[1]
         X_masked = X[:, self.mask]
-        masked_dim = X_masked.shape[1]
 
         K_masked = self.kernel.diag(X_masked)
         K_dXdY = np.zeros((n, n_dim))
@@ -1349,9 +1348,9 @@ class PeriodicKernel(Kernel):
                 exponent = -0.5 * np.sum(
                     (np.sin(period_times_diff)/self.length_scale)**2)
                 K[a, b] = np.exp(exponent)
-                K[da, b] = -0.5*period_over_l2*sin_2r*K[a, b]
-                K[a, db] = 0.5*period_over_l2*sin_2r*K[a, b]
-                K[da, db] = 0.25* np.outer(period_over_l2, period_over_l2)*(
+                K[da, b] = -0.5 * period_over_l2*sin_2r*K[a, b]
+                K[a, db] = 0.5 * period_over_l2*sin_2r*K[a, b]
+                K[da, db] = 0.25 * np.outer(period_over_l2, period_over_l2)*(
                     4*np.diag(self.length_scale**2*np.cos(2*period_times_diff))
                     - np.outer(sin_2r, sin_2r))*K[a, b]
                 if eval_gradient and not self.length_scale_bounds == 'fixed':
@@ -1359,17 +1358,17 @@ class PeriodicKernel(Kernel):
                             np.sin(period_times_diff)**2/self.length_scale**3
                         )*K[a, b]
                     K_gradient[da, b, 0] = (period_over_l2/self.length_scale
-                        * sin_2r*(1 + exponent))*K[a, b]
+                                            * sin_2r*(1 + exponent))*K[a, b]
                     K_gradient[a, db, 0] = -(period_over_l2/self.length_scale
-                        * sin_2r*(1 + exponent))*K[a, b]
+                                             * sin_2r*(1 + exponent))*K[a, b]
                     K_gradient[da, db, 0] = 0.5 * (
                         np.outer(period_over_l2,
                                  period_over_l2)/self.length_scale
                         * (np.outer(sin_2r, sin_2r)*(2 + exponent)
                            - 4*(1 + exponent)*np.diag(
                                 self.length_scale**2
-                                *np.cos(2*period_times_diff))
-                          ))*K[a, b]
+                                * np.cos(2*period_times_diff))
+                           )) * K[a, b]
 
         if eval_gradient:
             return K, K_gradient
@@ -1379,6 +1378,7 @@ class PeriodicKernel(Kernel):
         diag = np.ones(X.shape[0] * (1 + X.shape[1]))
         diag[X.shape[0]:] = self.period**2/self.length_scale**2
         return diag
+
 
 class SFSKernel(Kernel):
     def __init__(self, descriptor_set, factor=1.0, constant=1.0,
