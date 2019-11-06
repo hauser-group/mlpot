@@ -86,27 +86,33 @@ def find_connectivity(atoms, threshold=1.25):
     N = len(atoms)
     xyzs = atoms.get_positions()
     types = atoms.get_atomic_numbers()
-    radii = np.array([covalent_radii[t] for t in types])
-    connected = [True] + [False]*(N-1)
 
-    r2 = np.sum((xyzs[:, np.newaxis, :] - xyzs[np.newaxis, :, :])**2, axis=2)
+    r2 = np.zeros((N, N))
     np.fill_diagonal(r2, np.inf)
-    con = r2 < threshold*(radii[:, np.newaxis] + radii[np.newaxis, :])**2
-    print(con)
-    print(np.linalg.det(con), np.linalg.matrix_rank(con))
 
     for i in range(N):
         for j in range(i+1, N):
-            rij = np.sum((xyzs[i, :] - xyzs[j, :])**2)
-            if (rij < threshold*(covalent_radii[types[i]]
-                                 + covalent_radii[types[j]])**2):
+            r2[i, j] = r2[j, i] = np.sum((xyzs[i, :] - xyzs[j, :])**2)
+            if (r2[i, j] < threshold * (covalent_radii[types[i]]
+                                        + covalent_radii[types[j]])**2):
                 bonds.append((i, j))
-                connected[j] = connected[i]
+
     # Check for disconnected fragments
-    if not all(connected):
-        print(bonds)
-        print(connected)
-        raise Exception()
+    connected = [True] + [False]*(N-1)
+    for i in range(1, N):
+        # Find minimum distance of any connected atom to any
+        # unconnected atom
+        masked_r2 = r2[connected, :][:, np.logical_not(connected)]
+        ind = np.unravel_index(np.argmin(masked_r2), masked_r2.shape)
+        # those indices are not the atomic indices due to the masking
+        # of the array and have to be transformed first:
+        b = (np.arange(N)[connected][ind[0]],
+             np.arange(N)[np.logical_not(connected)][ind[1]])
+        # Add the new atom to the set of connected atoms
+        connected[b[1]] = True
+        # Add bond if not present
+        if b not in bonds:
+            bonds.append(b)
     return bonds
 
 
