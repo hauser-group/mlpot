@@ -71,6 +71,17 @@ class GAPCalculator(GPRCalculator):
             self.Gs[t].extend(Gs_by_type[t])
             self.dGs[t].extend(dGs_by_type[t])
 
+    def delete_data(self, indices=None):
+        if indices is None:
+            indices = slice(len(self.atoms_train))
+        del self.atoms_train[indices]
+        for t in self.atomtypes:
+            del self.Gs[t][indices]
+            del self.dGs[t][indices]
+        self.E_train = np.delete(self.E_train, indices, 0)
+        self.F_train = np.delete(self.F_train.reshape(-1, self.n_dim),
+                                 indices, 0).reshape(-1)
+
     def _transform_input(self, atoms):
         # TODO: extend to allow transforming a list of atoms
         types = atoms.get_chemical_symbols()
