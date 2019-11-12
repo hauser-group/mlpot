@@ -63,7 +63,7 @@ class MLOptimizer(Optimizer):
             self.ml_atoms.set_positions(current_position)
 
         opt = self.optimizer(self.ml_atoms, logfile=None)
-        opt.run(self.fmax, steps=self.ml_max_steps)
+        opt.run(fmax=self.fmax, steps=self.ml_max_steps)
         if self.callback_after_ml_opt is not None:
             self.callback_after_ml_opt(self.ml_calc)
 
@@ -71,6 +71,7 @@ class MLOptimizer(Optimizer):
         step = new_position - current_position
         step_length = np.linalg.norm(step)
         if step_length > self.maxstep:
+            print('Downscaling step')
             step *= self.maxstep / step_length
         self.atoms.set_positions(current_position + step)
 
