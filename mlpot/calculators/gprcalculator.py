@@ -210,7 +210,9 @@ class GPRCalculator(MLCalculator):
         except np.linalg.LinAlgError:
             print('excepted LinAlgError for theta: ',
                   np.exp(self.kernel.theta))
-            return -np.inf, np.zeros_like(self.kernel.theta)
+            # In order to avoid errors in the hyperparameter optimization
+            # some large value and gradient has to be returned
+            return -1e60, -1e60*np.sign(self.kernel.theta)
         # Following Rasmussen Algorithm 2.1 the determinant in 2.30 can be
         # expressed as a sum over the Cholesky decomposition L
         log_marginal_likelihood = (- 0.5 * self._target_vector.dot(alpha)
