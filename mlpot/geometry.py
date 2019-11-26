@@ -106,10 +106,12 @@ def find_connectivity(atoms, threshold=1.25):
         ind = np.unravel_index(np.argmin(masked_r2), masked_r2.shape)
         # those indices are not the atomic indices due to the masking
         # of the array and have to be transformed first:
-        b = (np.arange(N)[connected][ind[0]],
-             np.arange(N)[np.logical_not(connected)][ind[1]])
+        atom1 = np.arange(N)[connected][ind[0]]
+        atom2 = np.arange(N)[np.logical_not(connected)][ind[1]]
         # Add the new atom to the set of connected atoms
-        connected[b[1]] = True
+        connected[atom2] = True
+        b = tuple(sorted([atom1, atom2]))
+
         # Add bond if not present
         if b not in bonds:
             bonds.append(b)
