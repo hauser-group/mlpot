@@ -3,6 +3,57 @@ import numpy as np
 from ase.data import covalent_radii
 
 
+def distance(atoms1, atoms2, permute=False):
+    if permute:
+        raise NotImplementedError()
+
+    def align(atoms):
+        """ Returns numpy array of aligned positions"""
+        xyzs = atoms.get_positions()
+        # Shift by center of mass
+        xyzs -= atoms.get_center_of_mass()
+
+        # Find an atom i that does is not exactly centered
+        for xi in xyzs:
+            if np.linalg.norm(xi) > 1e-10:
+                # Rotate atom i to align with the x-axis
+                x_axis = np.array([1.0, 0.0, 0.0])
+                # Cross product gives the rotation axis
+                n = np.cross(xi, x_axis)
+                norm = np.linalg.norm(n)
+                n /= norm
+                # Calculate the rotation angle
+                alpha = np.arctan2(norm, np.dot(xi, x_axis))
+                # Build the rotation matrix
+                cross_mat = np.array([[0, -n[2], n[1]],
+                                      [n[2], 0, -n[0]],
+                                      [-n[1], n[0], 0]])
+                R = ((1 - np.cos(alpha))*np.outer(n, n)
+                     + np.eye(3)*np.cos(alpha) + np.sin(alpha)*cross_mat)
+                # Apply rotation
+                xyzs = xyzs.dot(R.T)
+                break
+        # Find an atom that is not aligned with the x-axis
+        for xj in xyzs:
+            if np.linalg.norm(xj) - np.abs(np.dot(xj, x_axis)) > 1e-10:
+                # Rotate atom j into xy plane
+                y = np.array([0.0, 1.0, 0.0])
+                # Position vector of the atom j without x component
+                r2 = np.array([0.0, xj[1], xj[2]])
+                beta = np.arctan2(np.linalg.norm(np.cross(r2, y)),
+                                  np.dot(r2, y))
+                # Rotation matrix about the x-axis
+                R = np.array([[1.0, 0.0, 0.0],
+                              [0.0, np.cos(beta), np.sin(beta)],
+                              [0.0, -np.sin(beta), np.cos(beta)]])
+                # Apply rotation
+                xyzs = xyzs.dot(R.T)
+                break
+        return xyzs
+
+    return np.linalg.norm(align(atoms1), align(atoms2))
+
+
 def dist(xyzs, i, j, derivative=False):
     rij = xyzs[i, :] - xyzs[j, :]
     r = np.linalg.norm(rij)
