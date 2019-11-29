@@ -51,7 +51,7 @@ def distance(atoms1, atoms2, permute=False):
                 break
         return xyzs
 
-    return np.linalg.norm(align(atoms1), align(atoms2))
+    return np.linalg.norm(align(atoms1) - align(atoms2))
 
 
 def dist(xyzs, i, j, derivative=False):
