@@ -1,9 +1,9 @@
 import numpy as np
 import unittest
 from ase.build import molecule
-from mlpot.geometry import (dist, inv_dist, angle, dihedral, find_connectivity,
-                            to_primitives_factory, to_dic_factory,
-                            to_mass_weighted, to_COM,
+from mlpot.geometry import (dist, inv_dist, angle, linear_bend, dihedral,
+                            find_connectivity, to_primitives_factory,
+                            to_dic_factory, to_mass_weighted, to_COM,
                             to_COM_mass_weighted, to_distance_matrix,
                             to_inverse_distance_matrix)
 
@@ -208,18 +208,23 @@ class PrimitiveTest():
 
         def test_primitive_derivative(self):
             xyzs = np.random.randn(4, 3)
-            r, dr = self.primitive(xyzs, derivative=True)
-            dr_num = np.zeros(xyzs.size)
+            q, dq = self.primitive(xyzs, derivative=True)
+            dq_num = np.zeros(xyzs.size)
 
             delta = 1e-5
             for i in range(len(xyzs)):
                 for j in range(3):
                     d_xyzs = np.zeros_like(xyzs)
                     d_xyzs[i, j] = delta
-                    dr_plus = self.primitive(xyzs + d_xyzs)
-                    dr_minus = self.primitive(xyzs - d_xyzs)
-                    dr_num[3*i + j] = (dr_plus - dr_minus) / (2*delta)
-            np.testing.assert_allclose(dr, dr_num)
+                    dq_plus = self.primitive(xyzs + d_xyzs)
+                    dq_minus = self.primitive(xyzs - d_xyzs)
+                    dq_num[3*i + j] = (dq_plus - dq_minus) / (2*delta)
+            np.testing.assert_allclose(dq, dq_num)
+
+        def test_derivative_sum(self):
+            xyzs = np.random.randn(4, 3)
+            q, dq = self.primitive(xyzs, derivative=True)
+            np.testing.assert_allclose(np.sum(dq), 0.0, atol=1e-9)
 
 
 class DistTest(PrimitiveTest.PrimitiveTest):
@@ -235,6 +240,26 @@ class InvDistTest(PrimitiveTest.PrimitiveTest):
 class AngleTest(PrimitiveTest.PrimitiveTest):
     def primitive(self, xyzs, derivative=False):
         return angle(xyzs, 0, 1, 2, derivative=derivative)
+
+
+class LinearBendRyTest(PrimitiveTest.PrimitiveTest):
+    def primitive(self, xyzs, derivative=False):
+        if derivative:
+            Ry, Rx, dRy, dRx = linear_bend(xyzs, 0, 1, 2, derivative=True)
+            return Ry, dRy
+        else:
+            Ry, Rx = linear_bend(xyzs, 0, 1, 2, derivative=False)
+            return Ry
+
+
+class LinearBendRxTest(PrimitiveTest.PrimitiveTest):
+    def primitive(self, xyzs, derivative=False):
+        if derivative:
+            Ry, Rx, dRy, dRx = linear_bend(xyzs, 0, 1, 2, derivative=True)
+            return Rx, dRx
+        else:
+            Ry, Rx = linear_bend(xyzs, 0, 1, 2, derivative=False)
+            return Rx
 
 
 class DihedralTest(PrimitiveTest.PrimitiveTest):

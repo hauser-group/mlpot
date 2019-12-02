@@ -102,6 +102,38 @@ def angle(xyzs, i, j, k, derivative=False):
         return t
 
 
+def linear_bend(xyzs, i, j, k, derivative=False):
+    """atom j is the center of angle
+    Follows: 'Vibrational States' by S. Califano page 88.
+    atom b -> atom i
+    atom a -> atom j
+    atom c -> atom k
+    """
+    rji = xyzs[i, :] - xyzs[j, :]
+    rjk = xyzs[k, :] - xyzs[j, :]
+    n = np.cross(rji, rjk)
+    norm_rji = np.linalg.norm(rji)
+    norm_rjk = np.linalg.norm(rjk)
+    Ry = n[1]/(norm_rji*norm_rjk)
+    Rx = -n[0]/(norm_rji*norm_rjk)
+    if derivative:
+        dRy = np.zeros(len(xyzs)*3)
+        dRy[3*i:3*(i+1)] = (-n[1]*rji/norm_rji**2 - np.cross([0., 1., 0.], rjk)
+                            )/(norm_rji*norm_rjk)
+        dRy[3*k:3*(k+1)] = (-n[1]*rjk/norm_rjk**2 + np.cross([0., 1., 0.], rji)
+                            )/(norm_rji*norm_rjk)
+        dRy[3*j:3*(j+1)] = - dRy[3*i:3*(i+1)] - dRy[3*k:3*(k+1)]
+        dRx = np.zeros(len(xyzs)*3)
+        dRx[3*i:3*(i+1)] = (n[0]*rji/norm_rji**2 + np.cross([1., 0., 0.], rjk)
+                            )/(norm_rji*norm_rjk)
+        dRx[3*k:3*(k+1)] = (n[0]*rjk/norm_rjk**2 - np.cross([1., 0., 0.], rji)
+                            )/(norm_rji*norm_rjk)
+        dRx[3*j:3*(j+1)] = - dRx[3*i:3*(i+1)] - dRx[3*k:3*(k+1)]
+        return Ry, Rx, dRy, dRx
+    else:
+        return Ry, Rx
+
+
 def dihedral(xyzs, i, j, k, l, derivative=False):
     """Follows:
     Blondel, A. and Karplus, M., J. Comput. Chem., 17: 1132-1141. (1996)
@@ -205,6 +237,42 @@ def find_angles_and_dihedrals(bonds):
     #             and len(set(b1) & set(b2) & set(b3))) == 0:
     #         print(b1, b2, b3)
     return angles, dihedrals
+
+
+def find_primitives(xyzs, bonds):
+    bends = []
+    linear_bends = []
+    torsions = []
+    impropers = []
+    for n, b1 in enumerate(bonds):
+        for m, b2 in enumerate(bonds[n+1:]):
+            i, j, k = None, None, None
+            if b1[0] == b2[0]:
+                i, j, k = b1[1], b1[0], b2[1]
+            elif b1[1] == b2[0]:
+                i, j, k = b1[0], b1[1], b2[1]
+            elif b1[0] == b2[1]:
+                i, j, k = b1[1], b1[0], b2[0]
+            elif b1[1] == b2[1]:
+                i, j, k = b1[0], b1[1], b2[0]
+            if i is not None:
+                bends.append((i, j, k))
+                # Loop over all bonds to detect circular geometries
+                for b3 in bonds[n+1:]:
+                    if j not in b3:  # Ignore impropers
+                        if (i == b3[0] and k != b3[1]
+                                and not (k, j, i, b3[1]) in torsions):
+                            torsions.append((b3[1], i, j, k))
+                        elif (i == b3[1] and k != b3[0]
+                                and not (k, j, i, b3[0]) in torsions):
+                            torsions.append((b3[0], i, j, k))
+                        elif (k == b3[0] and i != b3[1]
+                                and not (b3[1], k, j, i) in torsions):
+                            torsions.append((i, j, k, b3[1]))
+                        elif (k == b3[1] and i != b3[0]
+                                and not (b3[0], k, j, i) in torsions):
+                            torsions.append((i, j, k, b3[0]))
+    return bends, linear_bends, torsions, impropers
 
 
 def to_primitives_factory(bonds):
