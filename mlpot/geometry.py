@@ -233,14 +233,10 @@ def find_angles_and_dihedrals(bonds):
                         elif (k == b3[1] and i != b3[0]
                                 and not (b3[0], k, j, i) in dihedrals):
                             dihedrals.append((i, j, k, b3[0]))
-    # for b1, b2, b3 in combinations(bonds, 3):
-    #     if (len(set(b1 + b2 + b3)) == 4
-    #             and len(set(b1) & set(b2) & set(b3))) == 0:
-    #         print(b1, b2, b3)
     return angles, dihedrals
 
 
-def find_primitives(xyzs, bonds, threshold_angle=175.):
+def find_primitives(xyzs, bonds, threshold_angle=5.):
     neighbors = [[] for _ in range(len(xyzs))]
     for b in bonds:
         neighbors[b[0]].append(b[1])
@@ -251,6 +247,10 @@ def find_primitives(xyzs, bonds, threshold_angle=175.):
     torsions = []
     impropers = []
 
+    def cos_angle(r1, r2):
+        """Calculates the cos of the angle between two vectors"""
+        return np.dot(r1, r2)/(np.linalg.norm(r1)*np.linalg.norm(r2))
+
     lin_thresh = np.abs(np.cos(threshold_angle*np.pi/180.))
 
     for a in range(len(xyzs)):
@@ -258,24 +258,45 @@ def find_primitives(xyzs, bonds, threshold_angle=175.):
             for aj in neighbors[a][i+1:]:
                 r_ai = xyzs[ai, :] - xyzs[a, :]
                 r_aj = xyzs[aj, :] - xyzs[a, :]
-                costheta = r_ai.dot(r_aj)/(
-                    np.linalg.norm(r_ai)*np.linalg.norm(r_aj))
-                if (np.abs(costheta) > lin_thresh) and len(neighbors[a]) == 2:
+                cos_theta = cos_angle(r_ai, r_aj)
+                if (np.abs(cos_theta) > lin_thresh) and len(neighbors[a]) == 2:
                     # Add linear bend
                     linear_bends.append((ai, a, aj))
-                    # Do not add torsions on linear bends
+                    # Do not add torsions on linear bends, instead try
+                    # using ai and aj as center bond. This does not detect
+                    # longer linear chains
+                    for ak in neighbors[ai]:
+                        for am in neighbors[aj]:
+                            if (ak != a and am != a
+                                    and (ak, ai, aj, am) not in torsions
+                                    and (am, aj, ai, ak) not in torsions):
+                                r_ij = xyzs[aj, :] - xyzs[ai, :]
+                                r_ik = xyzs[ak, :] - xyzs[ai, :]
+                                r_jm = xyzs[am, :] - xyzs[aj, :]
+                                cos_t1 = np.abs(cos_angle(r_ij, r_ik))
+                                cos_t2 = np.abs(cos_angle(r_ij, r_jm))
+                                if cos_t1 < 0.99 and cos_t2 < 0.99:
+                                    torsions.append((ak, ai, aj, am))
                 else:
                     bends.append((ai, a, aj))
                     for ak in neighbors[ai]:
                         if (ak != a and ak != aj
                                 and (aj, a, ai, ak) not in torsions
                                 and (ak, ai, a, aj) not in torsions):
-                            torsions.append((ak, ai, a, aj))
+                            # Check if (ak, ai, a) is linear
+                            r_ik = xyzs[ak, :] - xyzs[ai, :]
+                            cos_phi = cos_angle(r_ik, r_ai)
+                            if np.abs(cos_phi) < 0.99:
+                                torsions.append((ak, ai, a, aj))
                     for ak in neighbors[aj]:
                         if (ak != a and ak != ai
                                 and (ak, aj, a, ai) not in torsions
                                 and (ai, a, aj, ak) not in torsions):
-                            torsions.append((ai, a, aj, ak))
+                            # Check if (a, aj, ak) is linear
+                            r_jk = xyzs[ak, :] - xyzs[aj, :]
+                            cos_phi = cos_angle(r_jk, r_aj)
+                            if np.abs(cos_phi) < 0.99:
+                                torsions.append((ai, a, aj, ak))
         # Check for planarity:
         if len(neighbors[a]) > 2:
             for (ai, aj, ak) in combinations(neighbors[a], 3):
@@ -299,11 +320,9 @@ def find_primitives(xyzs, bonds, threshold_angle=175.):
                         r_ab = xyzs[b, :] - xyzs[a, :]
                         r_ac = xyzs[c, :] - xyzs[a, :]
                         r_cd = xyzs[d, :] - xyzs[c, :]
-                        cost1 = np.abs(r_ab.dot(r_ac))/(
-                            np.linalg.norm(r_ab)*np.linalg.norm(r_ac))
-                        cost2 = np.abs(r_ac.dot(r_cd))/(
-                            np.linalg.norm(r_ac)*np.linalg.norm(r_cd))
-                        if cost1 < 0.95 and cost2 < 0.95:
+                        cos_t1 = cos_angle(r_ab, r_ac)
+                        cos_t2 = cos_angle(r_ac, r_cd)
+                        if np.abs(cos_t1) < 0.95 and np.abs(cos_t2 < 0.95):
                             impropers.append((b, a, c, d))
                             break
                     # Break after one improper has been added
