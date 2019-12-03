@@ -240,10 +240,31 @@ def find_angles_and_dihedrals(bonds):
 
 
 def find_primitives(xyzs, bonds):
+    neighbors = [[] for _ in range(len(xyzs))]
+    for b in bonds:
+        neighbors[b[0]].append(b[1])
+        neighbors[b[1]].append(b[0])
     bends = []
     linear_bends = []
     torsions = []
     impropers = []
+
+    # for a in range(len(xyzs)):
+    #     neighbors[a] = sorted(neighbors[a])
+    #     if len(neighbors[a]) == 2:
+    #         theta = angle(xyzs, neighbors[a][0], a, neighbors[a][1]
+    #                       )*180./np.pi
+    #         if theta > 175. or theta < 5.:
+    #             # Add linear bend
+    #             linear_bends.append((neighbors[a][0], a, neighbors[a][1]))
+    #         else:
+    #             bends.append((neighbors[a][0], a, neighbors[a][1]))
+    #     elif len(neighbors[a]) > 2:
+    #         print('Atom %d atom bound to more than two atoms' % a)
+    #         for i, ai in enumerate(neighbors[a]):
+    #             for aj in neighbors[a][i+1:]:
+    #                 bends.append((ai, a, aj))
+
     for n, b1 in enumerate(bonds):
         for m, b2 in enumerate(bonds[n+1:]):
             i, j, k = None, None, None
@@ -256,7 +277,13 @@ def find_primitives(xyzs, bonds):
             elif b1[1] == b2[1]:
                 i, j, k = b1[0], b1[1], b2[0]
             if i is not None:
-                bends.append((i, j, k))
+                theta = angle(xyzs, i, j, k)*180./np.pi
+                if theta > 175. or theta < 5.:
+                    if len(neighbors[j]) == 2:
+                        # Add linear bend
+                        linear_bends.append((i, j, k))
+                else:
+                    bends.append((i, j, k))
                 # Loop over all bonds to detect circular geometries
                 for b3 in bonds[n+1:]:
                     if j not in b3:  # Ignore impropers
