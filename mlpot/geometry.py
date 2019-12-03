@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 from ase.data import covalent_radii
-
+from itertools import combinations
 
 def distance(atoms1, atoms2, permute=False):
     if permute:
@@ -244,61 +244,55 @@ def find_primitives(xyzs, bonds):
     for b in bonds:
         neighbors[b[0]].append(b[1])
         neighbors[b[1]].append(b[0])
+    neighbors = list(map(sorted, neighbors))
     bends = []
     linear_bends = []
     torsions = []
     impropers = []
 
-    # for a in range(len(xyzs)):
-    #     neighbors[a] = sorted(neighbors[a])
-    #     if len(neighbors[a]) == 2:
-    #         theta = angle(xyzs, neighbors[a][0], a, neighbors[a][1]
-    #                       )*180./np.pi
-    #         if theta > 175. or theta < 5.:
-    #             # Add linear bend
-    #             linear_bends.append((neighbors[a][0], a, neighbors[a][1]))
-    #         else:
-    #             bends.append((neighbors[a][0], a, neighbors[a][1]))
-    #     elif len(neighbors[a]) > 2:
-    #         print('Atom %d atom bound to more than two atoms' % a)
-    #         for i, ai in enumerate(neighbors[a]):
-    #             for aj in neighbors[a][i+1:]:
-    #                 bends.append((ai, a, aj))
-
-    for n, b1 in enumerate(bonds):
-        for m, b2 in enumerate(bonds[n+1:]):
-            i, j, k = None, None, None
-            if b1[0] == b2[0]:
-                i, j, k = b1[1], b1[0], b2[1]
-            elif b1[1] == b2[0]:
-                i, j, k = b1[0], b1[1], b2[1]
-            elif b1[0] == b2[1]:
-                i, j, k = b1[1], b1[0], b2[0]
-            elif b1[1] == b2[1]:
-                i, j, k = b1[0], b1[1], b2[0]
-            if i is not None:
-                theta = angle(xyzs, i, j, k)*180./np.pi
-                if theta > 175. or theta < 5.:
-                    if len(neighbors[j]) == 2:
-                        # Add linear bend
-                        linear_bends.append((i, j, k))
+    for a in range(len(xyzs)):
+        for i, ai in enumerate(neighbors[a]):
+            for aj in neighbors[a][i+1:]:
+                r_ai = xyzs[ai, :] - xyzs[a, :]
+                r_aj = xyzs[aj, :] - xyzs[a, :]
+                costheta = r_ai.dot(r_aj)/(
+                    np.linalg.norm(r_ai)*np.linalg.norm(r_aj))
+                if (np.abs(costheta) > 0.995) and len(neighbors[a]) == 2:
+                    # Add linear bend
+                    linear_bends.append((ai, a, aj))
                 else:
-                    bends.append((i, j, k))
-                # Loop over all bonds to detect circular geometries
-                for b3 in bonds[n+1:]:
-                    if j not in b3:  # Ignore impropers
-                        if (i == b3[0] and k != b3[1]
-                                and not (k, j, i, b3[1]) in torsions):
-                            torsions.append((b3[1], i, j, k))
-                        elif (i == b3[1] and k != b3[0]
-                                and not (k, j, i, b3[0]) in torsions):
-                            torsions.append((b3[0], i, j, k))
-                        elif (k == b3[0] and i != b3[1]
-                                and not (b3[1], k, j, i) in torsions):
-                            torsions.append((i, j, k, b3[1]))
-                        elif (k == b3[1] and i != b3[0]
-                                and not (b3[0], k, j, i) in torsions):
-                            torsions.append((i, j, k, b3[0]))
+                    bends.append((ai, a, aj))
+                for ak in neighbors[ai]:
+                    if (ak != a and ak != aj
+                            and (aj, a, ai, ak) not in torsions
+                            and (ak, ai, a, aj) not in torsions):
+                        torsions.append((ak, ai, a, aj))
+                for ak in neighbors[aj]:
+                    if (ak != a and ak != ai
+                            and (ak, aj, a, ai) not in torsions
+                            and (ai, a, aj, ak) not in torsions):
+                        torsions.append((ai, a, aj, ak))
+        # Check for planarity:
+        if len(neighbors[a]) > 2:
+            for (ai, aj, ak) in combinations(neighbors[a], 3):
+                r_ai = xyzs[ai, :] - xyzs[a, :]
+                r_aj = xyzs[aj, :] - xyzs[a, :]
+                r_ak = xyzs[ak, :] - xyzs[a, :]
+                n1 = np.cross(r_ai, r_aj)
+                n1 /= np.linalg.norm(n1)
+                n2 = np.cross(r_aj, r_ak)
+                n2 /= np.linalg.norm(n2)
+                n3 = np.cross(r_ak, r_ai)
+                n3 /= np.linalg.norm(n3)
+                if (np.abs(n1.dot(n2)) > 0.95 or np.abs(n2.dot(n3)) > 0.95
+                        or np.abs(n3.dot(n1)) > 0.95):
+                    # Remove bend
+                    bends.remove((ai, a, aj))
+                    # Still missing: Check if this is a valid
+                    # improper (if both angles are large enough)
+                    impropers.append((ai, a, aj, ak))
+                    # Break after one improper has been added
+                    break
     return bends, linear_bends, torsions, impropers
 
 
