@@ -1,7 +1,8 @@
 import logging
 import numpy as np
 from ase.data import covalent_radii
-from itertools import combinations
+from itertools import combinations, permutations
+
 
 def distance(atoms1, atoms2, permute=False):
     if permute:
@@ -239,7 +240,7 @@ def find_angles_and_dihedrals(bonds):
     return angles, dihedrals
 
 
-def find_primitives(xyzs, bonds):
+def find_primitives(xyzs, bonds, threshold_angle=175.):
     neighbors = [[] for _ in range(len(xyzs))]
     for b in bonds:
         neighbors[b[0]].append(b[1])
@@ -250,6 +251,8 @@ def find_primitives(xyzs, bonds):
     torsions = []
     impropers = []
 
+    lin_thresh = np.cos(threshold_angle*np.pi/180.)
+
     for a in range(len(xyzs)):
         for i, ai in enumerate(neighbors[a]):
             for aj in neighbors[a][i+1:]:
@@ -257,7 +260,7 @@ def find_primitives(xyzs, bonds):
                 r_aj = xyzs[aj, :] - xyzs[a, :]
                 costheta = r_ai.dot(r_aj)/(
                     np.linalg.norm(r_ai)*np.linalg.norm(r_aj))
-                if (np.abs(costheta) > 0.995) and len(neighbors[a]) == 2:
+                if (np.abs(costheta) > lin_thresh) and len(neighbors[a]) == 2:
                     # Add linear bend
                     linear_bends.append((ai, a, aj))
                 else:
@@ -288,9 +291,20 @@ def find_primitives(xyzs, bonds):
                         or np.abs(n3.dot(n1)) > 0.95):
                     # Remove bend
                     bends.remove((ai, a, aj))
-                    # Still missing: Check if this is a valid
-                    # improper (if both angles are large enough)
-                    impropers.append((ai, a, aj, ak))
+                    # Try to find an improper (b, a, c, d)
+                    # such neither the angle t1 between (b, a, c)
+                    # nor t2 between (a, c, d) is close to linear
+                    for (b, c, d) in permutations([ai, aj, ak], 3):
+                        r_ab = xyzs[b, :] - xyzs[a, :]
+                        r_ac = xyzs[c, :] - xyzs[a, :]
+                        r_cd = xyzs[d, :] - xyzs[c, :]
+                        cost1 = np.abs(r_ab.dot(r_ac))/(
+                            np.linalg.norm(r_ab)*np.linalg.norm(r_ac))
+                        cost2 = np.abs(r_ac.dot(r_cd))/(
+                            np.linalg.norm(r_ac)*np.linalg.norm(r_cd))
+                        if cost1 < 0.95 and cost2 < 0.95:
+                            impropers.append((b, a, c, d))
+                            break
                     # Break after one improper has been added
                     break
     return bends, linear_bends, torsions, impropers
