@@ -251,7 +251,7 @@ def find_primitives(xyzs, bonds, threshold_angle=175.):
     torsions = []
     impropers = []
 
-    lin_thresh = np.cos(threshold_angle*np.pi/180.)
+    lin_thresh = np.abs(np.cos(threshold_angle*np.pi/180.))
 
     for a in range(len(xyzs)):
         for i, ai in enumerate(neighbors[a]):
