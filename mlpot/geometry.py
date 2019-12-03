@@ -263,18 +263,19 @@ def find_primitives(xyzs, bonds, threshold_angle=175.):
                 if (np.abs(costheta) > lin_thresh) and len(neighbors[a]) == 2:
                     # Add linear bend
                     linear_bends.append((ai, a, aj))
+                    # Do not add torsions on linear bends
                 else:
                     bends.append((ai, a, aj))
-                for ak in neighbors[ai]:
-                    if (ak != a and ak != aj
-                            and (aj, a, ai, ak) not in torsions
-                            and (ak, ai, a, aj) not in torsions):
-                        torsions.append((ak, ai, a, aj))
-                for ak in neighbors[aj]:
-                    if (ak != a and ak != ai
-                            and (ak, aj, a, ai) not in torsions
-                            and (ai, a, aj, ak) not in torsions):
-                        torsions.append((ai, a, aj, ak))
+                    for ak in neighbors[ai]:
+                        if (ak != a and ak != aj
+                                and (aj, a, ai, ak) not in torsions
+                                and (ak, ai, a, aj) not in torsions):
+                            torsions.append((ak, ai, a, aj))
+                    for ak in neighbors[aj]:
+                        if (ak != a and ak != ai
+                                and (ak, aj, a, ai) not in torsions
+                                and (ai, a, aj, ak) not in torsions):
+                            torsions.append((ai, a, aj, ak))
         # Check for planarity:
         if len(neighbors[a]) > 2:
             for (ai, aj, ak) in combinations(neighbors[a], 3):
