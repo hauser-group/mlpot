@@ -16,7 +16,7 @@ def distance(atoms1, atoms2, permute=False):
 
         # Find an atom i that does is not exactly centered
         for xi in xyzs:
-            if np.linalg.norm(xi) > 1e-10:
+            if np.linalg.norm(xi) > 1e-5:
                 # Rotate atom i to align with the x-axis
                 x_axis = np.array([1.0, 0.0, 0.0])
                 # Cross product gives the rotation axis
@@ -36,7 +36,7 @@ def distance(atoms1, atoms2, permute=False):
                 break
         # Find an atom that is not aligned with the x-axis
         for xj in xyzs:
-            if np.linalg.norm(xj) - np.abs(np.dot(xj, x_axis)) > 1e-10:
+            if np.linalg.norm(xj) - np.abs(np.dot(xj, x_axis)) > 1e-5:
                 # Rotate atom j into xy plane
                 y = np.array([0.0, 1.0, 0.0])
                 # Position vector of the atom j without x component
