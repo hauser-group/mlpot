@@ -337,11 +337,13 @@ def find_primitives(xyzs, bonds, threshold_angle=5., use_impropers=False):
     return bends, linear_bends, torsions, impropers
 
 
-def to_primitives_factory(bonds):
-    angles, dihedrals = find_angles_and_dihedrals(bonds)
-    logging.info('Found %d angles and %d dihedrals' % (len(angles),
-                                                       len(dihedrals)))
-    n_q = len(bonds) + len(angles) + len(dihedrals)
+def to_primitives_factory(ref_geo, bonds, use_impropers=False):
+    bends, linear_bends, torsions, impropers = find_primitives(
+        ref_geo, bonds, use_impropers=use_impropers)
+    print('Found %d bends, %d linear_bends, %d torsions and %d impropers' % (
+          len(bends), len(linear_bends), len(torsions), len(impropers)))
+    n_q = (len(bonds) + len(bends) + 2*len(linear_bends)
+           + len(torsions) + len(impropers))
 
     def to_primitives(atoms):
         xyzs = atoms.get_positions()
@@ -349,15 +351,19 @@ def to_primitives_factory(bonds):
         dqs = np.zeros((n_q, len(xyzs)*3))
         for i, b in enumerate(bonds):
             qs[i], dqs[i, :] = dist(xyzs, b[0], b[1], derivative=True)
-        for i, a in enumerate(angles):
+        for i, a in enumerate(bends):
             j = len(bonds) + i
             qs[j], dqs[j, :] = angle(xyzs, a[0], a[1], a[2], derivative=True)
-        for i, d in enumerate(dihedrals):
-            j = len(bonds) + len(angles) + i
+        for i, a in enumerate(linear_bends):
+            j = len(bonds) + len(bends) + 2*i
+            qs[j], qs[j+1], dqs[j], dqs[j+1] = linear_bend(
+                xyzs, a[0], a[1], a[2], derivative=True)
+        for i, d in enumerate(torsions + impropers):
+            j = len(bonds) + len(bends) + 2*len(linear_bends) + i
             qs[j], dqs[j, :] = dihedral(xyzs, d[0], d[1], d[2], d[3],
                                         derivative=True)
         return qs, dqs
-    return to_primitives, angles, dihedrals
+    return to_primitives, bends, linear_bends, torsions, impropers
 
 
 def to_dic_factory(bonds, atoms_ref):
