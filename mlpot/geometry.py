@@ -304,37 +304,36 @@ def find_primitives(xyzs, bonds, threshold_angle=5., use_impropers=False):
                             cos_phi = cos_angle(r_jk, r_aj)
                             if np.abs(cos_phi) < 0.99:
                                 torsions.append((ai, a, aj, ak))
-        if use_impropers:
+        if use_impropers and len(neighbors[a]) > 2:
             # Check for planar configurations:
-            if len(neighbors[a]) > 2:
-                for (ai, aj, ak) in combinations(neighbors[a], 3):
-                    r_ai = xyzs[ai, :] - xyzs[a, :]
-                    r_aj = xyzs[aj, :] - xyzs[a, :]
-                    r_ak = xyzs[ak, :] - xyzs[a, :]
-                    n1 = np.cross(r_ai, r_aj)
-                    n1 /= np.linalg.norm(n1)
-                    n2 = np.cross(r_aj, r_ak)
-                    n2 /= np.linalg.norm(n2)
-                    n3 = np.cross(r_ak, r_ai)
-                    n3 /= np.linalg.norm(n3)
-                    if (np.abs(n1.dot(n2)) > 0.95 or np.abs(n2.dot(n3)) > 0.95
-                            or np.abs(n3.dot(n1)) > 0.95):
-                        # Remove bend
-                        bends.remove((ai, a, aj))
-                        # Try to find an improper (b, a, c, d)
-                        # such neither the angle t1 between (b, a, c)
-                        # nor t2 between (a, c, d) is close to linear
-                        for (b, c, d) in permutations([ai, aj, ak], 3):
-                            r_ab = xyzs[b, :] - xyzs[a, :]
-                            r_ac = xyzs[c, :] - xyzs[a, :]
-                            r_cd = xyzs[d, :] - xyzs[c, :]
-                            cos_t1 = cos_angle(r_ab, r_ac)
-                            cos_t2 = cos_angle(r_ac, r_cd)
-                            if np.abs(cos_t1) < 0.95 and np.abs(cos_t2 < 0.95):
-                                impropers.append((b, a, c, d))
-                                break
-                        # Break after one improper has been added
-                        break
+            for (ai, aj, ak) in combinations(neighbors[a], 3):
+                r_ai = xyzs[ai, :] - xyzs[a, :]
+                r_aj = xyzs[aj, :] - xyzs[a, :]
+                r_ak = xyzs[ak, :] - xyzs[a, :]
+                n1 = np.cross(r_ai, r_aj)
+                n1 /= np.linalg.norm(n1)
+                n2 = np.cross(r_aj, r_ak)
+                n2 /= np.linalg.norm(n2)
+                n3 = np.cross(r_ak, r_ai)
+                n3 /= np.linalg.norm(n3)
+                if (np.abs(n1.dot(n2)) > 0.95 or np.abs(n2.dot(n3)) > 0.95
+                        or np.abs(n3.dot(n1)) > 0.95):
+                    # Remove bend
+                    bends.remove((ai, a, aj))
+                    # Try to find an improper (b, a, c, d)
+                    # such neither the angle t1 between (b, a, c)
+                    # nor t2 between (a, c, d) is close to linear
+                    for (b, c, d) in permutations([ai, aj, ak], 3):
+                        r_ab = xyzs[b, :] - xyzs[a, :]
+                        r_ac = xyzs[c, :] - xyzs[a, :]
+                        r_cd = xyzs[d, :] - xyzs[c, :]
+                        cos_t1 = cos_angle(r_ab, r_ac)
+                        cos_t2 = cos_angle(r_ac, r_cd)
+                        if np.abs(cos_t1) < 0.95 and np.abs(cos_t2 < 0.95):
+                            impropers.append((b, a, c, d))
+                            break
+                    # Break after one improper has been added
+                    break
     return bends, linear_bends, torsions, impropers
 
 
