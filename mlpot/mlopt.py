@@ -1,14 +1,38 @@
-from ase.optimize.optimize import Optimizer
+from ase.optimize.optimize import Optimizer, Dynamics
 from ase.calculators.singlepoint import SinglePointCalculator
-from ase.optimize import QuasiNewton
+from ase.optimize.fire import FIRE
 import numpy as np
+
+
+class TrustRadiusFIRE(FIRE):
+
+    def __init__(self, atoms, maxmove=None, trustradius=0.2, **kwargs):
+        maxmove = maxmove or trustradius/10
+        FIRE.__init__(self, atoms, maxmove=maxmove, **kwargs)
+        self.trustradius = trustradius
+        # Reference for the trustradius
+        self.start_geo = atoms.get_positions
+
+    def run(self, fmax=0.05, steps=None):
+        self.fmax = fmax
+        if steps:
+            self.max_steps = steps
+        old_positions = self.atoms.get_positions()
+        for converged in Dynamics.irun(self):
+            if (np.linalg.norm(self.atoms.get_positions() - self.start_geo)
+                    > self.trustradius):
+                print('Trust radius exceeded. Resetting to last position')
+                self.atoms.set_positions(old_positions)
+                break
+            old_positions = self.atoms.get_positions()
+        return converged
 
 
 class MLOptimizer(Optimizer):
 
     def __init__(self, atoms, ml_calc, restart=None, logfile='-',
                  trajectory=None, master=None, force_consistent=None,
-                 optimizer=QuasiNewton, maxstep=0.2, check_downhill=True,
+                 optimizer=None, maxstep=0.2, check_downhill=True,
                  ml_fmax=0.5, ml_max_steps=250, callback_before_fit=None,
                  callback_after_ml_opt=None):
         """
@@ -16,7 +40,7 @@ class MLOptimizer(Optimizer):
                  machine learning runs.
         """
         self.ml_calc = ml_calc
-        self.optimizer = optimizer
+        self.optimizer = optimizer or TrustRadiusFIRE(maxstep)
         self.check_downhill = check_downhill
         self.previous_energy = None
         self.ml_max_steps = ml_max_steps
@@ -76,7 +100,7 @@ class MLOptimizer(Optimizer):
         step = new_position - current_position
         step_length = np.linalg.norm(step)
         if step_length > self.maxstep:
-            print('Downscaling step')
+            print('Downscaling step. Original length %.2f' % step_length)
             step *= self.maxstep / step_length
         self.atoms.set_positions(current_position + step)
 
