@@ -366,6 +366,96 @@ def to_primitives_factory(ref_geo, bonds, use_impropers=False):
     return to_primitives, bends, linear_bends, torsions, impropers
 
 
+def to_nonredundant_primitives_factory(ref_geo, bonds, use_impropers):
+    bends, linear_bends, torsions, impropers = find_primitives(
+        ref_geo, bonds, use_impropers=use_impropers)
+    print('Found %d stretches, %d bends, %d linear bends, '
+          '%d torsions and %d impropers' % (
+           len(bonds), len(bends), len(linear_bends),
+           len(torsions), len(impropers)))
+
+    u = []
+    active_bonds = []
+    for b in bonds:
+        _, ui = dist(ref_geo, b[0], b[1], derivative=True)
+        for uj in u:
+            ui -= uj.dot(ui)/(uj.dot(uj)) * uj
+        norm = np.linalg.norm(ui)
+        if norm > 1e-6:
+            u.append(ui/norm)
+            active_bonds.append(b)
+    active_bends = []
+    for a in bends:
+        _, ui = angle(ref_geo, a[0], a[1], a[2], derivative=True)
+        for uj in u:
+            ui -= uj.dot(ui)/(uj.dot(uj)) * uj
+        norm = np.linalg.norm(ui)
+        if norm > 1e-6:
+            u.append(ui/norm)
+            active_bends.append(a)
+    active_linear_bends = []
+    for a in linear_bends:
+        _, _, ui1, ui2 = linear_bend(ref_geo, a[0], a[1], a[2],
+                                     derivative=True)
+        for uj in u:
+            ui1 -= uj.dot(ui1)/(uj.dot(uj)) * uj
+        norm1 = np.linalg.norm(ui1)
+        for uj in u:
+            ui2 -= uj.dot(ui2)/(uj.dot(uj)) * uj
+        norm2 = np.linalg.norm(ui2)
+        if norm1 > 1e-6 and norm2 > 1e-6:
+            u.append(ui1/norm1)
+            u.append(ui2/norm2)
+            active_linear_bends.append(a)
+    active_torsions = []
+    for d in torsions:
+        _, ui = dihedral(ref_geo, d[0], d[1], d[2], d[3], derivative=True)
+        for uj in u:
+            ui -= uj.dot(ui)/(uj.dot(uj)) * uj
+        norm = np.linalg.norm(ui)
+        if norm > 1e-6:
+            u.append(ui/norm)
+            active_torsions.append(d)
+    active_impropers = []
+    for d in impropers:
+        _, ui = dihedral(ref_geo, d[0], d[1], d[2], d[3], derivative=True)
+        for uj in u:
+            ui -= uj.dot(ui)/(uj.dot(uj)) * uj
+        norm = np.linalg.norm(ui)
+        if norm > 1e-6:
+            u.append(ui/norm)
+            active_impropers.append(d)
+
+    print('Final set: %d stretches, %d bends, %d linear bends, '
+          '%d torsions and %d impropers' % (
+           len(active_bonds), len(active_bends), 2*len(active_linear_bends),
+           len(active_torsions), len(active_impropers)))
+    n_q = (len(active_bonds) + len(active_bends) + 2*len(active_linear_bends)
+           + len(active_torsions) + len(active_impropers))
+
+    def to_primitives(atoms):
+        xyzs = atoms.get_positions()
+        qs = np.zeros(n_q)
+        dqs = np.zeros((n_q, len(xyzs)*3))
+        for i, b in enumerate(active_bonds):
+            qs[i], dqs[i, :] = dist(xyzs, b[0], b[1], derivative=True)
+        for i, a in enumerate(active_bends):
+            j = len(active_bonds) + i
+            qs[j], dqs[j, :] = angle(xyzs, a[0], a[1], a[2], derivative=True)
+        for i, a in enumerate(active_linear_bends):
+            j = len(active_bonds) + len(active_bends) + 2*i
+            qs[j], qs[j+1], dqs[j], dqs[j+1] = linear_bend(
+                xyzs, a[0], a[1], a[2], derivative=True)
+        for i, d in enumerate(active_torsions + active_impropers):
+            j = (len(active_bonds) + len(active_bends)
+                 + 2*len(active_linear_bends) + i)
+            qs[j], dqs[j, :] = dihedral(xyzs, d[0], d[1], d[2], d[3],
+                                        derivative=True)
+        return qs, dqs
+    return (to_primitives, active_bonds, active_bends, active_linear_bends,
+            active_torsions, active_impropers)
+
+
 def to_dic_factory(bonds, atoms_ref):
     transform = to_primitives_factory(bonds)[0]
     # Wilson B matrix is just the derivative of q with respect to x
