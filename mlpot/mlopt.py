@@ -11,7 +11,7 @@ class TrustRadiusFIRE(FIRE):
         FIRE.__init__(self, atoms, maxmove=maxmove, **kwargs)
         self.trustradius = trustradius
         # Reference for the trustradius
-        self.start_geo = atoms.get_positions
+        self.start_geo = atoms.get_positions()
 
     def run(self, fmax=0.05, steps=None):
         self.fmax = fmax
@@ -40,7 +40,10 @@ class MLOptimizer(Optimizer):
                  machine learning runs.
         """
         self.ml_calc = ml_calc
-        self.optimizer = optimizer or TrustRadiusFIRE(maxstep)
+        if optimizer is None:
+            def optimizer(atoms, logfile=None):
+                return TrustRadiusFIRE(atoms, maxstep, logfile=logfile)
+        self.optimizer = optimizer
         self.check_downhill = check_downhill
         self.previous_energy = None
         self.ml_max_steps = ml_max_steps
@@ -57,7 +60,6 @@ class MLOptimizer(Optimizer):
         self.ml_atoms.set_calculator(self.ml_calc)
 
     def step(self, f=None):
-        current_position = self.atoms.get_positions()
 
         if f is None:
             f = self.atoms.get_forces()
@@ -83,13 +85,13 @@ class MLOptimizer(Optimizer):
             if (self.previous_energy is not None and
                     current_energy > self.previous_energy):
                 print('Last step was uphill! Resetting position.')
-                self.ml_atoms.set_positions(self.previous_position)
+                self.atoms.set_positions(self.previous_position)
             else:  # Save current energy and position for next downhill check
-                self.ml_atoms.set_positions(current_position)
                 self.previous_energy = current_energy
                 self.previous_position = self.atoms.get_positions()
-        else:
-            self.ml_atoms.set_positions(current_position)
+
+        current_position = self.atoms.get_positions()
+        self.ml_atoms.set_positions(current_position)
 
         opt = self.optimizer(self.ml_atoms, logfile=None)
         opt.run(fmax=self.ml_fmax*self.fmax, steps=self.ml_max_steps)
