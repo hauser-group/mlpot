@@ -83,7 +83,8 @@ class GeometryToolsTest(unittest.TestCase):
         # Ethane bonds:
         bonds = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 5), (1, 6), (1, 7)]
 
-        transform, angles, dihedrals = to_primitives_factory(bonds)
+        (transform, angles, linar_bends,
+         dihedrals, impropers) = to_primitives_factory(xyzs, bonds)
 
         # Compare to angles and dihedrals found by Avogadro
         C1, C2, H1, H2, H3, H4, H5, H6 = range(8)
@@ -129,7 +130,8 @@ class GeometryToolsTest(unittest.TestCase):
                  (8, 2), (9, 2),
                  (10, 3), (11, 3)]
 
-        transform, angles, dihedrals = to_primitives_factory(bonds)
+        (transform, angles, linar_bends,
+         dihedrals, impropers) = to_primitives_factory(xyzs, bonds)
 
         # Compare to angles and dihedrals found by Avogadro
         C1, C2, C3, C4, H1, H2, H3, H4, H5, H6, H7, H8 = range(12)
