@@ -457,7 +457,7 @@ def to_nonredundant_primitives_factory(ref_geo, bonds, use_impropers):
 
 
 def to_dic_factory(bonds, atoms_ref):
-    transform = to_primitives_factory(bonds)[0]
+    transform = to_primitives_factory(atoms_ref.get_positions(), bonds)[0]
     # Wilson B matrix is just the derivative of q with respect to x
     _, B = transform(atoms_ref)
     # G matrix without mass weighting
@@ -468,9 +468,7 @@ def to_dic_factory(bonds, atoms_ref):
 
     def to_dic(atoms):
         q, dq = transform(atoms)
-        s = U.T.dot(q)
-        ds = U.T.dot(dq)
-        return s, ds
+        return U.T.dot(q), U.T.dot(dq)
     return to_dic
 
 
