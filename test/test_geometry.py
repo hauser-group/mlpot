@@ -2,6 +2,7 @@ import numpy as np
 import unittest
 from ase.build import molecule
 from mlpot.geometry import (dist, inv_dist, angle, linear_bend, dihedral,
+                            mod_dihedral,
                             find_connectivity, to_primitives_factory,
                             to_dic_factory, to_mass_weighted, to_COM,
                             to_COM_mass_weighted, to_distance_matrix,
@@ -267,6 +268,28 @@ class LinearBendRxTest(PrimitiveTest.PrimitiveTest):
 class DihedralTest(PrimitiveTest.PrimitiveTest):
     def primitive(self, xyzs, derivative=False):
         return dihedral(xyzs, 0, 1, 2, 3, derivative=derivative)
+
+
+class DihedralCosTest(PrimitiveTest.PrimitiveTest):
+    def primitive(self, xyzs, derivative=False):
+        if derivative:
+            cos_w, sin_w, dcos_w, dsin_w = mod_dihedral(xyzs, 0, 1, 2, 3,
+                                                        derivative=True)
+            return cos_w, dcos_w
+        else:
+            cos_w, sin_w = mod_dihedral(xyzs, 0, 1, 2, 3, derivative=False)
+            return cos_w
+
+
+class DihedralSinTest(PrimitiveTest.PrimitiveTest):
+    def primitive(self, xyzs, derivative=False):
+        if derivative:
+            cos_w, sin_w, dcos_w, dsin_w = mod_dihedral(xyzs, 0, 1, 2, 3,
+                                                        derivative=True)
+            return sin_w, dsin_w
+        else:
+            cos_w, sin_w = mod_dihedral(xyzs, 0, 1, 2, 3, derivative=False)
+            return sin_w
 
 
 class TransformationTest():

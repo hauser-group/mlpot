@@ -165,6 +165,34 @@ def dihedral(xyzs, i, j, k, l, derivative=False):
         return w
 
 
+def mod_dihedral(xyzs, i, j, k, l, derivative=False):
+    F = xyzs[i, :] - xyzs[j, :]
+    G = xyzs[j, :] - xyzs[k, :]
+    H = xyzs[l, :] - xyzs[k, :]
+    A = np.cross(F, G)
+    B = np.cross(H, G)
+    norm_G = np.linalg.norm(G)
+    w = np.arctan2(
+            np.dot(np.cross(B, A), G/norm_G),
+            np.dot(A, B))
+    cos_w, sin_w = np.cos(w), np.sin(w)
+    if derivative:
+        A_sq = np.dot(A, A)
+        B_sq = np.dot(B, B)
+        dw = np.zeros(len(xyzs)*3)
+        dw[3*i:3*(i+1)] = - norm_G/A_sq*A
+        dw[3*j:3*(j+1)] = (norm_G/A_sq*A
+                           + np.dot(F, G)/(A_sq*norm_G)*A
+                           - np.dot(H, G)/(B_sq*norm_G)*B)
+        dw[3*k:3*(k+1)] = (np.dot(H, G)/(B_sq*norm_G)*B
+                           - np.dot(F, G)/(A_sq*norm_G)*A
+                           - norm_G/B_sq*B)
+        dw[3*l:3*(l+1)] = norm_G/B_sq*B
+        return cos_w, sin_w, -sin_w*dw, cos_w*dw
+    else:
+        return cos_w, sin_w
+
+
 def find_connectivity(atoms, threshold=1.25):
     bonds = []
     N = len(atoms)
