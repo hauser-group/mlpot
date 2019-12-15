@@ -384,7 +384,7 @@ def to_primitives_factory(ref_geo, bonds, use_impropers=False):
             qs[j], dqs[j, :] = angle(xyzs, a[0], a[1], a[2], derivative=True)
         for i, a in enumerate(linear_bends):
             j = len(bonds) + len(bends) + 2*i
-            qs[j], qs[j+1], dqs[j], dqs[j+1] = linear_bend(
+            qs[j], qs[j+1], dqs[j, :], dqs[j+1, :] = linear_bend(
                 xyzs, a[0], a[1], a[2], derivative=True)
         for i, d in enumerate(torsions + impropers):
             j = len(bonds) + len(bends) + 2*len(linear_bends) + i
