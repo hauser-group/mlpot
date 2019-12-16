@@ -193,7 +193,7 @@ def mod_dihedral(xyzs, i, j, k, l, derivative=False):
         return cos_w, sin_w
 
 
-def find_connectivity(atoms, threshold=1.25):
+def find_connectivity_old(atoms, threshold=1.25):
     bonds = []
     N = len(atoms)
     xyzs = atoms.get_positions()
@@ -227,6 +227,61 @@ def find_connectivity(atoms, threshold=1.25):
         # Add bond if not present
         if b not in bonds:
             bonds.append(b)
+    return bonds
+
+
+def find_connectivity(atoms, threshold=1.25, connect_fragments=True):
+    bonds = []
+    N = len(atoms)
+    xyzs = atoms.get_positions()
+    types = atoms.get_atomic_numbers()
+
+    r2 = np.zeros((N, N))
+    np.fill_diagonal(r2, np.inf)
+    neighbors_per_atom = [[] for _ in range(N)]
+
+    for i in range(N):
+        for j in range(i+1, N):
+            r2[i, j] = r2[j, i] = np.sum((xyzs[i, :] - xyzs[j, :])**2)
+            if (r2[i, j] < threshold * (covalent_radii[types[i]]
+                                        + covalent_radii[types[j]])**2):
+                # The bonds are sorted by default here:
+                bonds.append((i, j))
+                neighbors_per_atom[i].append(j)
+                neighbors_per_atom[j].append(i)
+
+    if connect_fragments:
+        # Check for disconnected fragments
+        def DepthFirstSearch(fragment, i, visited):
+            visited[i] = True
+            fragment.append(i)
+            for j in neighbors_per_atom[i]:
+                if not visited[j]:
+                    fragment = DepthFirstSearch(fragment, j, visited)
+            return fragment
+
+        visited = [False]*N
+        fragments = []
+        for i in range(N):
+            if not visited[i]:
+                fragment = []
+                fragments.append(DepthFirstSearch(fragment, i, visited))
+
+        # If there are more than 1 fragment connect shortest distance atoms
+        while len(fragments) > 1:
+            # Merge first fragment with nearest fragment by adding a bond
+            r_min = np.inf
+            bond_to_add = ()
+            for frag_ind, other_frag in enumerate(fragments[1:]):
+                for i in fragments[0]:
+                    for j in other_frag:
+                        if r2[i, j] < r_min:
+                            r_min = r2[i, j]
+                            # Plus one because of iterating fragments[1:]
+                            fragment_to_merge = frag_ind + 1
+                            bond_to_add = tuple(sorted([i, j]))
+            bonds.append(bond_to_add)
+            fragments[0].extend(fragments.pop(fragment_to_merge))
     return bonds
 
 
