@@ -42,7 +42,8 @@ class MLOptimizer(Optimizer):
         self.ml_calc = ml_calc
         if optimizer is None:
             def optimizer(atoms, logfile=None):
-                return TrustRadiusFIRE(atoms, maxstep, logfile=logfile)
+                return TrustRadiusFIRE(atoms, trustradius=maxstep,
+                                       logfile=logfile)
         self.optimizer = optimizer
         self.check_downhill = check_downhill
         self.previous_energy = None
