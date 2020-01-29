@@ -3,4 +3,5 @@ ase; python_version >= '3.0'
 future
 numpy
 scipy
-tensorflow == 1.15.2
+tensorflow == 1.15.0; python_version < '3.0'
+tensorflow == 1.15.2; python_version >= '3.0'
