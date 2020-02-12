@@ -29,6 +29,30 @@ class CutoffTest(unittest.TestCase):
                     self.function_derivative(r_vec, ds.cutoff),
                     atol=1e-12, equal_nan=False)
 
+        def test_derivative_numerically(self):
+            with DescriptorSet(['H', 'F'], cutoff=6.5) as ds:
+                for (t1, t2) in product(ds.atomtypes, repeat=2):
+                    ds.add_two_body_descriptor(
+                        t1, t2, 'BehlerG1', [], cuttype=self.cuttype)
+
+                dr = 1e-5
+                # deliberately chosen as to not include 6.5
+                r_vec = np.linspace(0.1, 8, 81)
+                dG = np.zeros_like(r_vec)
+                dG_num = np.zeros_like(r_vec)
+                for i, ri in enumerate(r_vec):
+                    geo = [('F', np.array([0.0, 0.0, 0.0])),
+                           ('H', np.array([0.0, 0.0, ri]))]
+                    dG[i] = ds.eval_geometry_derivatives(geo)[0][0, 1, -1]
+                    geo_p = [('F', np.array([0.0, 0.0, 0.0])),
+                             ('H', np.array([0.0, 0.0, ri+dr]))]
+                    geo_m = [('F', np.array([0.0, 0.0, 0.0])),
+                             ('H', np.array([0.0, 0.0, ri-dr]))]
+                    G_p = ds.eval_geometry(geo_p)[0][0]
+                    G_m = ds.eval_geometry(geo_m)[0][0]
+                    dG_num[i] = (G_p - G_m)/(2*dr)
+                np.testing.assert_allclose(dG, dG_num, atol=1e-10)
+
 
 class ConstCutoffTest(CutoffTest.CutoffTest):
     cuttype = 'const'
@@ -90,7 +114,7 @@ class SmoothCutoffTest(CutoffTest.CutoffTest):
     def function_derivative(self, r_vec, cutoff):
         output = np.zeros_like(r_vec)
         mask = r_vec < cutoff
-        output[mask] = (cutoff*np.exp(
+        output[mask] = -(cutoff*np.exp(
                         cutoff/(cutoff-r_vec[mask])
                         + cutoff/r_vec[mask])
                         * (cutoff**2 - 2*cutoff*r_vec[mask] + 2*r_vec[mask]**2)

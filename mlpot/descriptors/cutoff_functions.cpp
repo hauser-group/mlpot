@@ -89,7 +89,7 @@ double SmoothCutoffFunction::derivative(double r)
     {
       auto x0 = exp(-cutoff/r);
       auto x1 = exp(-cutoff/(cutoff-r));
-      return (cutoff*x0)/(pow(r,2)*(x0+x1))-(x0*((cutoff*x0)/(r*r)-
+      return -(cutoff*x0)/(pow(r,2)*(x0+x1))+(x0*((cutoff*x0)/(r*r)-
         (cutoff*x1)/pow(cutoff-r,2)))/pow(x0+x1,2);
     }
     else return 0.0;
