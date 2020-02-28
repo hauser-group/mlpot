@@ -1,8 +1,8 @@
-import tensorflow as _tf
+import tensorflow.compat.v1 as _tf
 from .core import nn_layer
 import numpy as _np
 from itertools import combinations_with_replacement
-
+_tf.disable_v2_behavior()
 precision = _tf.float32
 
 
@@ -151,7 +151,7 @@ class EAMAtomicNN():
 
 
 class SMATBpotential(EAMpotential):
-    def __init__(self, atom_types, initial_params=None, offsets=None,
+    def __init__(self, atom_types, initial_params={}, offsets=None,
                  cut_a=5.4, cut_b=8.1, pair_trainable=True, rho_trainable=True,
                  r0_trainable=False):
         with _tf.variable_scope("SMATB"):

@@ -1,5 +1,6 @@
 from .core import AtomicEnergyPotential, nn_layer
-import tensorflow as _tf
+import tensorflow.compat.v1 as _tf
+_tf.disable_v2_behavior()
 
 
 class BPAtomicNN():

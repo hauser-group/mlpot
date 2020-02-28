@@ -1,5 +1,6 @@
-import tensorflow as _tf
+import tensorflow.compat.v1 as _tf
 import numpy as _np
+_tf.disable_v2_behavior()
 
 
 def morse(x, lamb=0.23314621043800202, alpha=0.6797779934458726):

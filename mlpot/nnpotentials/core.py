@@ -1,6 +1,7 @@
-import tensorflow as _tf
+import tensorflow.compat.v1 as _tf
 import numpy as _np
 import abc
+_tf.disable_v2_behavior()
 
 
 def nn_layer(input_tensor, input_dim, output_dim, act=_tf.nn.tanh,
