@@ -232,7 +232,7 @@ class SMATBpotential(EAMpotential):
                                    family="modelParams")
 
         cut_a = initial_params.get(("cut_start", t12[0], t12[1]), 5.4)
-        cut_b = initial_params.get(("cut_start", t12[0], t12[1]), 8.1)
+        cut_b = initial_params.get(("cut_end", t12[0], t12[1]), 8.1)
 
         def pairPot(r):
             return A * _tf.exp(-p*(r/r0 - 1)) * poly_cutoff(r, cut_a, cut_b)
@@ -280,7 +280,7 @@ class SMATBpotential(EAMpotential):
                                    family="modelParams")
 
         cut_a = initial_params.get(("cut_start", t12[0], t12[1]), 5.4)
-        cut_b = initial_params.get(("cut_start", t12[0], t12[1]), 8.1)
+        cut_b = initial_params.get(("cut_end", t12[0], t12[1]), 8.1)
 
         def rho(r):
             return xi**2 * _tf.exp(-2.0*q*(r/r0 - 1)) * poly_cutoff(
