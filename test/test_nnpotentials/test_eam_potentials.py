@@ -34,7 +34,7 @@ class EAMpotentialTest(unittest.TestCase):
         self.initial_params[("r0", "Au", "Au")] = 2.88
 
     def tearDown(self):
-        tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
 
 
 class SMATBpotentialTest(EAMpotentialTest):
@@ -49,8 +49,8 @@ class SMATBpotentialTest(EAMpotentialTest):
             pot.target: self.E_test,
             pot.rmse_weights: 1.0/np.array(list(map(len, self.Gs_test)))**2}
 
-        with tf.Session() as sess:
-            sess.run(tf.variables_initializer(pot.variables))
+        with tf.compat.v1.Session() as sess:
+            sess.run(tf.compat.v1.variables_initializer(pot.variables))
 
             np.testing.assert_allclose(
                 sess.run(pot.E_predict, test_dict),
@@ -79,8 +79,8 @@ class NNEpotentialTest(EAMpotentialTest):
             pot.target: self.E_test,
             pot.rmse_weights: 1.0/np.array(list(map(len, self.Gs_test)))**2}
 
-        with tf.Session() as sess:
-            sess.run(tf.variables_initializer(pot.variables))
+        with tf.compat.v1.Session() as sess:
+            sess.run(tf.compat.v1.variables_initializer(pot.variables))
             # Not relying on tf.set_seed() as graph level seed depends on
             # the order the graph is build
             np.random.seed(1234)
@@ -111,8 +111,8 @@ class NNRHOpotentialTest(EAMpotentialTest):
             pot.target: self.E_test,
             pot.rmse_weights: 1.0/np.array(list(map(len, self.Gs_test)))**2}
 
-        with tf.Session() as sess:
-            sess.run(tf.variables_initializer(pot.variables))
+        with tf.compat.v1.Session() as sess:
+            sess.run(tf.compat.v1.variables_initializer(pot.variables))
             # Not relying on tf.set_seed() as graph level seed depends on
             # the order the graph is build
             np.random.seed(1234)
@@ -143,8 +143,8 @@ class NNERHOpotentialTest(EAMpotentialTest):
             pot.target: self.E_test,
             pot.rmse_weights: 1.0/np.array(list(map(len, self.Gs_test)))**2}
 
-        with tf.Session() as sess:
-            sess.run(tf.variables_initializer(pot.variables))
+        with tf.compat.v1.Session() as sess:
+            sess.run(tf.compat.v1.variables_initializer(pot.variables))
             # Not relying on tf.set_seed() as graph level seed depends on
             # the order the graph is build
             np.random.seed(1234)
@@ -175,8 +175,8 @@ class NNVERHOpotentialTest(EAMpotentialTest):
             pot.target: self.E_test,
             pot.rmse_weights: 1.0/np.array(list(map(len, self.Gs_test)))**2}
 
-        with tf.Session() as sess:
-            sess.run(tf.variables_initializer(pot.variables))
+        with tf.compat.v1.Session() as sess:
+            sess.run(tf.compat.v1.variables_initializer(pot.variables))
             # Not relying on tf.set_seed() as graph level seed depends on
             # the order the graph is build
             np.random.seed(1234)
@@ -207,8 +207,8 @@ class NNfreeERHOpotentialTest(EAMpotentialTest):
             pot.target: self.E_test,
             pot.rmse_weights: 1.0/np.array(list(map(len, self.Gs_test)))**2}
 
-        with tf.Session() as sess:
-            sess.run(tf.variables_initializer(pot.variables))
+        with tf.compat.v1.Session() as sess:
+            sess.run(tf.compat.v1.variables_initializer(pot.variables))
             # Not relying on tf.set_seed() as graph level seed depends on
             # the order the graph is build
             np.random.seed(1234)
