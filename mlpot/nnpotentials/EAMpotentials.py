@@ -17,7 +17,7 @@ def poly_cutoff(input_tensor, cut_a, cut_b):
 
 
 class EAMpotential():
-    def __init__(self, atom_types, error_scaling=1000):
+    def __init__(self, atom_types, error_scaling=1.):
         self.target = _tf.placeholder(shape=(None, ), dtype=precision,
                                       name="target")
         self.atom_types = atom_types
@@ -114,7 +114,8 @@ class EAMpotential():
 
 
 class EAMAtomicNN():
-    def __init__(self, atom_types, offset=0.0, name="ANN"):
+    def __init__(self, atom_types, offset=0.0, offset_trainable=False,
+                 name="ANN"):
         self.atom_types = atom_types
         self.name = name
 
@@ -130,7 +131,7 @@ class EAMAtomicNN():
             self.b_maps[t] = _tf.sparse_placeholder(
                 dtype=precision, name="b_map_{}".format(t))
         self.offset = _tf.Variable(
-            offset, dtype=precision, name="offset",
+            offset, dtype=precision, trainable=offset_trainable, name="offset",
             collections=[
                 _tf.GraphKeys.MODEL_VARIABLES, _tf.GraphKeys.GLOBAL_VARIABLES])
         _tf.summary.scalar("offset", self.offset, family="modelParams")
