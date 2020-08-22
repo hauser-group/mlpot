@@ -1,7 +1,7 @@
 SHELL = /bin/bash
 
 CC= g++
-CPPFLAGS= -fPIC -g -O3 -Wall -ffast-math -fopenmp -std=c++11
+CPPFLAGS= -fPIC -g -O3 -Wall -ffast-math -lm -fopenmp -std=c++11
 LDFLAGS= -shared -fopenmp
 
 SOURCES = $(shell echo *.cpp)
