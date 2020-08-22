@@ -10,7 +10,7 @@ import pickle
 class BPpotentialTest(unittest.TestCase):
 
     def test_gold_dataset(self):
-        tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
         dir_path = os.path.dirname(os.path.realpath(__file__))
         with open(
                 os.path.join(dir_path, "Au_BP_testdata.pickle"), "rb") as fin:
@@ -40,7 +40,7 @@ class BPpotentialTest(unittest.TestCase):
 
         init_op = pot.iterator.make_initializer(test_data)
 
-        with tf.Session() as sess:
+        with tf.compat.v1.Session() as sess:
             # Not relying on tf.set_seed() as graph level seed depends on
             # the order the graph is build
             np.random.seed(1234)
@@ -80,7 +80,7 @@ class BPpotentialTest(unittest.TestCase):
                                           np.array([2]*31))
 
     def test_hf_derivatives(self):
-        tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
         dir_path = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(dir_path, "HF_dataset.pickle"), "rb") as fin:
             try:
@@ -122,7 +122,7 @@ class BPpotentialTest(unittest.TestCase):
 
         init_op = pot.iterator.make_initializer(test_data)
 
-        with tf.Session() as sess:
+        with tf.compat.v1.Session() as sess:
             # Not relying on tf.set_seed() as graph level seed depends on
             # the order the graph is build
             np.random.seed(1234)

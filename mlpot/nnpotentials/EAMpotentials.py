@@ -17,7 +17,7 @@ def poly_cutoff(input_tensor, cut_a, cut_b):
 
 
 class EAMpotential():
-    def __init__(self, atom_types, error_scaling=1000):
+    def __init__(self, atom_types, error_scaling=1.):
         self.target = _tf.placeholder(shape=(None, ), dtype=precision,
                                       name="target")
         self.atom_types = atom_types
@@ -114,7 +114,8 @@ class EAMpotential():
 
 
 class EAMAtomicNN():
-    def __init__(self, atom_types, offset=0.0, name="ANN"):
+    def __init__(self, atom_types, offset=0.0, offset_trainable=False,
+                 name="ANN"):
         self.atom_types = atom_types
         self.name = name
 
@@ -130,7 +131,7 @@ class EAMAtomicNN():
             self.b_maps[t] = _tf.sparse_placeholder(
                 dtype=precision, name="b_map_{}".format(t))
         self.offset = _tf.Variable(
-            offset, dtype=precision, name="offset",
+            offset, dtype=precision, trainable=offset_trainable, name="offset",
             collections=[
                 _tf.GraphKeys.MODEL_VARIABLES, _tf.GraphKeys.GLOBAL_VARIABLES])
         _tf.summary.scalar("offset", self.offset, family="modelParams")
@@ -152,8 +153,7 @@ class EAMAtomicNN():
 
 class SMATBpotential(EAMpotential):
     def __init__(self, atom_types, initial_params={}, offsets=None,
-                 cut_a=5.4, cut_b=8.1, pair_trainable=True, rho_trainable=True,
-                 r0_trainable=False):
+                 pair_trainable=True, rho_trainable=True, r0_trainable=False):
         with _tf.variable_scope("SMATB"):
             EAMpotential.__init__(self, atom_types)
 
@@ -167,12 +167,10 @@ class SMATBpotential(EAMpotential):
             for t1, t2 in combinations_with_replacement(atom_types, r=2):
                 t12 = tuple(sorted([t1, t2]))
                 A[t12], p[t12], r0[t12], pairPot[t12] = (
-                    SMATBpotential.build_pairPot(t12, initial_params, cut_a,
-                                                 cut_b, r0_trainable,
-                                                 pair_trainable))
+                    SMATBpotential.build_pairPot(t12, initial_params,
+                                                 r0_trainable, pair_trainable))
                 xi[t12], q[t12], _, rho[t12] = SMATBpotential.build_rho(
-                    t12, initial_params, cut_a, cut_b, r0_trainable,
-                    rho_trainable)
+                    t12, initial_params, r0_trainable, rho_trainable)
 
             offsets = offsets or [0.0]*len(self.atom_types)
 
@@ -196,8 +194,7 @@ class SMATBpotential(EAMpotential):
             EAMpotential._post_setup(self)
 
     @staticmethod
-    def build_pairPot(t12, initial_params, cut_a, cut_b, r0_trainable,
-                      pair_trainable):
+    def build_pairPot(t12, initial_params, r0_trainable, pair_trainable):
         """ builds the pair potential for a given atom type tuple
             t12 = (t1, t2)
             returns: parameters A, p, r0 and the corresponding pair potential
@@ -205,10 +202,7 @@ class SMATBpotential(EAMpotential):
         """
         with _tf.variable_scope("{}_{}_PairPot".format(*t12),
                                 reuse=_tf.AUTO_REUSE):
-            if ("A", t12[0], t12[1]) in initial_params:
-                A_init = initial_params[("A", t12[0], t12[1])]
-            else:
-                A_init = 0.2
+            A_init = initial_params.get(("A", t12[0], t12[1]), 0.2)
             A = _tf.get_variable(
                 "A_{}_{}".format(*t12), dtype=precision,
                 initializer=_tf.constant(A_init, dtype=precision),
@@ -217,10 +211,7 @@ class SMATBpotential(EAMpotential):
                              _tf.GraphKeys.GLOBAL_VARIABLES])
             _tf.summary.scalar("A_{}_{}".format(*t12), A, family="modelParams")
 
-            if ("p", t12[0], t12[1]) in initial_params:
-                p_init = initial_params[("p", t12[0], t12[1])]
-            else:
-                p_init = 9.2
+            p_init = initial_params.get(("p", t12[0], t12[1]), 9.2)
             p = _tf.get_variable(
                 "p_{}_{}".format(*t12), dtype=precision,
                 initializer=_tf.constant(p_init, dtype=precision),
@@ -230,10 +221,7 @@ class SMATBpotential(EAMpotential):
             _tf.summary.scalar("p_{}_{}".format(*t12), p, family="modelParams")
 
         with _tf.variable_scope("{}_{}_r0".format(*t12), reuse=_tf.AUTO_REUSE):
-            if ("r0", t12[0], t12[1]) in initial_params:
-                r0_init = initial_params[("r0", t12[0], t12[1])]
-            else:
-                r0_init = 2.7
+            r0_init = initial_params.get(("r0", t12[0], t12[1]), 2.7)
             r0 = _tf.get_variable(
                 "r0_{}_{}".format(*t12), dtype=precision,
                 initializer=_tf.constant(r0_init, dtype=precision),
@@ -244,13 +232,15 @@ class SMATBpotential(EAMpotential):
                 _tf.summary.scalar("r0_{}_{}".format(*t12), r0,
                                    family="modelParams")
 
+        cut_a = initial_params.get(("cut_start", t12[0], t12[1]), 5.4)
+        cut_b = initial_params.get(("cut_end", t12[0], t12[1]), 8.1)
+
         def pairPot(r):
             return A * _tf.exp(-p*(r/r0 - 1)) * poly_cutoff(r, cut_a, cut_b)
         return A, p, r0, pairPot
 
     @staticmethod
-    def build_rho(t12, initial_params, cut_a, cut_b, r0_trainable,
-                  rho_trainable):
+    def build_rho(t12, initial_params, r0_trainable, rho_trainable):
         """ builds the rho contribution for a given atom type tuple
             t12 = (t1, t2)
             returns: parameters xi, q, r0 and the corresponding rho
@@ -258,10 +248,7 @@ class SMATBpotential(EAMpotential):
         """
         with _tf.variable_scope("{}_{}_rho".format(*t12),
                                 reuse=_tf.AUTO_REUSE):
-            if ("xi", t12[0], t12[1]) in initial_params:
-                xi_init = initial_params[("xi", t12[0], t12[1])]
-            else:
-                xi_init = 1.6
+            xi_init = initial_params.get(("xi", t12[0], t12[1]), 1.6)
             xi = _tf.get_variable(
                 "xi_{}_{}".format(*t12), dtype=precision,
                 initializer=_tf.constant(xi_init, dtype=precision),
@@ -271,10 +258,8 @@ class SMATBpotential(EAMpotential):
             _tf.summary.scalar("xi_{}_{}".format(*t12), xi,
                                family="modelParams")
 
-            if ("q", t12[0], t12[1]) in initial_params:
-                q_init = initial_params[("q", t12[0], t12[1])]
-            else:
-                q_init = 3.5
+            q_init = initial_params.get(("q", t12[0], t12[1]), 3.5)
+
             q = _tf.get_variable(
                 "q_{}_{}".format(*t12), dtype=precision,
                 initializer=_tf.constant(q_init, dtype=precision),
@@ -284,10 +269,7 @@ class SMATBpotential(EAMpotential):
             _tf.summary.scalar("q_{}_{}".format(*t12), q,
                                family="modelParams")
         with _tf.variable_scope("{}_{}_r0".format(*t12), reuse=_tf.AUTO_REUSE):
-            if ("r0", t12[0], t12[1]) in initial_params:
-                r0_init = initial_params[("r0", t12[0], t12[1])]
-            else:
-                r0_init = 2.7
+            r0_init = initial_params.get(("r0", t12[0], t12[1]), 2.7)
             r0 = _tf.get_variable(
                 "r0_{}_{}".format(*t12), dtype=precision,
                 initializer=_tf.constant(r0_init, dtype=precision),
@@ -297,6 +279,9 @@ class SMATBpotential(EAMpotential):
             if r0_trainable:
                 _tf.summary.scalar("r0_{}_{}".format(*t12), r0,
                                    family="modelParams")
+
+        cut_a = initial_params.get(("cut_start", t12[0], t12[1]), 5.4)
+        cut_b = initial_params.get(("cut_end", t12[0], t12[1]), 8.1)
 
         def rho(r):
             return xi**2 * _tf.exp(-2.0*q*(r/r0 - 1)) * poly_cutoff(
@@ -322,12 +307,10 @@ class NNEpotential(EAMpotential):
             for t1, t2 in combinations_with_replacement(atom_types, r=2):
                 t12 = tuple(sorted([t1, t2]))
                 A[t12], p[t12], r0[t12], pairPot[t12] = (
-                    SMATBpotential.build_pairPot(t12, initial_params, cut_a,
-                                                 cut_b, r0_trainable,
-                                                 pair_trainable))
+                    SMATBpotential.build_pairPot(t12, initial_params,
+                                                 r0_trainable, pair_trainable))
                 xi[t12], q[t12], _, rho[t12] = SMATBpotential.build_rho(
-                    t12, initial_params, cut_a, cut_b, r0_trainable,
-                    rho_trainable)
+                    t12, initial_params, r0_trainable, rho_trainable)
 
             offsets = offsets or [0.0]*len(self.atom_types)
 
@@ -402,8 +385,8 @@ class NNRHOpotential(EAMpotential):
             for t1, t2 in combinations_with_replacement(atom_types, r=2):
                 t12 = tuple(sorted([t1, t2]))
                 A[t12], p[t12], r0[t12], pairPot[t12] = (
-                    SMATBpotential.build_pairPot(t12, initial_params, cut_a,
-                                                 cut_b, r0_trainable,
+                    SMATBpotential.build_pairPot(t12, initial_params,
+                                                 r0_trainable,
                                                  pair_trainable))
 
                 rho[t12] = NNRHOpotential.build_rho(
@@ -550,9 +533,8 @@ class NNERHOpotential(EAMpotential):
             for t1, t2 in combinations_with_replacement(atom_types, r=2):
                 t12 = tuple(sorted([t1, t2]))
                 A[t12], p[t12], r0[t12], pairPot[t12] = (
-                    SMATBpotential.build_pairPot(t12, initial_params, cut_a,
-                                                 cut_b, r0_trainable,
-                                                 pair_trainable))
+                    SMATBpotential.build_pairPot(t12, initial_params,
+                                                 r0_trainable, pair_trainable))
 
                 rho[t12] = NNRHOpotential.build_rho(
                     t12, initial_params, layers_rho, cut_a, cut_b,
@@ -684,9 +666,8 @@ class NNfreeERHOpotential(EAMpotential):
             for t1, t2 in combinations_with_replacement(atom_types, r=2):
                 t12 = tuple(sorted([t1, t2]))
                 A[t12], p[t12], r0[t12], pairPot[t12] = (
-                    SMATBpotential.build_pairPot(t12, initial_params, cut_a,
-                                                 cut_b, r0_trainable,
-                                                 pair_trainable))
+                    SMATBpotential.build_pairPot(t12, initial_params,
+                                                 r0_trainable, pair_trainable))
 
                 rho[t12] = NNfreeERHOpotential.build_rho(
                     t12, initial_params, layers_rho, cut_a, cut_b,

@@ -907,14 +907,15 @@ class RBFKernel(Kernel):
         if not (dx and dy):
             raise NotImplementedError
         # Initialize kernel matrix
-        K = np.zeros((n*(1+n_dim), m*(1+n_dim)))
+        K = np.zeros((n*(1+n_dim), m*(1+n_dim)), dtype=X.dtype)
         if eval_gradient:
             # Array to hold the derivatives with respect to the length_scale
             if anisotropic:
                 K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim),
-                                      length_scale.shape[0]))
+                                      length_scale.shape[0]), dtype=X.dtype)
             else:  # isotropic
-                K_gradient = np.zeros((n*(1+n_dim), m*(1+n_dim), 1))
+                K_gradient = np.zeros(
+                    (n*(1+n_dim), m*(1+n_dim), 1), dtype=X.dtype)
         for a in range(n):
             for b in range(m):
                 # Index ranges for the derivatives are given by the following
