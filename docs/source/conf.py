@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath('../../mlpot'))
 # -- Project information -----------------------------------------------------
 
 project = 'MLPOT'
-copyright = '2019, Ralf Meyer, Andreas W. Hauser'
+copyright = '2021, Ralf Meyer, Andreas W. Hauser'
 author = 'Ralf Meyer, Andreas W. Hauser'
 
 
