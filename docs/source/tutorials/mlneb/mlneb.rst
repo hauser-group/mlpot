@@ -12,4 +12,5 @@ generate the results presented in `J. Chem. Theory Comput. 2019, 15, 11, 6513 <h
    :maxdepth: 1
 
    diffusion
-   delta_learning
+..
+   _delta_learning Removed for now
