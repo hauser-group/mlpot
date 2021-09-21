@@ -1,4 +1,5 @@
-.. _delta_learning:
+..
+  _.. _delta_learning:
 
 ====================================
 Ethane rotation using delta-learning
