@@ -1,3 +1,4 @@
+:orphan:
 ..
   _.. _delta_learning:
 
