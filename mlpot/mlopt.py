@@ -6,9 +6,9 @@ import numpy as np
 
 class TrustRadiusFIRE(FIRE):
 
-    def __init__(self, atoms, maxmove=None, trustradius=0.2, **kwargs):
-        maxmove = maxmove or trustradius/10
-        FIRE.__init__(self, atoms, maxmove=maxmove, **kwargs)
+    def __init__(self, atoms, maxstep=None, trustradius=0.2, **kwargs):
+        maxstep = maxstep or trustradius/10
+        FIRE.__init__(self, atoms, maxstep=maxstep, **kwargs)
         self.trustradius = trustradius
         # Reference for the trustradius
         self.start_geo = atoms.get_positions()
