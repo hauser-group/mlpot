@@ -7,13 +7,14 @@ from scipy.optimize import minimize
 class GPRCalculator(MLCalculator):
 
     def __init__(self, restart=None, ignore_bad_restart_file=False,
-                 label=None, atoms=None, kernel=None,
+                 label=None, atoms=None, kernel=None, verbose=0,
                  opt_fun='marginal_likelihood', opt_method='L-BFGS-B',
                  opt_restarts=0, normalize_y=False, mean_model=None, **kwargs):
         MLCalculator.__init__(self, restart, ignore_bad_restart_file, label,
                               atoms, **kwargs)
 
         self.kernel = kernel
+        self.verbose = verbose
         self.opt_fun = opt_fun
         self.opt_method = opt_method
         self.opt_restarts = opt_restarts
@@ -67,7 +68,8 @@ class GPRCalculator(MLCalculator):
         return x
 
     def fit(self):
-        print('Fit called with %d geometries.' % len(self.atoms_train))
+        if self.verbose > 0:
+            print('Fit called with %d geometries.' % len(self.atoms_train))
 
         try:
             self.intercept = float(self.normalize_y)
@@ -111,17 +113,19 @@ class GPRCalculator(MLCalculator):
                     for bi, (lower_bound, upper_bound) in enumerate(bounds):
                         initial_hyper_parameters[bi] = np.random.uniform(
                             lower_bound, upper_bound, 1)
-                print('Starting hyperparameter optimization %d/%d' % (
-                            ii+1, self.opt_restarts),
-                      'with parameters: ', np.exp(initial_hyper_parameters))
+                if self.verbose > 0:
+                    print('Starting hyperparameter optimization %d/%d' % (
+                                ii+1, self.opt_restarts),
+                          'with parameters: ', np.exp(initial_hyper_parameters))
                 try:
                     opt_res = self._opt_routine(initial_hyper_parameters)
                     opt_hyper_parameter.append(opt_res.x)
                     value.append(opt_res.fun)
-                    print('Finished hyperparameter optimization after',
-                          '%d iterations' % opt_res.nit,
-                          ' with value: ', opt_res.fun,
-                          ' and parameters:', np.exp(opt_res.x))
+                    if self.verbose > 0:
+                        print('Finished hyperparameter optimization after',
+                              '%d iterations' % opt_res.nit,
+                              ' with value: ', opt_res.fun,
+                              ' and parameters:', np.exp(opt_res.x))
                 except np.linalg.LinAlgError as E:
                     print('Cholesky factorization failed for parameters:',
                           self.kernel.theta)
@@ -147,9 +151,10 @@ class GPRCalculator(MLCalculator):
         y = self.alpha.dot(pure_k_mat)
         E = y[:self.n_samples] + self.intercept
         F = -y[self.n_samples:]
-        print('Fit finished. Final RMSE energy = %f, RMSE force = %f.' % (
-            np.sqrt(np.mean((E - self.E_train)**2)),
-            np.sqrt(np.mean((F - self.F_train)**2))))
+        if self.verbose > 0:
+            print('Fit finished. Final RMSE energy = %f, RMSE force = %f.' % (
+                np.sqrt(np.mean((E - self.E_train)**2)),
+                np.sqrt(np.mean((F - self.F_train)**2))))
 
     def _cholesky(self, kernel):
         """

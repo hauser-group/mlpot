@@ -13,14 +13,15 @@ def distance(a1, a2, permute=False):
 
 
 def run_neb_on_ml_pes(ml_neb, training_images, optimizer=FIRE, fmax=0.5,
-                      steps=250, r_max=1.0):
+                      steps=250, r_max=1.0, verbose=0):
     """
     Runs the NEB optimization on the machine learning PES. Needs an instance of
     NEB with the machine learning calculators attached to them. The
     training_images are needed to stop the optimization as soon as any image
     moves more than r_max distance units.
     Returns boolean of convergence status."""
-    print('Starting machine learning neb run.')
+    if verbose > 0:
+        print('Starting machine learning neb run.')
     opt = optimizer(ml_neb)
     old_positions = [image.get_positions() for image in ml_neb.images[1:-1]]
     # loop over optimizer steps
@@ -33,8 +34,9 @@ def run_neb_on_ml_pes(ml_neb, training_images, optimizer=FIRE, fmax=0.5,
             # stop if the distance from ml_image to the closest training_image
             # is larger than r_max
             if np.min(distances) > r_max:
-                print('Image %d exceeded r_max at step %d.' % (
-                    ni + 1, opt.nsteps), 'Resetting to previous step.')
+                if verbose > 0:
+                    print('Image %d exceeded r_max at step %d.' % (
+                        ni + 1, opt.nsteps), 'Resetting to previous step.')
                 [ml_image.set_positions(old_pos.copy())
                  for ml_image, old_pos
                  in zip(ml_neb.images[1:-1], old_positions)]
@@ -47,7 +49,7 @@ def run_neb_on_ml_pes(ml_neb, training_images, optimizer=FIRE, fmax=0.5,
 
 def run_mla_neb(neb, ml_calc, optimizer=FIRE, steps=100, f_max=0.05,
                 f_max_ml=None, f_max_ml_ci=None, steps_ml=150, steps_ml_ci=150,
-                r_max=None, callback_after_ml_neb=None):
+                r_max=None, callback_after_ml_neb=None, verbose=0):
     """
     """
     images = neb.images
@@ -64,7 +66,8 @@ def run_mla_neb(neb, ml_calc, optimizer=FIRE, steps=100, f_max=0.05,
         # the length of the initial path for r_max:
         r_max = 0.5*sum(
             [distance(images[i-1], images[i]) for i in range(1, len(images))])
-        print('r_max = %.2f' % r_max)
+        if verbose > 0:
+            print('r_max = %.2f' % r_max)
 
     # make a copy of all images and attach a copy of the machine learning
     # calculator. Add a copy the whole band to the training images
@@ -87,9 +90,8 @@ def run_mla_neb(neb, ml_calc, optimizer=FIRE, steps=100, f_max=0.05,
         # get the forces on the inner images including the spring forces and
         # reshape them
         true_forces = neb.get_forces().reshape((len(neb.images)-2, N_atoms, 3))
-        print('Maximum force per image after %d evaluations of the band:' % (
-            step_i+1))
-        print(np.sqrt((true_forces**2).sum(axis=2).max(axis=1)))
+        print('MLANEB: %4d' % step_i,
+              np.sqrt((true_forces**2).sum(axis=2).max(axis=1)))
         # Check for convergence, following the default ase convergence
         # criterion
         if (true_forces**2).sum(axis=2).max() < f_max**2:
@@ -112,11 +114,14 @@ def run_mla_neb(neb, ml_calc, optimizer=FIRE, steps=100, f_max=0.05,
         # and optimize.
         ml_neb.climb = False
         if run_neb_on_ml_pes(ml_neb, training_images, optimizer=optimizer,
-                             fmax=f_max_ml, steps=steps_ml, r_max=r_max)[0]:
-            print('Switching to climbing image NEB')
+                             fmax=f_max_ml, steps=steps_ml, r_max=r_max,
+                             verbose=verbose)[0]:
+            if verbose > 0:
+                print('Switching to climbing image NEB')
             ml_neb.climb = True
             run_neb_on_ml_pes(ml_neb, training_images, optimizer=optimizer,
-                              fmax=f_max_ml_ci, steps=steps_ml_ci, r_max=r_max)
+                              fmax=f_max_ml_ci, steps=steps_ml_ci, r_max=r_max,
+                              verbose=verbose)
 
         if callback_after_ml_neb is not None:
             callback_after_ml_neb(images, ml_images, ml_calc)
