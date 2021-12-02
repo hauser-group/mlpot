@@ -116,7 +116,8 @@ class GPRCalculator(MLCalculator):
                 if self.verbose > 0:
                     print('Starting hyperparameter optimization %d/%d' % (
                                 ii+1, self.opt_restarts),
-                          'with parameters: ', np.exp(initial_hyper_parameters))
+                          'with parameters: ',
+                          np.exp(initial_hyper_parameters))
                 try:
                     opt_res = self._opt_routine(initial_hyper_parameters)
                     opt_hyper_parameter.append(opt_res.x)
