@@ -1,7 +1,9 @@
 import numpy as np
 from ase.neb import NEB
 from ase.optimize.fire import FIRE
+from ase.optimize.optimize import Optimizer
 from ase.calculators.singlepoint import SinglePointCalculator
+from ase.utils import deprecated
 from copy import copy
 
 
@@ -47,6 +49,69 @@ def run_neb_on_ml_pes(ml_neb, training_images, optimizer=FIRE, fmax=0.5,
     return converged, None
 
 
+class MLNEBOptimizer(Optimizer):
+
+    defaults = {'maxstep': 'calculate'}
+
+    def __init__(self, neb, ml_calc, restart=None, logfile='-',
+                 trajectory=None, master=None, force_consistent=None):
+        if not isinstance(neb, NEB):
+            raise TypeError('This optimizer only works on NEB objects.')
+        Optimizer.__init__(self, neb, restart, logfile, trajectory, master,
+                           force_consistent=force_consistent)
+        self.ml_calc = ml_calc
+
+    def initialize(self):
+        pass
+
+    def step(self, f=None):
+        """ The step corresponds to the outer loop in paper I algorithm A."""
+        # A. Evaluate the true energy and force at the N im 2
+        #    intermediate images of the current path and add them
+        #    to the training data.
+        # -> evaluation is taken care of by the self.converged() method in
+        #    the Optimizer class. Only need to add to the training data.
+
+
+        # B. Calculate the accurate NEB force vector F NEB (i) for
+        #    each intermediate image i ∈ {2, 3, . . . , Nim − 1}.
+        # C. If maxi |FNEB (i)| < TMEP and |FNEB (iCI )| < TCI , then
+        #    stop the algorithm (final convergence reached).
+        # -> Convergence is checked by Optimizer superclass.
+
+        # D. Optimize the hyperparameters of the GP model based
+        #    on the training data and calculate the matrix inversion
+        #    in Eq. (1).
+        self.ml_calc.fit()
+
+
+        # E. Relaxation phase: Start from the initial path, set
+        # climbing image mode off, and repeat the following
+        # (inner iteration loop):
+        self._inner_loop()
+        # Update neb with the positions of the ml_neb
+
+
+    def _inner_loop(self):
+        """ Run neb on the ML PES.
+            Returns convergence status and index of image that exceeded the
+            trust radius.
+        """
+        # Reinitialize optimizer
+        opt = self.inner_optimizer(self.ml_neb)
+        self.ml_neb = False
+        # Save old positions for resetting when trust radius is exceeded.
+        old_positions = [
+            image.get_positions() for image in self.ml_neb.images[1:-1]]
+        for converged in opt.irun():
+            pass
+
+        self.ml_neb = True
+        for converged in opt.irun():
+            pass
+        return converged, None
+
+@deprecated(DeprecationWarning('Please use the MLNEBOptimizer'))
 def run_mla_neb(neb, ml_calc, optimizer=FIRE, steps=100, f_max=0.05,
                 f_max_ml=None, f_max_ml_ci=None, steps_ml=150, steps_ml_ci=150,
                 r_max=None, callback_after_ml_neb=None, verbose=0):
@@ -178,8 +243,7 @@ def _relaxation_phase(ml_neb, ml_calc, steps, t_mep_ml, t_ci_on, r_max,
                     in zip(ml_neb.images[1:-1], old_positions)]
                 return False, ni + 1
         old_positions = [image.get_positions()
-                         for image
-                         in ml_neb.images[1:-1]]
+                         for image in ml_neb.images[1:-1]]
     # Not converged
     return False, None
 
